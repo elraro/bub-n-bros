@@ -222,6 +222,9 @@ class Sprite:
       sprites[self.alive] = ''
       self.alive = 0
 
+  def prefix(self, n, m=0):
+    sprites[self.alive] = pack("!hhh", n, m, -2) + sprites[self.alive]
+
   def to_front(self):
     if self.alive and self.alive < len(sprites)-1:
       info = sprites[self.alive]

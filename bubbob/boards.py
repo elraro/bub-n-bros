@@ -450,6 +450,7 @@ def normal_frame():
             p.zarkon()
             for d in p.dragons:
                 d.to_front()
+                d.prefix(p.pn)
     if not (BubPlayer.FrameCounter & 31):
         gamesrv.compactsprites()
         reset = getattr(BubPlayer, 'MultiplyerReset', 0)
