@@ -36,7 +36,7 @@ class MetaServer:
             os._exit(0)
         # in the child process
         os.setsid()
-        logfile = stdlog.LogFile()
+        logfile = stdlog.LogFile(limitsize=131072)
         if logfile:
             print >> logfile
             print "Logging to", logfile.filename
