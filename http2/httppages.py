@@ -549,7 +549,7 @@ def launch(args):
         print >> f, '__file__ = %r' % cmdname
         print >> f, 'execfile(%r)' % args[0]
         f.close()
-        os.system('/usr/bin/open "%s"' % cmdname)
+        os.system('/usr/bin/open -a PythonLauncher "%s"' % cmdname)
     else:
         args.insert(0, sys.executable)
         # try to close the open fds first
