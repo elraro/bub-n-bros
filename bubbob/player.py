@@ -458,18 +458,16 @@ class BubPlayer(gamesrv.Player):
             icons[key] = fn(value)
 
     def setplayername(self, name):
-        import re
-        m = re.search('(.+)(\([12]\))',name)
-        self.team = -1
-        if m:
-            if m.group(2) == '(1)':
-                self.team = 0
-            elif m.group(2) == '(2)':
-                self.team = 1
-            name = m.group(1).strip()
-            print "New player in team", m.group(2), "with name", m.group(1)
-        #else:
-        #    print "The regexp didn't match:", name
+        name = name.strip()
+        for t in [0, 1]:
+            if name.endswith('(%d)' % (t+1)):
+                self.team = t
+                name = name[:-3].strip()
+                #print "New player in team", t, "with name", name
+                break
+        else:
+            self.team = -1
+            #print "New player with no team:", name
         icons = [images.sprcharacterget(c) for c in name]
         self.nameicons = [ico for ico in icons if ico is not None][:16]
         self.nameicons.reverse()
