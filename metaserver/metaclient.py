@@ -4,8 +4,8 @@ from metastruct import *
 
 METASERVER = ('codespeak.net', 8055)
 METASERVER_URL = 'http://codespeak.net:8050/bub-n-bros.html'
-METASERVER = ('127.0.0.1', 8055)
-METASERVER_URL = 'http://127.0.0.1:8050/bub-n-bros.html'
+#METASERVER = ('127.0.0.1', 8055)
+#METASERVER_URL = 'http://127.0.0.1:8050/bub-n-bros.html'
 
 def connect(failure=[]):
     if len(failure) >= 2:
