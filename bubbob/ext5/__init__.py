@@ -62,7 +62,11 @@ class Lemming(Monster):
         self.lemmings = lemmings
 
     def argh(self, *args, **kwds):
-        pass
+        self.reset()
+
+    def reset(self):
+        self.gen = [self.falling()]
+        self.touchable = 1
 
     def resetimages(self):
         pass
