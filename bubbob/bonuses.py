@@ -701,7 +701,7 @@ class Monsterer(RandomBonus):
              ]
     def __init__(self, x, y):
         self.mode = random.choice([0,1])
-        RandomBonus.__init__(seld, x, y, *Sizes[self.mode])
+        RandomBonus.__init__(self, x, y, *self.Sizes[self.mode])
     def taken(self, dragon):
         mcls = random.choice(self.mlist[self.mode])
         dragon.become_monster(mcls)
