@@ -383,6 +383,7 @@ class Dragon(ActiveSprite):
 
 class BubPlayer(gamesrv.Player):
     # global state
+    FrameCounter = 0
     PlayerList = []
     DragonList = []
     MonsterList = []
@@ -393,7 +394,6 @@ class BubPlayer(gamesrv.Player):
     #HighScoreColor = None
 
     INIT_BOARD_CAP = {
-        'FrameCounter': 0,
         #'LatestLetsGo': -999,
         'BubblesBecome': None,
         'MegaBonus': None,
