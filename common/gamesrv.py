@@ -1145,6 +1145,8 @@ def mainloop():
       except KeyboardInterrupt:
         if game is None or not game.FnExcHandler(1):
           raise
+      except SystemExit:
+        raise
       except:
         if game is None or not game.FnExcHandler(0):
           raise
