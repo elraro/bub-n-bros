@@ -6,6 +6,7 @@ import boards
 from boards import CELL, HALFCELL, bget
 from monsters import Monster
 from player import Dragon, BubPlayer
+from bubbles import Bubble
 import bonuses
 
 LocalDir = os.path.basename(os.path.dirname(__file__))
@@ -48,38 +49,30 @@ music = gamesrv.getmusic(os.path.join(LocalDir, 'music.wav'))
 snd_ouch = gamesrv.getsample(os.path.join(LocalDir, 'ouch.wav'))
 
 
-class LemmyWalk:
-    right  = [('lem-walk', 1,n) for n in range(8)]
-    left   = [('lem-walk',-1,n) for n in range(8)]
-    jailed = [('lem-jail',   n) for n in range(3)]
-
-class LemmyFall(LemmyWalk):
-    right  = [('lem-fall', 1,n) for n in range(4)]
-    left   = [('lem-fall',-1,n) for n in range(4)]
+class Lemmy:
+    right     = [('lem-walk', 1,n) for n in range(8)]
+    left      = [('lem-walk',-1,n) for n in range(8)]
+    jailed    = [('lem-jail',   n) for n in range(3)]
 
 
 class Lemming(Monster):
 
     def __init__(self, lemmings, x, y, dir):
-        Monster.__init__(self, LemmyWalk, x, y, dir, in_list=lemmings.lemlist)
+        Monster.__init__(self, Lemmy, x, y, dir, in_list=lemmings.lemlist)
         self.lemmings = lemmings
 
     def argh(self, *args):
         pass
 
-    def imgrange(self):
-        if self.dir > 0:
-            return self.mdef.right
-        else:
-            return self.mdef.left
+    def resetimages(self):
+        pass
 
     def touched(self, dragon):
-        if 24 >= abs(self.x - dragon.x) >= 19:
+        if 20 >= abs(self.x - dragon.x) >= 14:
             if self.x < dragon.x:
                 self.dir = -1
             else:
                 self.dir = 1
-            self.resetimages()
 
     def in_bubble(self, bubble):
         self.move(bubble.x, bubble.y)
@@ -116,17 +109,19 @@ class Lemming(Monster):
         self.gen.append(self.falling())
 
     def falling(self):
-        self.mdef = LemmyFall
-        self.resetimages()
-        ymax = self.y + 8*CELL
+        self.setimages(None)
+        n = 0
+        lemmap = self.lemmings.lemmap
         while not self.onground():
             yield None
-            self.move(self.x, (self.y + 4) & ~3)
+            self.move(self.x, (self.y + 4) & ~3,
+                      lemmap['lem-fall', self.dir, n&3])
+            n += 1
             if self.y >= boards.bheight:
                 self.kill()
                 return
             yield None
-        if self.y <= ymax:
+        if n <= 33:
             self.gen.append(self.walking())
         else:
             self.play(snd_ouch)
@@ -135,14 +130,12 @@ class Lemming(Monster):
             self.gen = [self.die([('lem-crash', n) for n in range(16)], 2)]
 
     def walking(self):
-        self.mdef = LemmyWalk
-        self.resetimages()
+        self.setimages(None)
+        n = 0
+        lemmap = self.lemmings.lemmap
         y0 = self.y // 16
         while self.y == y0*16:
             yield None
-            yield None
-            if random.random() < 0.1 and self.overlapping():
-                yield None
             nx = self.x + self.dir*2
             x0 = (nx+15) // 16
             if bget(x0, y0+1) == ' ':
@@ -154,10 +147,19 @@ class Lemming(Monster):
                 continue
             else:  # climb
                 y0 -= 1
+                n2 = 0
                 while self.y > y0*16:
                     self.step(0, -2)
+                    if n2:
+                        n2 -= 1
+                    else:
+                        self.seticon(lemmap['lem-walk', self.dir, n&7])
+                        n += 1
+                        n2 = 2
                     yield None
-            self.move(nx, self.y)
+            self.move(nx, self.y, lemmap['lem-walk', self.dir, n&7])
+            n += 1
+            yield None
             yield None
         self.gen.append(self.falling())
 
@@ -170,11 +172,8 @@ class Lemming(Monster):
 
     def leaveboard(self, bubble):
         if hasattr(bubble, 'd'):
-            lem_points = getattr(bubble, 'lem_points', 500)
-            if lem_points < 1000:
-                bubble.lem_points = lem_points + 100
             bubble.play(images.Snd.Extra)
-            bonuses.points(bubble.x, bubble.y, bubble.d, lem_points)
+            bonuses.points(bubble.x, bubble.y, bubble.d, 500)
             score = self.lemmings.score
             bubber = bubble.d.bubber
             score[bubber] = score.get(bubber, 0) + 1
@@ -191,6 +190,9 @@ class Lemmings:
         for t in curboard.clean_gen_state():
             yield t
         gamesrv.set_musics([], [music])
+        self.lemmap = {}
+        for key in localmap:
+            self.lemmap[key] = images.sprget(key)
 
         tc = boards.TimeCounter(limittime)
         self.score = {}
@@ -207,6 +209,9 @@ class Lemmings:
         for s in self.lemlist[:]:
             if s.alive:
                 s.kill()
+        for s in images.ActiveSprites[:]:
+            if isinstance(s, Bubble):
+                s.pop()
         for t in boards.result_ranking(self.score.copy(), self.lemtotal):
             yield t
 
