@@ -522,7 +522,7 @@ def launch(args):
     # platform-specific hacks
     if sys.platform == 'darwin':   # must start as a UI process
         import tempfile
-        cmdname = tempfile.mktemp(prefix='BubBob_', suffix='.command')
+        cmdname = tempfile.mktemp('_BubBob.command')
         f = open(cmdname, 'w')
         print >> f, "#!", sys.executable
         print >> f, "import os, sys"
