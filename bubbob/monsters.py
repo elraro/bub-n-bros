@@ -80,9 +80,9 @@ class Monster(ActiveSprite):
         if self.dir < 0:
             x0 = (self.x-1)//16
         else:
-            x0 = (self.x+1)//16 + 2
+            x0 = (self.x+33)//16
         y0 = self.y // 16 + 1
-        y1 = (self.y + 15) // 16 + 1
+        y1 = (self.y + 31) // 16
         return bget(x0,y0) == '#' or bget(x0,y1) == '#'
 
     def tryhstep(self):
