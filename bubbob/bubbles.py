@@ -78,10 +78,10 @@ class Bubble(ActiveSprite):
                        for d in dragons for i in [1,2,1,0]]
             self.setimages(self.cyclic(imglist))
             self.warp = 1
-            caught = [bonus for d in dragons
+            caught = [(bonus.points, bonus) for d in dragons
                       for bonus in d.listcarrybonuses()
                       if isinstance(bonus, CatchNote)]
-            random.shuffle(caught)
+            caught.sort()
             # count caught dragons, excluding team mates, but including self
             count = 0
             for d in dragons:
@@ -99,10 +99,11 @@ class Bubble(ActiveSprite):
                         points = 30000
                     else:
                         points = 70000
-                caught.insert(0, CatchNote(points))
-            for bonus in caught:
+                caught.append((points, CatchNote(points)))
+            caught = caught[-3:]
+            for points, bonus in caught:
                 author.carrybonus(bonus, 111)
-                bonuses.points(self.x, self.y-HALFCELL, author, bonus.points)
+                bonuses.points(self.x, self.y-HALFCELL, author, points)
             for d in dragons:
                 d.become_bubblingeyes(self)
                 s_catch = author.bubber.stats.setdefault('catch', {})
@@ -337,7 +338,7 @@ class BubblingEyes(ActiveSprite):
                 red += 1
                 if red > 20:
                     d = Dragon(bubber, self.x, self.y, ndir, self.dcap)
-                    bubble.pop([d])
+                    Bubble.pop(bubble, [d])  # hack to pop SolidBubbles too
                     d.kill()
                     break
                 if bubble.imgsetter is not redblinker:

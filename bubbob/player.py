@@ -42,7 +42,10 @@ class Dragon(ActiveSprite):
         'overlayglasses': 0,
         'carrying': (),
         }
-    SAVE_CAP = ['hspeed', 'firerate', 'shootthrust', 'flower']
+    SAVE_CAP = {'hspeed': 1,
+                'firerate': 2,
+                'shootthrust': 8.0 / 1.5,
+                'flower': 0}
     
     def __init__(self, bubber, x, y, dir, dcap=DCAP):
         self.bubber = bubber
@@ -610,8 +613,9 @@ class BubPlayer(gamesrv.Player):
     def savecaps(self):
         dragons = self.dragons
         if dragons:
-            for key in Dragon.SAVE_CAP:
-                self.pcap[key] = max([d.dcap[key] for d in dragons])
+            for key, minimum in Dragon.SAVE_CAP.items():
+                self.pcap[key] = max(minimum,
+                                     max([d.dcap[key] for d in dragons]))
 
     def zarkoff(self):
         for d in self.dragons[:]:

@@ -692,6 +692,7 @@ def makecactusbonus(cls, *args):
     mb.outcome_image = bonus.nimage
     mb.bonus = bonus
     mb.gen.append(mb.prepare_image())
+    mb.gen.append(mb.remove_if_no_bonus())
     return mb
 
 def cactusbonussound():
@@ -704,6 +705,11 @@ class Cactusbonus(Megabonus):
     def prepare_image(self):
         while images.computebiggericon(self.bonus.ico) is None:
             yield None
+
+    def remove_if_no_bonus(self):
+        while self.bonus.alive:
+            yield None
+        self.kill()
 
     def ready_to_go(self):
         ico = images.biggericon(self.bonus.ico)
