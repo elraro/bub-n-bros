@@ -368,12 +368,33 @@ class Pacman:
             if x % 7 == 0:
                 yield None
 
-        def rdig(x1,y1,x2,y2, holes=holes):
-            for x in range(x1,x2):
-                for y in range(y1,y2):
-                    if bget(x, y) == '#':
-                        curboard.killwall(x, y)
-                    holes.setdefault((x, y), 0)
+        # 'holes' maps coordinates (x,y) to 0 (not processed)
+        #                                or 1 (processed).
+        # All processed holes are pacman-connected.
+
+        def rdig(x1,y1,x2,y2, reversed, holes=holes):
+            # digs the rectangle (x1,y1,x2,y2) and marks it as
+            # processed.  Also recursively mark as processed all existing
+            # holes that are pacman-connected to the rectangle.
+            xrange = range(x1,x2)
+            yrange = range(y1,y2)
+            if not reversed:
+                xrange.reverse()
+                yrange.reverse()
+            if len(xrange) > len(yrange):
+                xylist = [(x, y) for x in xrange for y in yrange]
+            else:
+                xylist = [(x, y) for y in yrange for x in xrange]
+            t = 0
+            for x, y in xylist:
+                if bget(x, y) == '#':
+                    curboard.killwall(x, y)
+                    if t == 0:
+                        yield None
+                        t = 2
+                    else:
+                        t -= 1
+                holes.setdefault((x, y), 0)
             fill = []
             for x in range(x1,x2-1):
                 for y in range(y1,y2-1):
@@ -397,15 +418,12 @@ class Pacman:
                         fill.append((x,y+1))
                         fill.append((x,y-1))
 
-        def kcount(x1,y1,x2,y2):
-            total = 0
-            for x in range(x1,x2):
-                for y in range(y1,y2):
-                    if bget(x, y) == '#':
-                        total += 1
-            return total
-
         def joined(x1,y1,x2,y2, holes=holes, boards=boards):
+            # returns
+            #    1 if the rectangle (x1,y1,x2,y2) is pac-connected to
+            #        some already-processed holes
+            #    0 if it is not
+            #   -1 if (x1,y1,x2,y2) is out of the screen
             if x1<2 or y1<1 or x2>boards.width-2 or y2>boards.height-1:
                 return -1
             accum1 = accum2 = 0
@@ -438,49 +456,67 @@ class Pacman:
                     accum2 = 0
             return 0
 
-        startx = random.randrange(2, boards.width-4)
-        starty = random.randrange(0, boards.height-2)
-        rdig(startx, starty, startx+2, starty+1)
-        yield None
-
+        if not holes:
+            holes[boards.width//2, boards.height//2] = 0
         holeslist = holes.keys()
         random.shuffle(holeslist)
+        startx, starty = holeslist.pop()
+        # make the hole larger (2x2) towards the center of the board
+        if startx > boards.width//2:
+            startx -= 1
+        if starty > boards.height//2:
+            starty -= 1
+        # initial 2x2 hole
+        for t in rdig(startx, starty, startx+2, starty+2, 0):
+            yield t
+
         dlist = [
             (0,0,1,0, 0,-1),   (0,0,1,0, 0,0),   # right
             (0,0,0,1, -1,0),   (0,0,0,1, 0,0),   # bottom
             (-1,0,0,0, -1,-1), (-1,0,0,0, -1,0), # left
             (0,-1,0,0, -1,-1), (0,-1,0,0, 0,-1), # top
             ]
-        for x, y in holeslist:
-            if holes[x, y] != 0:
-                continue
-            choices = []
-            for dx1, dy1, dx2, dy2, dx, dy in dlist:
-                x1 = x + dx
-                y1 = y + dy
-                x2 = x1 + 2
-                y2 = y1 + 2
-                count = 999999
-                while 1:
-                    result = joined(x1,y1,x2,y2)
-                    if result == 1:
-                        count = kcount(x1,y1,x2,y2)
-                        break
-                    if result == -1:
-                        x1 -= dx1
-                        y1 -= dy1
-                        x2 -= dx2
-                        y2 -= dy2
-                        break
-                    x1 += dx1
-                    y1 += dy1
-                    x2 += dx2
-                    y2 += dy2
-                    count += 1
-                if count != 999999:
-                    choices.append((count, x1,y1,x2,y2))
-            count, x1,y1,x2,y2 = min(choices)
-            rdig(x1,y1,x2,y2)
+        while holeslist:
+            random.shuffle(dlist)
+            pending = holeslist
+            holeslist = []
+            progress = 0
+            for x, y in pending:
+                if holes[x, y] != 0:
+                    continue
+                for dx1, dy1, dx2, dy2, dx, dy in dlist:
+                    x1 = x + dx
+                    y1 = y + dy
+                    x2 = x1 + 2
+                    y2 = y1 + 2
+                    result = 0
+                    while result == 0:
+                        result = joined(x1,y1,x2,y2)
+                        if result == 1:
+                            # rectangle (x1,y1,x2,y2) is good
+                            for t in rdig(x1, y1, x2, y2,
+                                          dx1<0 or dy1<0 or dx2<0 or dy2<0):
+                                yield t
+                            progress = 1
+                            break
+                        x1 += dx1
+                        y1 += dy1
+                        x2 += dx2
+                        y2 += dy2
+                    else:
+                        # rectangle (x1,y1,x2,y2) is too large for the screen
+                        # failure
+                        continue
+                    break
+                else:
+                    # no successful direction found from this point
+                    holeslist.append((x, y))   # try again later
+            if not progress:
+                # deadlocked situation, add a new random hole
+                x = random.randrange(2, boards.width-2)
+                y = random.randrange(1, boards.height-1)
+                holeslist.insert(0, (x, y))
+                holes.setdefault((x, y), 0)
             yield None
         
         # pattern transformation:
