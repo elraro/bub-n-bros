@@ -40,7 +40,7 @@ class Dragon(ActiveSprite):
         'overlayglasses': 0,
         'carrying': (),
         }
-    SAVE_CAP = ['hspeed', 'firerate', 'shootthrust']
+    SAVE_CAP = ['hspeed', 'firerate', 'shootthrust', 'flower']
     
     def __init__(self, bubber, x, y, dir, dcap=DCAP):
         self.bubber = bubber
@@ -168,6 +168,9 @@ class Dragon(ActiveSprite):
                 wannafire = 1
             if self.dcap['pinball']:
                 wannajump = 1
+                if self.dcap['pinball'] > 1:
+                    if self.up:
+                        self.up *= 0.982 ** self.dcap['pinball']
             if self.dcap['hotstuff']:
                 if not wannago:
                     if self.dir * (random.random()-0.07) < 0:
@@ -294,7 +297,10 @@ class Dragon(ActiveSprite):
                     mode = 11
                 self.dcap['shield'] = s
             if self.dcap['ring']:# and random.random() > 0.1:
-                mode = 11
+                if self.dcap['ring'] > 1:
+                    mode = 12
+                else:
+                    mode = 11
             if bottom_up:
                 icons = self.bubber.flippedicons
                 if not icons:
@@ -374,11 +380,13 @@ class Dragon(ActiveSprite):
         shootbubbles = self.dcap['shootbubbles']
         special_bubbles = shootbubbles and shootbubbles.pop()
         N = self.dcap['flower']
-        if N > 1:
+        if N == 1:
+            angles = [0]
+        elif N > 1:
             angles = [i*(2.0*math.pi/N) for i in range(N)]
             self.dcap['flower'] = N*2//3
-        else:
-            angles = [0]
+        else:  # N == 0 for triple fire
+            angles = [0, -0.19, 0.19]
         for angle in angles:
             bubbles.DragonBubble(self, self.x + 4*self.dir, self.y, self.dir,
                                  special_bubbles, angle)
@@ -442,6 +450,8 @@ class BubPlayer(gamesrv.Player):
             (10,+1): GreenAndBlue.jumping_players[n][1],
             (11,-1): 'shield-left',    # shielded
             (11,+1): 'shield-right',
+            (12,-1): 'black',          # totally invisible
+            (12,+1): 'black',
             }
         self.nameicons = []
         self.team = -1

@@ -290,7 +290,7 @@ class TemporaryBonus(RandomBonus):
     captime = 0
     bonusleveldivider = 2
     def taken(self, dragon):
-        dragon.dcap[self.capname] += self.multiply
+        dragon.dcap[self.capname] += 1
         self.carried(dragon)
     def carried(self, dragon):
         captime = self.captime
@@ -302,8 +302,8 @@ class TemporaryBonus(RandomBonus):
             dragon.carrybonus(self)
             self.endaction = None
     def endaction(self, dragon):
-        dragon.dcap[self.capname] = max(0,
-            dragon.dcap[self.capname] - self.multiply)
+        if dragon.dcap[self.capname] >= 1:
+            dragon.dcap[self.capname] -= 1
 
 
 class ShoeSpeed(RandomBonus):
@@ -782,7 +782,7 @@ class FireBubble(RandomBonus):
     nimage = Bonuses.hamburger
     bubkind = 'FireBubble'
     bubcount = 10
-    bigbonus = {'bubcount': 30}
+    bigbonus = {'bubkind': 'BombBubble'}
     def taken(self, dragon):
         dragon.dcap['shootbubbles'] = [self.bubkind] * self.bubcount
         dragon.carrybonus(self)
@@ -791,11 +791,13 @@ class WaterBubble(FireBubble):
     "Water Bubbles. Your bubbles will now be filled with water."
     nimage = Bonuses.beer
     bubkind = 'WaterBubble'
+    bigbonus = None
 
 class LightningBubble(FireBubble):
     "Lightning Bubbles."
     nimage = Bonuses.french_fries
     bubkind = 'LightningBubble'
+    bigbonus = {'bubkind': 'BigLightBubble'}
 
 class Door(RandomBonus):
     "Magic Door. Let bonuses come in!"
@@ -810,25 +812,30 @@ class Door(RandomBonus):
 class LongFire(RandomBonus):
     "Long Fire. Increase the range of your bubble throw out."
     nimage = Bonuses.softice1
-    bigbonus = {'multiply': 3}
+    big = 0
+    bigbonus = {'big': 1}
     def taken(self, dragon):
-        dragon.dcap['shootthrust'] *= 1.5
+        if self.big:
+            dragon.dcap['flower'] = 0   # triple fire
+        else:
+            dragon.dcap['shootthrust'] *= 1.5
         dragon.carrybonus(self)
 
 class ShortFire(RandomBonus):
     "Short Fire. Shorten the range of your bubble throw out."
     nimage = Bonuses.softice2
     points = 300
-    bigbonus = {'multiply': 3}
+    factor = 1 / 1.5
+    bigbonus = {'factor': 0}
     def taken(self, dragon):
-        dragon.dcap['shootthrust'] /= 1.5
+        dragon.dcap['shootthrust'] *= self.factor
         dragon.carrybonus(self)
 
 class HighSpeedFire(RandomBonus):
     "High Speed Fire. Increase your fire rate."
     nimage = Bonuses.custard_pie
     points = 700
-    bigbonus = {'multiply': 3}
+    bigbonus = {'multiply': 4}
     def taken(self, dragon):
         dragon.dcap['firerate'] += 1.5
         dragon.carrybonus(self)
@@ -839,7 +846,7 @@ class Mushroom(TemporaryBonus):
     points = 900
     capname = 'pinball'
     captime = 625
-    bigbonus = {'captime': captime*2}
+    bigbonus = {'captime': captime*2, 'multiply': 2}
 
 class AutoFire(TemporaryBonus):
     "Auto Fire. Makes you fire continuously."
@@ -847,7 +854,6 @@ class AutoFire(TemporaryBonus):
     points = 800
     capname = 'autofire'
     captime = 675
-    bigbonus = {'captime': captime*2}
 
 class Insect(RandomBonus):
     "Crush World."
@@ -864,7 +870,7 @@ class Ring(TemporaryBonus):
     capname = 'ring'
     captime = 700
     bonusleveldivider = 5
-    bigbonus = {'captime': captime*2}
+    bigbonus = {'multiply': 3}
 
 class GreenPepper(TemporaryBonus):
     "Hot Pepper. Run! Run! That burns."
@@ -876,7 +882,6 @@ class GreenPepper(TemporaryBonus):
 class Lollipop(TemporaryBonus):
     "Yo Man! Makes you walk backward."
     nimage = Bonuses.lollipop
-    bigbonus = {'multiply': 3}
     def taken(self, dragon):
         dragon.dcap['left2right'] = -dragon.dcap['left2right']
         self.carried(dragon)
@@ -889,7 +894,7 @@ class Chickpea(TemporaryBonus):
     points = 800
     capname = 'overlayglasses'
     captime = 230
-    bigbonus = {'multiply': 2, 'captime': 240 + captime}
+    #bigbonus = {'multiply': 2, 'captime': 240 + captime}
     def taken(self, dragon):
         TemporaryBonus.taken(self, dragon)
         dragon.dcap['shield'] += 250
@@ -925,15 +930,15 @@ class Grenade(RandomBonus):
     "Barbecue."
     nimage = Bonuses.grenade
     points = 550
-    bigbonus = {'multiply': 5}
+    big = 0
+    bigbonus = {'big': 1}
     def taken1(self, dragons):
         from bubbles import FireFlame
         poplist = [None]
         for y in range(1, boards.height-1):
             for x in range(2, boards.width-2):
-                if bget(x,y) == ' ' and bget(x,y+1) == '#':
+                if bget(x,y) == ' ' and (bget(x,y+1) == '#' or self.big):
                     f = FireFlame(x, y, poplist)
-                    f.timeout *= self.multiply
 
 class Conch(RandomBonus):
     "Sea Shell. Let's bring the sea here!"
@@ -1172,29 +1177,32 @@ class Bomb(RandomBonus):
     nimage = Bonuses.bomb
     bigbonus = {'multiply': 3.8}
     def taken1(self, dragons):
-        RADIUS = 3.9 * CELL * math.sqrt(self.multiply)
-        Radius2 = RADIUS * RADIUS
-        brd = boards.curboard
-        cx = self.x + HALFCELL
-        cy = self.y + HALFCELL - RADIUS/2
-        for y in range(0, brd.height):
-            dy1 = abs(y*CELL - cy)
-            dy2 = abs((y-(brd.height-1))*CELL - cy)
-            dy3 = abs((y+(brd.height-1))*CELL - cy)
-            dy = min(dy1, dy2, dy3)
-            for x in range(2, brd.width-2):
-                dx = x*CELL - cx
-                if dx*dx + dy*dy < Radius2:
-                    try:
-                        brd.killwall(x,y)
-                    except KeyError:
-                        pass
-        brd.reorder_walls()
-        starexplosion(self.x, self.y, 2)
-        gen = boards.extra_display_repulse(self.x+CELL, self.y+CELL,
-                                           15000 * self.multiply,
-                                           1000 * self.multiply)
-        boards.extra_boardgen(gen)
+        bomb_explosion(self.x, self.y, self.multiply)
+
+def bomb_explosion(x0, y0, multiply=1, starmul=2):
+    RADIUS = 3.9 * CELL * math.sqrt(multiply)
+    Radius2 = RADIUS * RADIUS
+    brd = boards.curboard
+    cx = x0 + HALFCELL
+    cy = y0 + HALFCELL - RADIUS/2
+    for y in range(0, brd.height):
+        dy1 = abs(y*CELL - cy)
+        dy2 = abs((y-(brd.height-1))*CELL - cy)
+        dy3 = abs((y+(brd.height-1))*CELL - cy)
+        dy = min(dy1, dy2, dy3)
+        for x in range(2, brd.width-2):
+            dx = x*CELL - cx
+            if dx*dx + dy*dy < Radius2:
+                try:
+                    brd.killwall(x,y)
+                except KeyError:
+                    pass
+    brd.reorder_walls()
+    starexplosion(x0, y0, starmul)
+    gen = boards.extra_display_repulse(x0+CELL, y0+CELL,
+                                       15000 * multiply,
+                                       1000 * multiply)
+    boards.extra_boardgen(gen)
 
 class Ham(RandomBonus):
     "Protein. Let's build something!"
@@ -1404,12 +1412,12 @@ class Slippy(TemporaryBonus):
     points = 900
     capname = 'slippy'
     captime = 606
-    bigbonus = {'captime': captime*2}
+    #bigbonus = {'captime': captime*2}
 
 class Aubergine(TemporaryBonus):
     "Mirror. The left hand is the one with the thumb on the right, right?"
     nimage = Bonuses.aubergine
-    bigbonus = {'multiply': 3}
+    #bigbonus = {'multiply': 3}
     def taken(self, dragon):
         dragon.dcap['lookforward'] = -dragon.dcap['lookforward']
         self.carried(dragon)

@@ -67,17 +67,11 @@ class ActiveSprite(gamesrv.Sprite):
         pass
 
     # common generators
-    def cyclic(self, nimages, speed=5):
-        images = [sprget(n) for n in nimages]
-        speed = range(speed)
-        while 1:
-            for img in images:
-                self.seticon(img)
-                for i in speed:
-                    yield None
-
-    def cyclic_vflip(self, nimages, speed=5):
-        images = [sprget_vflip(n) for n in nimages]
+    def cyclic(self, nimages, speed=5, vflip=0):
+        if vflip:
+            images = [sprget_vflip(n) for n in nimages]
+        else:
+            images = [sprget(n) for n in nimages]
         speed = range(speed)
         while 1:
             for img in images:
@@ -374,6 +368,7 @@ extramap = {
     ('emotic', 4): ('extra7.ppm', (0, 32, 8, 8)),
     ('emotic', 5): ('extra7.ppm', (0, 40, 8, 8)),
     ('emotic', 6): ('extra7.ppm', (0, 48, 8, 8)),
+    'black': ('black.ppm', (0, 0, 32, 32)),
     }
 hatmap = {
     ('hat', 0, -1,1):('hat2.ppm',(  0, 0, 32, 48)),

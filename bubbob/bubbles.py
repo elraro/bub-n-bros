@@ -53,8 +53,10 @@ class Bubble(ActiveSprite):
             self.pop(dragon.poplist)
         return o == self.check_onbubble[dragon.bottom_up()]
 
-    def can_catch_dragons(self, author):
+    def can_catch_dragons(self, author, catch_myself=0):
         self.catch_dragons = [author]
+        if catch_myself:
+            self.catch_dragons.append(author)
         self.gen.append(self.catching_dragons())
 
     def catching_dragons(self):
@@ -283,12 +285,12 @@ class DragonBubble(Bubble):
             if not withmonster:
                 b = cls(self.d.bubber.pn)
                 b.move(self.x, self.y)
-                b.can_catch_dragons(self.d)
+                b.can_catch_dragons(self.d, hspeed == 0)
                 self.kill()
                 return
         self.startnormalbubble(timeout=self.d.dcap['bubbledelay'] or 800)
         if not withmonster:
-            self.can_catch_dragons(self.d)
+            self.can_catch_dragons(self.d, hspeed == 0)
 
 
 class BubblingEyes(ActiveSprite):
@@ -371,12 +373,11 @@ class BubblingEyes(ActiveSprite):
             yield None
         # jumping out of the bubble
         if bottom_up:
-            cyclic = self.cyclic_vflip
             kw = {'gravity': -0.3}
         else:
-            cyclic = self.cyclic
             kw = {}
-        self.setimages(cyclic(GreenAndBlue.comming[bubber.pn], 2))
+        self.setimages(self.cyclic(GreenAndBlue.comming[bubber.pn], 2,
+                                   vflip = bottom_up))
         dxy = [(random.random()-0.5) * 9.0,
                (random.random()+0.5) * (-5.0,5.0)[bottom_up]]
         for n in self.parabolic(dxy, 1, **kw):
@@ -403,6 +404,7 @@ class BubblingEyes(ActiveSprite):
 class BonusBubble(Bubble):
     max = None
     timeout = None
+    vflip = 0
 
     def __init__(self, pn, nimages=None, top=None):
         if nimages is None:
@@ -425,13 +427,17 @@ class BonusBubble(Bubble):
             x, y = (boards.bwidth - CELL,
                     random.randint(2*CELL, boards.bheight-4*CELL))
             dx, dy = -1, 0
-        Bubble.__init__(self, images.sprget(nimages[0]), x, y)
+        if self.vflip:
+            sprget = images.sprget_vflip
+        else:
+            sprget = images.sprget
+        Bubble.__init__(self, sprget(nimages[0]), x, y)
         self.gen.append(self.normal_movements(dx=dx, dy=dy,
                                               timeout=self.timeout))
         if len(nimages) == 3:
             nimages = [nimages[1], nimages[2], nimages[1], nimages[0]]
         if len(nimages) > 1:
-            self.setimages(self.cyclic(nimages))
+            self.setimages(self.cyclic(nimages, vflip=self.vflip))
 
     def findhole(self, testline):
         holes = [x for x in range(len(testline)-1) if testline[x:x+2]=='  ']
@@ -518,6 +524,14 @@ class FireBubble(BonusBubble):
             x0 = self.x // CELL + 1
             FireDrop(x0*CELL, self.y)
         return 10
+
+class BombBubble(FireBubble):
+    vflip = 1
+    def popped(self, dragon):
+        if dragon:
+            import bonuses
+            bonuses.bomb_explosion(self.x, self.y + CELL, starmul=1)
+        return 100
 
 ##class WaterCell(ActiveSprite):
 ##    ICONS = {
@@ -805,6 +819,14 @@ class LightningBubble(BonusBubble):
         if dragon:
             FiredLightning(self.x, self.y, -dragon.dir, self.poplist)
         return 10
+
+class BigLightBubble(LightningBubble):
+    vflip = 1
+    def popped(self, dragon):
+        if dragon:
+            import bonuses
+            bonuses.Megalightning(self.x, self.y, dragon)
+        return 100
 
 class SpinningBall(ActiveSprite):
     def __init__(self, x, y, poplist):
