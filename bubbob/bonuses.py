@@ -262,14 +262,14 @@ class RandomBonus(Bonus):
     timeout = 500
 
 
-class Shoe(RandomBonus):
+class ShoeSpeed(RandomBonus):
     "Fast Runner. Cumulative increase of horizontal speed."
     nimage = Bonuses.shoe
     def taken(self, dragon):
         dragon.dcap['hspeed'] += 1
         dragon.carrybonus(self)
 
-class Coffee(RandomBonus):
+class CoffeeSpeed(RandomBonus):
     "Caffeine. Cumulative increase of the horizontal speed and fire rate."
     nimage = Bonuses.coffee
     def taken(self, dragon):
@@ -322,6 +322,12 @@ class VioletNecklace(RandomBonus):
                 s.__class__(s.mdef, s.x, s.y, -s.dir)
 
 class WandBonus(RandomBonus):
+    "Wand/Chest. Turn the bubble into bonuses at the end of the level."
+    nimages = [Bonuses.brown_wand,   Bonuses.yellow_wand, Bonuses.green_wand,
+               Bonuses.violet_wand,  Bonuses.blue_wand,   Bonuses.red_wand,
+               Bonuses.violet_chest, Bonuses.blue_chest,  Bonuses.red_chest,
+               Bonuses.yellow_chest,
+               ]
     Modes = [
         (Bonuses.brown_wand,   750,  Bonuses.cyan_ice,    700,  BigImages.cyan_ice,    20000),
         (Bonuses.yellow_wand,  750,  Bonuses.violet_ice,  750,  BigImages.violet_ice,  20000),
@@ -385,13 +391,15 @@ def starexplosion(x, y, multiplyer, killmonsters=0, outcomes=[]):
                         b.gen.append(b.killmonsters(poplist))
 
 class Book(RandomBonus):
-    "Magic Bomb. Makes a magical explosion."
+    "Magic Bomb. Makes a magical explosion killing touched monsters."
     points = 2000
     nimage = Bonuses.book
     def taken1(self, dragons):
         starexplosion(self.x, self.y, 1, killmonsters=1)
 
 class Potion(RandomBonus):
+    "Potions. Clear the level and fill it's top with bonuses."
+    nimages = [Bonuses.red_potion, Bonuses.green_potion, Bonuses.yellow_potion]
     Potions = [(Bonuses.red_potion,    150,
                      [(PotionBonuses.coin, 350), (PotionBonuses.rainbow, 600)]),
                (Bonuses.green_potion,  350,
@@ -408,21 +416,21 @@ class Potion(RandomBonus):
             blist = [random.choice(blist)]
         boards.replace_boardgen(boards.potion_fill(blist))
 
-class Hamburger(RandomBonus):
+class FireBubble(RandomBonus):
     "Fire Bubbles. Makes you fire napalm bubbles."
     nimage = Bonuses.hamburger
     def taken(self, dragon):
         dragon.dcap['shootbubbles'] = ['FireBubble'] * 10
         dragon.carrybonus(self)
 
-class Beer(RandomBonus):
+class WaterBubble(RandomBonus):
     "Water Bubbles. Your bubbles will now be filled with water."
     nimage = Bonuses.beer
     def taken(self, dragon):
         dragon.dcap['shootbubbles'] = ['WaterBubble'] * 10
         dragon.carrybonus(self)
 
-class FrenchFries(RandomBonus):
+class LightningBubble(RandomBonus):
     "Lightning Bubbles."
     nimage = Bonuses.french_fries
     def taken(self, dragon):
@@ -430,20 +438,21 @@ class FrenchFries(RandomBonus):
         dragon.carrybonus(self)
 
 class Door(RandomBonus):
+    "Magic Door. Let bonuses come in!"
     points = 1000
     nimage = Bonuses.door
     def taken1(self, dragons):
         starexplosion(self.x, self.y, 2,
                       outcomes = [(MonsterBonus, -1)] * 10)
 
-class SoftIce1(RandomBonus):
+class LongFire(RandomBonus):
     "Long Fire. Increase the range of your bubble throw out."
     nimage = Bonuses.softice1
     def taken(self, dragon):
         dragon.dcap['shootthrust'] *= 1.5
         dragon.carrybonus(self)
 
-class SoftIce2(RandomBonus):
+class ShortFire(RandomBonus):
     "Short Fire. Shorten the range of your bubble throw out."
     nimage = Bonuses.softice2
     points = 300
@@ -451,7 +460,7 @@ class SoftIce2(RandomBonus):
         dragon.dcap['shootthrust'] /= 1.5
         dragon.carrybonus(self)
 
-class CustardPie(RandomBonus):
+class HighSpeedFire(RandomBonus):
     "High Speed Fire. Increase your fire rate."
     nimage = Bonuses.custard_pie
     points = 700
@@ -474,7 +483,7 @@ class Mushroom(TemporaryBonus):
     capname = 'pinball'
     captime = 625
 
-class Rape(TemporaryBonus):
+class AutoFire(TemporaryBonus):
     "Auto Fire. Makes you fire continuously."
     nimage = Bonuses.rape
     points = 800
@@ -516,6 +525,9 @@ class Chickpea(RandomBonus):
         dragon.carrybonus(self, 200)
 
 class IceCream(RandomBonus):
+    "Icecream. An icecream which is so good you'll always want more."
+    nimages = [Bonuses.icecream6, Bonuses.icecream5,
+               Bonuses.icecream4, Bonuses.icecream3]
     IceCreams = [(Bonuses.icecream6,  250),
                  (Bonuses.icecream5,  500),
                  (Bonuses.icecream4,  1000),
@@ -580,6 +592,9 @@ def ball_rain(x, poplist):
     SpinningBall(x, -CELL, poplist)
 
 class Umbrella(RandomBonus):
+    "Umbrellas. Beware of what's going to fall on everyone's head!"
+    nimages = [Bonuses.brown_umbrella, Bonuses.grey_umbrella,
+               Bonuses.violet_umbrella]
     Umbrellas = [(Bonuses.brown_umbrella,  900,  fire_rain,  10, 60),
                  (Bonuses.grey_umbrella,   950,  water_rain, 5,  60),
                  (Bonuses.violet_umbrella, 1000, ball_rain,  9, 120)]
@@ -599,6 +614,9 @@ class Umbrella(RandomBonus):
             yield 0
 
 class Fruits(RandomBonus):
+    "Fruits. A small little bonus. But the size doesn't matter, does it? If you're lucky enough you might get a great shower!"
+    nimages = [Bonuses.kirsh, Bonuses.erdbeer, Bonuses.tomato,
+               Bonuses.apple, Bonuses.corn, Bonuses.radish]
     bubblable = 0
     sound = 'Extra'
     Fruits = [(Bonuses.kirsh,      100),
@@ -674,20 +692,21 @@ class BlueNecklace(RandomBonus):
         d1 = random.choice((d, dragon))
         d1.carrybonus(self, 250)
 
-class Monsterer1(RandomBonus):
+class Monsterer(RandomBonus):
     "Monsterificator. Let's play on the other side!"
-    points = 800
-    nimage = Bonuses.red_crux
-    mlist = ['Nasty', 'Monky', 'Springy', 'Orcy']
+    nimages = [Bonuses.red_crux, Bonuses.blue_crux]
+    Sizes = [(Bonuses.red_crux, 800), (Bonuses.blue_crux, 850)]
+    mlist = [['Nasty',  'Monky',  'Springy', 'Orcy'],
+             ['Ghosty', 'Flappy', 'Gramy',   'Blitzy']
+             ]
+    def __init__(self, x, y):
+        self.mode = random.choice([0,1])
+        RandomBonus.__init__(seld, x, y, *Sizes[self.mode])
     def taken(self, dragon):
-        mcls = random.choice(self.mlist)
+        mcls = random.choice(self.mlist[self.mode])
         dragon.become_monster(mcls)
 
-class Monsterer2(Monsterer1):
-    "Monsterificator. Let's play on the other side!"
-    points = 850
-    nimage = Bonuses.blue_crux
-    mlist = ['Ghosty', 'Flappy', 'Gramy', 'Blitzy']
+Monsterer1 = Monsterer # increase probability
 
 class Bubblizer(RandomBonus):
     "Bubblizer."
@@ -936,6 +955,8 @@ else:
             yield 2.5
 
 class MultiStones(RandomBonus):
+    "Gems. Very demanded stones. It will take time to pick it up."
+    nimages = [Bonuses.emerald, Bonuses.sapphire, Bonuses.ruby]
     Stones = [(Bonuses.emerald,    1000),
               (Bonuses.sapphire,   2000),
               (Bonuses.ruby,       3000),
@@ -967,12 +988,14 @@ class Aubergine(RandomBonus):
         dragon.carrybonus(self)
 
 class WhiteCarrot(TemporaryBonus):
+    "Fly. Become a great flying dragon!"
     nimage = Bonuses.white_carrot
     points = 650
     capname = 'fly'
     captime = 650
 
-class Tin(TemporaryBonus):
+class AmphetamineSpeed(TemporaryBonus):
+    "Amphetamine Dose. Cumulative increase of your general speed!"
     nimage = Bonuses.tin
     points = 700
     def taken(self, dragon):
@@ -983,9 +1006,9 @@ class Tin(TemporaryBonus):
             dragon.angry -= 1
 
 class Sugar1(Bonus):
+    nimage = Bonuses.yellow_sugar
     timeout = 2600
     points = 250
-    nimage = Bonuses.yellow_sugar
     def taken(self, dragon):
         #if boards.curboard.wastingplay is None:
             dragon.carrybonus(self, 99999)
@@ -999,7 +1022,8 @@ class Sugar2(Sugar1):
     points = 500
     nimage = Bonuses.blue_sugar
 
-class GreenThing(RandomBonus):
+class Pear(RandomBonus):
+    "Pear. Will explode into sugars for your pockets but watch out or you'll lose them!"
     points = 1000
     nimage = Bonuses.green_thing
     def taken1(self, dragons):
@@ -1038,6 +1062,7 @@ class Megalightning(ActiveSprite):
         self.kill()
 
 class Fish2(RandomBonus):
+    "Rotten Fish. Will blast monsters up to here, so move it around!"
     points = 3000
     nimage = Bonuses.fish2
     def taken1(self, dragons):
@@ -1045,6 +1070,7 @@ class Fish2(RandomBonus):
             Megalightning(self.x, self.y, random.choice(dragons))
 
 class Sheep(RandomBonus):
+    "Sheep. What a stupid beast!"
     nimage = 'sheep-sm'
     points = 800
     def __init__(self, x, y):
