@@ -145,10 +145,8 @@ class Bubble(ActiveSprite):
                         self.poplist = None
                         self.kill()
                         return
-                    if self.y > 0:
-                        self.step(0, -boards.bheightmod)
-                    else:
-                        self.step(0, boards.bheightmod)
+                    if self.vertical_warp():
+                        dx = -dx
                 w = wget(self.x, self.y)
                 if w != ' ':
                     dx, dy = bubble_wind[w]
@@ -272,12 +270,9 @@ class BubblingEyes(ActiveSprite):
         ndir = random.choice([-1, 1])
         prev_dx_dy = None
         while not hasattr(bubble, 'poplist'):
-            if bubber.key_left and bubber.key_left > bubber.key_right:
-                ndir = dx = -1
-            elif bubber.key_right:
-                ndir = dx = 1
-            else:
-                dx = 0
+            dx = bubber.wannago(self.saved_caps)
+            if dx:
+                ndir = dx
             if bubber.key_jump:
                 dy = -1
             else:
@@ -313,12 +308,11 @@ class BubblingEyes(ActiveSprite):
                 nx += dx
             else:
                 ny += dy
-            if ny < -2*CELL:
-                ny += boards.bheightmod
-            elif ny >= boards.bheight:
-                ny -= boards.bheightmod
+            (nx, ny), moebius = boards.vertical_warp(nx, ny)
             bubble.move(nx, ny)
             self.move(nx+dx, ny+dy, images.sprget(key))
+            if moebius:
+                self.saved_caps['left2right'] *= -1
             if dx == dy == 0:
                 bubble.default_windless = prev_dx_dy
             else:

@@ -185,7 +185,7 @@ class Parabolic(ActiveSprite):
         while not onground(nx, ny):
             ny += 4
             if ny >= boards.bheight:
-                ny -= boards.bheightmod
+                (nx, ny), moebius = boards.vertical_warp(nx, ny)
             self.move(nx, ny)
             yield None
         self.build()
@@ -1118,11 +1118,18 @@ class Sheep(RandomBonus):
                 s.action()
             yield 1
 
+class Moebius(RandomBonus):
+    "Moebius Band.  Bottom left is top right and bottom right is top left... or vice-versa."
+    nimage = 'moebius'
+    points = 900
+    def taken1(self, dragons):
+        BubPlayer.Moebius = not BubPlayer.Moebius
+
 Classes = [c for c in globals().values()
            if type(c)==type(RandomBonus) and issubclass(c, RandomBonus)]
 Classes.remove(RandomBonus)
 Classes.remove(TemporaryBonus)
-Cheat = [] #[Book, Door, Bomb, Ham]
+Cheat = [Moebius] #[Book, Door, Bomb, Ham]
 #Classes = [Fruits]  # CHEAT
 
 AllOutcomes = ([(c,) for c in Classes if c is not Fruits] +

@@ -16,8 +16,10 @@ def usage():
   print >> sys.stderr, '  -s#   advance board number by steps of # (default 1)'
   print >> sys.stderr, '  -l#   limit the number of lives to #'
   print >> sys.stderr, '  -rxxx record the game in file xxx'
+  print >> sys.stderr, '  -p#   set HTTP server port (default 8000, 0=disable)'
   sys.exit(1)
 num = 0
+gamesrv.FnHttpPort = 8000
 for a in sys.argv[1:]:
   if a.startswith('-'):
     if a.startswith('-b'):
@@ -28,6 +30,8 @@ for a in sys.argv[1:]:
       boards.set_lives(int(a[2:]))
     elif a.startswith('-r'):
       gamesrv.RecordFile(a[2:])
+    elif a.startswith('-p'):
+      gamesrv.FnHttpPort = int(a[2:])
     else:
       print >> sys.stderr, 'unknown option', a
       usage()

@@ -524,6 +524,7 @@ FnUnknown = lambda:None
 FnExcHandler=lambda k: 0
 FnPlayers = lambda:{}
 FnKeys    = []
+FnHttpPort= None
 
 MAX_CLIENTS = 32
 
@@ -644,10 +645,18 @@ def Run():
       print "Server cannot find a free TCP socket port."
       return
   HOST, PORT = s.getsockname()
-  print '%s server at %s:%d, UDP %d' % (FnDesc, gethostname(), PORT,
-                                        hostchooser.UDP_PORT)
   FnReady()
   pss = hostchooser.serverside_ping()
+
+  extramsg = ''
+  if FnHttpPort:
+    import javaserver
+    if javaserver.setup(httpport=FnHttpPort, title=FnDesc, gameport=PORT,
+                        width=playfield.width, height=playfield.height):
+      extramsg = ', HTTP %d' % FnHttpPort
+
+  print '%s server at %s:%d, UDP %d%s' % (FnDesc, gethostname(), PORT,
+                                          hostchooser.UDP_PORT, extramsg)
   nextframe = time()
 
   try:

@@ -65,7 +65,7 @@ class Board:
         global curboard
         if inplace:
             print "Re -",
-        print "Entering board", self.num
+        print "Entering board", self.num+1
         self.set_musics()
         # add board walls
         l = self.sprites.setdefault('walls', [])
@@ -272,6 +272,20 @@ def x2bounds(x):
     else:
         return x
 
+def vertical_warp(nx, ny):
+    if ny >= bheight:
+        ny -= bheightmod
+    elif ny < -2*CELL:
+        ny += bheightmod
+    else:
+        return (nx, ny), 0
+    from player import BubPlayer
+    if BubPlayer.Moebius:
+        nx = bwidth - 2*CELL - nx
+        return (nx, ny), 1
+    else:
+        return (nx, ny), 0
+
 
 MODULES = ['boards', 'bonuses', 'bubbles', 'images',
            'mnstrmap', 'monsters', 'player',
@@ -356,7 +370,8 @@ def next_board(num=0, complete=1):
     # reset global board state
     from player import BubPlayer
     BubPlayer.__dict__.update(BubPlayer.INIT_BOARD_CAP)
-    del BubPlayer.MonsterList[:]
+    if not inplace:
+        del BubPlayer.MonsterList[:]
 
     # wait for at least one player
     while not [p for p in BubPlayer.PlayerList if p.isplaying()]:
@@ -859,7 +874,7 @@ def register(dict):
     items.sort()
     for name, board in items:
         try:
-            if not issubclass(board, Board) or board is Board:
+            if not issubclass(board, Board) or board is Board or board.__name__ == 'RandomLevel':
                 continue
         except TypeError:
             continue

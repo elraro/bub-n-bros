@@ -1556,6 +1556,577 @@ class level28(boarddef.Level):
 """
 
 
+class level29(boarddef.Level):
+    letter    = 0
+    fire      = 0
+    lightning = 0
+    water     = 0
+    top       = 1
+
+    a = LNasty
+    b = RNasty
+    g = RGhosty
+    r = RGramy
+    m = LMonky
+
+    walls = """
+##      ############################
+##                                ##
+#####                             ##
+#####                             ##
+#####                             ##
+#####                             ##
+#####                          #  ##
+##### a b a  ba   ab  a  ba    #  ##
+################################  ##
+##                                ##
+##                                ##
+##     ##    g                    ##
+##     ##                         ##
+##     ##                         ##
+##     ##                         ##
+##     ##                         ##
+##     ## br  a  rb a  rb a  r  a ##
+##     #############################
+##                          ##    ##
+##      ##        ##        ##    ##
+#####   ##     mm ##mm      ##    ##
+##############################    ##
+#####   ##        ##        ##    ##
+#####   ##        ##              ##
+#####                             ##
+##                                ##
+##                                ##
+##  ################################
+""" #    []      []      []    # """
+    
+    winds = """
+>>vvvvvvvvvvvvvvvvvvvvvvvvvvvvvv ^<<
+>>vvvvvvvvvvvvvvvvvvvvvvvvvvvvvv ^<<
+>>vvvvvvvvvvvvvvvvvvvvvvvvvvvvvv ^<<
+>>vvvvvvvvvvvvvvvvvvvvvvvvvvvvvv ^<<
+>>vvvvvvvvvvvvvvvvvvvvvvvvvvvvvv ^<<
+>>vvvvvvvvvvvvvvvvvvvvvvvvvvvvvv ^<<
+>>vv>>>>>>>>>>>>>>>>>>>>>>>>>>>> v<<
+>>vv                              <<
+>>vv                              <<
+>>vv     vvvvvvvvvvvvvvvvvvvvvv   <<
+>>vv     vvvvvvvvvvvvvvvvvvvvvv   <<
+>>vv     vvvvvvvvvvvvvvvvvvvvvv   <<
+>>vv     vvvvvvvvvvvvvvvvvvvvvv   <<
+>>vv     vvvvvvvvvvvvvvvvvvvvvv   <<
+>>vv     vvvvvvvvvvvvvvvvvvvvvv   <<
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> ^<<
+>>^                              ^<<
+>>^                              ^<<
+>>^                              ^<<
+>>^                              ^<<
+>>^                              ^<<
+>>^                              ^<<
+>>vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv<<
+>>vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv<<
+>>vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv<<
+>>vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv<<
+>>vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv<<
+>>                                <<
+"""
+
+
+class level30(boarddef.Level):
+    letter    = 1
+    fire      = 1
+    lightning = 1
+    water     = 0
+    top       = 1
+
+    a = RNasty
+
+    walls = """
+####################################
+####################################
+##     #####     ##     #####     ##
+## a   ##### a   ## a   ##### a   ##
+####################################
+####################################
+####################################
+##                                ##
+##                                ##
+##                                ##
+##                                ##
+##                                ##
+##                                ##
+##                                ##
+##                                ##
+##                                ##
+##                                ##
+##                                ##
+##                                ##
+##                                ##
+##                                ##
+##                                ##
+######                        ######
+##                                ##
+##                                ##
+##                                ##
+##                                ##
+####################################
+""" #    []      []      []    # """
+    
+    winds = """
+>>                                <<
+>>                                <<
+>>>xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx<<<
+>>>xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx<<<
+>>>xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx<<<
+>>>xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx<<<
+>>>                              <<<
+>>>>>>>>>>>>>>>>>vv<<<<<<<<<<<<<<<<<
+>>>>>>>>>>>>>>>>>vv<<<<<<<<<<<<<<<<<
+>>>>>>>>>>>>>>>>>vv<<<<<<<<<<<<<<<<<
+>>>>>>>>>>>>>>>>>vv<<<<<<<<<<<<<<<<<
+>>>>>>>>>>>>>>>>>vv<<<<<<<<<<<<<<<<<
+>>>>>>>>>>>>>>>>>vv<<<<<<<<<<<<<<<<<
+>>>>>>>>>>>>>>>>>vv<<<<<<<<<<<<<<<<<
+>>>>>>>>>>>>>>>>>vv<<<<<<<<<<<<<<<<<
+>>>>>>>>>>>>>>>>>vv<<<<<<<<<<<<<<<<<
+>>>>>>>>>>>>>>>>>vv<<<<<<<<<<<<<<<<<
+>>>>>>>>>>>>>>>>>vv<<<<<<<<<<<<<<<<<
+>>>>>>>>>>>>>>>>>vv<<<<<<<<<<<<<<<<<
+>>>>>>>>>>>>>>>>>vv<<<<<<<<<<<<<<<<<
+>>>>>>>>>>>>>>>>>vv<<<<<<<<<<<<<<<<<
+>>vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv<<
+>>vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv<<
+>>vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv<<
+>>vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv<<
+>>vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv<<
+>>vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv<<
+>>                                <<
+"""
+
+
+class level31(level30):
+    fire      = 0
+    lightning = 0
+
+
+class level32(boarddef.Level):
+    n = LNasty
+    m = LMonky
+    o = LOrcy
+    g = LGramy
+    h = LGhosty
+    f = LFlappy
+    s = LSpringy
+    b = LBlitzy
+
+    walls = """
+####################              ##
+##                                ##
+##                                ##
+##                                ##
+##                                ##
+##                                ##
+##                          ########
+##                                ##
+##                                ##
+##                             #  ##
+##                       #######  ##
+##                                ##
+##                                ##
+##                         #      ##
+##                   #######      ##
+##                                ##
+##                                ##
+##                                ##
+##                   #  #         ##
+##                   #  #     #   ##
+##                   #  #     # n ##
+##                   #  #     ######
+##                   #  #  #      ##
+##                   #  #  #  n n ##
+##                      #  #########
+##                 #              ##
+##                 #              ##
+####################              ##
+""" #    []      []      []    # """
+    
+    winds = """
+>>>>>>>>>>>>>>>>xxxx<<vvvvvvvvvvvv>v
+>>^                  ^<<vvvvvvvvvv>v
+>>^                    ^<<vvvvvvvv>v
+>>^                      ^<<vvvvvv>v
+>>^                        ^<<vvvv>v
+>>^                          ^<<<<<<
+>>^                              ^<<
+>>^                              ^<<
+>>^                              ^<<
+>>^                              ^<<
+>>^                              ^<<
+>>^                              ^<<
+>>^                              ^<<
+>>^                              ^<<
+>>^                              ^<<
+>>^                              ^<<
+>>^                              ^<<
+>>^                              ^<<
+>>^                              ^<<
+>>^                              ^<<
+>>^                              ^<<
+>>^                              ^<<
+>>^                              ^<<
+>>^                              ^<<
+>>^                              ^<<
+>>^                 vvvvvvvvvvvvvv>v
+>>^                 vvvvvvvvvvvvvv>v
+>>                  vvvvvvvvvvvvvv>v
+"""
+
+
+class level33(boarddef.Level):
+    m = LMonky, RMonky
+    g = LGramy, RGramy
+    o = LOrcy,  ROrcy
+    n = LNasty, RNasty
+
+    walls = """
+##                                ##
+##                                ##
+##                                ##
+##                                ##
+##                                ##
+##                                ##
+##                                ##
+##                                ##
+##                                ##
+##                                ##
+##                                ##
+##                                ##
+#################  #################
+##                                ##
+##                                ##
+##                                ##
+##                                ##
+##                                ##
+##                                ##
+##                                ##
+##                                ##
+##                                ##
+##                                ##
+##                                ##
+##                                ##
+##    ## m g  o  nn  o  g m ##    ##
+##    ########################    ##
+##                                ##
+""" #    []      []      []    # """
+
+    winds = """
+v<vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv>v
+v<vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv>v
+v<vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv>v
+v<vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv>v
+>>                                <<
+>>                                <<
+>>                                <<
+>>                                <<
+>>                                <<
+>>                                <<
+>>                                <<
+>>                                <<
+>>xxxxxxxxxxxxxxx  xxxxxxxxxxxxxxx<<
+>>>>>>v>>>>v>>>>v<>v<<<<v<<<<v<<<<<<
+>>>>>>v>>>>v>>>>v<>v<<<<v<<<<v<<<<<<
+>>>>>>v>>>>v>>>>v<>v<<<<v<<<<v<<<<<<
+>>>>>>v>>>>v>>>>v<>v<<<<v<<<<v<<<<<<
+>>>>>>v>>>>v>>>>v<>v<<<<v<<<<v<<<<<<
+>>>>>>v>>>>v>>>>v<>v<<<<v<<<<v<<<<<<
+>>>>>>v>>>>v>>>>v<>v<<<<v<<<<v<<<<<<
+>>>>>>v>>>>v>>>>v<>v<<<<v<<<<v<<<<<<
+>>>>>>v>>>>v>>>>v<>v<<<<v<<<<v<<<<<<
+>>>>>>v>>>>v>>>>v<>v<<<<v<<<<v<<<<<<
+>>>>>>v>>>>v>>>>v<>v<<<<v<<<<v<<<<<<
+>>>>>>v>>>>v>>>>v<>v<<<<v<<<<v<<<<<<
+>>>>>>x>>>>v>>>>v<>v<<<<v<<<<x<<<<<<
+v<vvvvxxxxxxxxxxxxxxxxxxxxxxxxvvvv>v
+v<vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv>v
+"""
+
+
+class level34(boarddef.Level):
+    letter    = 0
+    fire      = 0
+    lightning = 0
+    water     = 0
+    top       = 1
+
+    a = RBlitzy
+    b = LBlitzy
+
+    walls = """
+##     # ##  #   ##   #  ## #     ##
+##       ##  #   ba   #  ##       ##
+##     ###  b####  ####   ###     ##
+##     #  #     #  #   b #  #     ##
+##     ####     #  #     ####     ##
+##     #######b #  #  #######     ##
+##           #  #  #b #           ##
+##           #  #  #  #           ##
+##           #  #  #  #           ##
+##           #b #  #  #           ##
+##           #  #  #b #           ##
+##              #  #              ##
+##           #  #  #  #           ##
+##           #b #  #  #           ##
+##           #  #  #b #           ##
+##           #  #  #  #           ##
+##           #  #  #  #           ##
+##           #b #  #  #           ##
+##           #  #  #b #           ##
+##           #  #  #  #           ##
+##           #  #  #  #           ##
+##           #b #  #  #           ##
+##           #  #  #b #           ##
+##     #######  #  #  #######     ##
+##     ####     #  #     ####     ##
+##     ####  ####  ####  ####     ##
+##     ####           b  ####     ##
+##     ## #              # ##     ##
+""" #    []      []      []    # """
+    
+    winds = """
+>>vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv<<
+>>vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv<<
+>>vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv<<
+>>vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv<<
+>>vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv<<
+>>vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv<<
+>>vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv<<
+>>vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv<<
+>>vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv<<
+>>vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv<<
+>>vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv<<
+>>vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv<<
+>>vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv<<
+>>vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv<<
+>>vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv<<
+>>vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv<<
+>>vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv<<
+>>vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv<<
+>>vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv<<
+>>vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv<<
+>>vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv<<
+>>vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv<<
+>>vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv<<
+>>vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv<<
+>>vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv<<
+>>vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv<<
+>>vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv<<
+>>xxxxxvvvvvvvvvvvvvvvvvvvvvvxxxxx<<
+"""
+
+
+class level35(boarddef.Level):
+    s = LNasty
+    o = LNasty, LNasty, RNasty, RNasty
+    a = RBlitzy
+    b = LBlitzy
+
+    walls = """
+####################################
+##            ###s ###            ##
+##s ##      b ######## a      ##s ##
+####################################
+##                                ##
+##                                ##
+##                                ##
+##               ##               ##
+##              ####              ##
+##            ########            ##
+##          ############          ##
+##             ######             ##
+##           ##########           ##
+##        ################        ##
+##           ##########           ##
+##         ##############         ##
+##       ##################       ##
+##               ##               ##
+##               ##               ##
+##              ####              ##
+##             ######             ##
+##            ## ## ##            ##
+##           ##  ##  ##           ##
+##                                ##
+##                                ##
+##                                ##
+##   #o o o o o o o o o o o o #   ##
+####################################
+""" #    []      []      []    # """
+    
+    winds = """
+>>>>>>>>>>>>>>>>xxxx<<<<<<<<<<<<<<<<
+>>^                              ^<<
+>>^                              ^<<
+>>^                              ^<<
+>>>>>>>>>>>>>>>>    <<<<<<<<<<<<<<<<
+>>>>>>>>>>>>>>>      <<<<<<<<<<<<<<<
+>>>>>>>>>>>>>>        <<<<<<<<<<<<<<
+>>>>>>>>>>>>>          <<<<<<<<<<<<<
+>>>>>>>>>>>>            <<<<<<<<<<<<
+>>>>>>>>>>>              <<<<<<<<<<<
+>>>>>>>>>>                <<<<<<<<<<
+>>>>>>>>>                  <<<<<<<<<
+>>>>>>>>                    <<<<<<<<
+>>>>>>>                      <<<<<<<
+>>>>>>                        <<<<<<
+>>>>>                          <<<<<
+>>>>                            <<<<
+>>>                              <<<
+>>vv<<<<<<<<<<<<<<>>>>>>>>>>>>>>vv<<
+>>vv<<<<<<<<<<<<<<>>>>>>>>>>>>>>vv<<
+>>vv<<<<<<<<<<<<<<>>>>>>>>>>>>>>vv<<
+>>vv<<<<<<<<<<<<<<>>>>>>>>>>>>>>vv<<
+>>vv<<<<<<<<<<<<<<>>>>>>>>>>>>>>vv<<
+>>vv<<<<<<<<<<<<<<>>>>>>>>>>>>>>vv<<
+>>vv<<<<<<^^^^^^^^^^^^^^^^>>>>>>vv<<
+>>vv<<<<^^^^^^^^^^^^^^^^^^^^>>>>vv<<
+>>xx<<^^^^^^^^^^^^^^^^^^^^^^^^>>xx<<
+>>xx<<<<<<<<<<<<<<>>>>>>>>>>>>>>xx<<
+"""
+
+
+class level36(boarddef.Level):
+    s = LSpringy
+    b = LBlitzy
+
+    walls = """
+##       b               b        ##
+##               s                ##
+##       b               b        ##
+##               s                ##
+##       b               b        ##
+##               s                ##
+##       b               b        ##
+##               s                ##
+##       b               b        ##
+##               s                ##
+##       b               b        ##
+##               s                ##
+##       b               b        ##
+##               s                ##
+##       b               b        ##
+##               s                ##
+##       b               b        ##
+##               s                ##
+##       b               b        ##
+##               s                ##
+##       b               b        ##
+##               s                ##
+##       b               b        ##
+##               s                ##
+##       b               b        ##
+##               s                ##
+##       b               b        ##
+##               s                ##
+""" #    []      []      []    # """
+    
+    winds = """
+>>>>>>>>>>>>>>>>xxxx<<<<<<<<<<<<<<<<
+>>>>>>>>>>>>>>>>xxxx<<<<<<<<<<<<<<<<
+>>>>>>>>>>>>>>>>xxxx<<<<<<<<<<<<<<<<
+>>>>>>>>>>>>>>>>xxxx<<<<<<<<<<<<<<<<
+>>>>>>>>>>>>>>>>xxxx<<<<<<<<<<<<<<<<
+>>>>>>>>>>>>>>>>xxxx<<<<<<<<<<<<<<<<
+>>>>>>>>>>>>>>>>xxxx<<<<<<<<<<<<<<<<
+>>>>>>>>>>>>>>>>xxxx<<<<<<<<<<<<<<<<
+>>>>>>>>>>>>>>>>xxxx<<<<<<<<<<<<<<<<
+>>>>>>>>>>>>>>>>xxxx<<<<<<<<<<<<<<<<
+>>>>>>>>>>>>>>>>xxxx<<<<<<<<<<<<<<<<
+>>^                              ^<<
+>>^                              ^<<
+>>^                              ^<<
+>>^                              ^<<
+>>^                              ^<<
+>>^                              ^<<
+>>^                              ^<<
+>>^                              ^<<
+>>^                              ^<<
+>>^                              ^<<
+>>^                              ^<<
+>>^                              ^<<
+>>^                              ^<<
+>>^                              ^<<
+>>^                              ^<<
+>>^                              ^<<
+>>                                <<
+"""
+
+
+class level37(boarddef.Level):
+    n = LNasty
+    m = LMonky
+
+    walls = """
+#################  #################
+##   m m m m m # ## #m m m m m    ##
+##  #n n n n n #    #n n n n n #  ##
+#################  #################
+##        #######  #######        ##
+##        ################        ##
+##  ############################  ##
+##   #    ####        ####    #   ##
+##  ####  #####      #####  ####  ##
+##  ####  ################  ####  ##
+##  ####  ################  ####  ##
+##  #########          #########  ##
+##  ###    ##############    ###  ##
+##  ####  # ############ #  ####  ##
+##     #### ############ ####     ##
+############    ####    ############
+############     ##     ############
+##  #        ##      ##        #  ##
+##  ############    ############  ##
+##  #       #####  #####       #  ##
+##  ############################  ##
+##  ############################  ##
+##  ########            ########  ##
+######## ##              ## ########
+######## #      ####      # ########
+##      #       ####       #      ##
+##    ##      ###  ###      ##    ##
+######    ################    ######
+""" #    []      []      []    # """
+
+    winds = """
+>>vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv<<
+>>xx<<<<<<<<<<<<<<>>>>>>>>>>>>>>xx<<
+>>xx^^^^^^^^^^^^^^^^^^^^^^^^^^^^xx<<
+v<vv>>>>vvvvvvvvvvvvvvvvvvvv<<<<vv>v
+v<vv>>>>vvvvvvvvvvvvvvvvvvvv<<<<vv>v
+v<vv>>>>vvvvvvvvvvvvvvvvvvvv<<<<vv>v
+v<vv>>>>vvvvvvvvvvvvvvvvvvvv<<<<vv>v
+v<vv>>>>vvvvvvvvvvvvvvvvvvvv<<<<vv>v
+v<vv>>>>vvvvvvvvvvvvvvvvvvvv<<<<vv>v
+v<vv>>>>vvvvvvvvvvvvvvvvvvvv<<<<vv>v
+v<vv>>>>vvvvvvvvvvvvvvvvvvvv<<<<vv>v
+v<vv>>>>vvvvvvvvvvvvvvvvvvvv<<<<vv>v
+v<vv>>>>vvvvvvvvvvvvvvvvvvvv<<<<vv>v
+v<vvvv<>vvvvvvvvvvvvvvvvvvvv<>vvvv>v
+v<vvvv>>vvvvvvvvvvvvvvvvvvvv<<vvvv>v
+v<vv>vvvvvvvvvvvvvvvvvvvvvvvvvv>vv>v
+v<vv>vvvvvvvvvvvvvvvvvvvvvvvvvv>vv>v
+v>vv<vvvvvvvvvvvvvvvvvvvvvvvvvv>vv<v
+v>vv<vvvvvvvvvvvvvvvvvvvvvvvvvv>vv<v
+v>vv<vvvvvvvvvvvvvvvvvvvvvvvvvv>vv<v
+v>vv<vvvvvvvvvvvvvvvvvvvvvvvvvv>vv<v
+v>vv<vvvvvvvvvvvvvvvvvvvvvvvvvv>vv<v
+v>vv<vvvvvvvvvvvvvvvvvvvvvvvvvv>vv<v
+v>vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv<v
+v>vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv<v
+v>vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv<v
+v>vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv<v
+v>vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv<v
+"""
+
+
 class levelFinal(boarddef.Level):
 
     walls = """

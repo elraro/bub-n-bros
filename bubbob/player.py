@@ -129,6 +129,10 @@ class Dragon(ActiveSprite):
     def listcarrybonuses(self):
         return [bonus for timeout, bonus in self.dcap['carrying']]
 
+    def moebius(self):
+        self.dir = -self.dir
+        self.dcap['left2right'] *= -1
+
     def normal_movements(self):
         yfp = 0.0
         hfp = 0
@@ -144,11 +148,7 @@ class Dragon(ActiveSprite):
             bubber = self.bubber
             wannafire = bubber.key_fire
             wannajump = bubber.key_jump
-            wannago = 0
-            if bubber.key_left and bubber.key_left > bubber.key_right:
-                wannago = -self.dcap['left2right']
-            elif bubber.key_right:
-                wannago = self.dcap['left2right']
+            wannago = bubber.wannago(self.dcap)
 
             if self.dcap['autofire']:
                 wannafire = 1
@@ -221,10 +221,10 @@ class Dragon(ActiveSprite):
                     mode = 10
                 else:
                     ny = self.y + yfp - self.up
-                    if ny < -2*CELL:
-                        ny += boards.bheightmod
                     self.move(self.x, int(ny))
                     yfp = ny - self.y
+                    if ny < -2*CELL:
+                        self.vertical_warp()
             elif onground(self.x, self.y) or (wannajump and onbubble):
                 if wannajump:
                     self.play(images.Snd.Jump)
@@ -239,9 +239,9 @@ class Dragon(ActiveSprite):
                     ny = self.y+1
                 else:
                     ny = (self.y+4) & ~3
-                if ny >= boards.bheight:
-                    ny -= boards.bheightmod
                 self.move(self.x, ny)
+                if ny >= boards.bheight:
+                    self.vertical_warp()
 
             if wannafire and not self.fire:
                 self.fire = 1
@@ -338,6 +338,7 @@ class BubPlayer(gamesrv.Player):
         'MegaBonus': None,
         'BaseFrametime': 1.0,
         'LeaveBonus': None,
+        'Moebius': 0,
         }
     TRANSIENT_DATA = ('_client', 'key_left', 'key_right',
                       'key_jump', 'key_fire')
@@ -477,6 +478,14 @@ class BubPlayer(gamesrv.Player):
         if self.lives is not None and self.lives > 0:
             self.lives -= 1
             scoreboard()
+
+    def wannago(self, dcap):
+        if self.key_left and self.key_left > self.key_right:
+            return -dcap['left2right']
+        elif self.key_right:
+            return dcap['left2right']
+        else:
+            return 0
 
     def givepoints(self, points):
         self.points += points

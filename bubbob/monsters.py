@@ -169,14 +169,20 @@ class Monster(ActiveSprite):
                 ny = (ny//CELL+1)*CELL
             elif (ny % CELL) < 3:
                 ny = (ny//CELL)*CELL
-            if ny >= boards.bheight:
-                ny -= boards.bheightmod
             self.move(self.x, ny)
+            if self.y >= boards.bheight:
+                self.vertical_warp()
         if hasattr(self, 'bubber'):
             nextgen = self.playing_monster
         else:
             nextgen = self.walking
         self.gen.append(nextgen())
+
+    def moebius(self):
+        self.dir = -self.dir
+        self.resetimages()
+        if hasattr(self, 'saved_caps'):
+            self.saved_caps['left2right'] *= -1
 
     def hjumping(self):
         y0 = self.y
@@ -204,17 +210,12 @@ class Monster(ActiveSprite):
             self.dir = ndir
         self.seticon(images.sprget(self.imgrange()[1]))
         for ny in range(self.y-4, limity-4, -4):
-            if ny < -2*CELL:
-                ny += boards.bheightmod
             self.move(self.x, ny)
+            if ny < -2*CELL:
+                self.vertical_warp()
             yield None
         if bubber:
-            if bubber.key_left and bubber.key_left > bubber.key_right:
-                dx = -1
-            elif bubber.key_right:
-                dx = 1
-            else:
-                dx = 0
+            dx = bubber.wannago(self.saved_caps)
             if dx:
                 self.dir = dx
                 self.resetimages()
@@ -294,21 +295,22 @@ class Monster(ActiveSprite):
         while 1:
             if self.overlapping():
                 yield None
-            nx = self.x + self.vx*self.dir
+            ndir = self.dir
+            nx = self.x
             ny = self.y + self.vy*self.vdir
-            if ny >= boards.bheight:
-                ny -= boards.bheightmod
-            elif ny < -2*CELL:
-                ny += boards.bheightmod
-            if self.dir < 0:
+            if ny >= boards.bheight or ny < -2*CELL:
+                (nx, ny), moebius = boards.vertical_warp(nx, ny)
+                if moebius:
+                    ndir = -ndir
+            nx += self.vx*ndir
+            if ndir < 0:
                 x0 = nx // CELL
             else:
                 x0 = (nx+self.ico.w-1) // CELL
             for y in range(self.y // CELL, (self.y+self.ico.h-1) // CELL + 1):
                 if bget(x0, y) == '#':
-                    self.dir = -self.dir
+                    ndir = -ndir
                     nx = self.x
-                    self.resetimages()
                     break
             if self.vdir < 0:
                 y0 = ny // CELL
@@ -318,22 +320,23 @@ class Monster(ActiveSprite):
                 if bget(x, y0) == '#':
                     self.vdir = -self.vdir
                     ny = self.y
-                    self.resetimages()
                     break
             if nx == self.x and ny == self.y:
                 if blocked:
                     # blocked! go up
-                    ny -= abs(self.vdir)
-                    if ny < -2*CELL:
-                        ny += boards.bheightmod
+                    self.step(0, -abs(self.vdir))
+                    self.vertical_warp()
                 else:
                     blocked = 1
             else:
                 blocked = 0
-            self.move(nx, ny)
+                self.move(nx, ny)
+                if ndir != self.dir and ny != self.y:
+                    self.moebius()
             yield None
 
     def becoming_monster(self, saved_caps):
+        self.saved_caps = saved_caps
         for i in range(5):
             ico = self.ico
             self.seticon(self.bubber.icons[11, self.dir])
@@ -344,9 +347,9 @@ class Monster(ActiveSprite):
             yield None
         self.resetimages()
         self.gen.append(self.playing_monster())
-        self.gen.append(self.back_to_dragon(saved_caps))
+        self.gen.append(self.back_to_dragon())
 
-    def back_to_dragon(self, saved_caps):
+    def back_to_dragon(self):
         for t in range(259):
             yield None
             if BubPlayer.DragonList:
@@ -354,7 +357,7 @@ class Monster(ActiveSprite):
                 yield None
                 yield None
         from player import Dragon
-        d = Dragon(self.bubber, self.x, self.y, self.dir, saved_caps)
+        d = Dragon(self.bubber, self.x, self.y, self.dir, self.saved_caps)
         d.dcap['shield'] = 50
         self.bubber.dragons.append(d)
         self.kill()
@@ -364,12 +367,7 @@ class Monster(ActiveSprite):
         if self.vy:
             # flying monster
             while 1:
-                if bubber.key_left and bubber.key_left > bubber.key_right:
-                    dx = -1
-                elif bubber.key_right:
-                    dx = 1
-                else:
-                    dx = 0
+                dx = bubber.wannago(self.saved_caps)
                 if dx and dx != self.dir:
                     self.dir = dx
                     self.resetimages()
@@ -383,10 +381,6 @@ class Monster(ActiveSprite):
                 blocked = 0
                 nx = (self.x // self.vx) * self.vx
                 ny = (self.y // self.vy) * self.vy
-                if ny >= boards.bheight:
-                    ny -= boards.bheightmod
-                elif ny < -2*CELL:
-                    ny += boards.bheightmod
                 if (nx % CELL) == 0:
                     if dx < 0:
                         x0 = nx // CELL - 1
@@ -410,6 +404,7 @@ class Monster(ActiveSprite):
                 if blocked == 2 and bget(self.x//CELL+1, self.y//CELL+1) == '#':
                     dx, dy = saved_dxdy
                 self.move(nx + dx*self.vx, ny + dy*self.vy)
+                self.vertical_warp()
                 yield None
         elif not isinstance(self, Springy):
             # walking monster
@@ -417,12 +412,7 @@ class Monster(ActiveSprite):
             while onground(self.x, self.y):
                 wannafire = bubber.key_fire
                 wannajump = bubber.key_jump
-                if bubber.key_left and bubber.key_left > bubber.key_right:
-                    dx = -1
-                elif bubber.key_right:
-                    dx = 1
-                else:
-                    dx = 0
+                dx = bubber.wannago(self.saved_caps)
                 if dx and dx != self.dir:
                     self.dir = dx
                     self.resetimages()
@@ -458,12 +448,7 @@ class Monster(ActiveSprite):
                 return
             walker = self.walking()
             while 1:
-                if bubber.key_left and bubber.key_left > bubber.key_right:
-                    dx = -1
-                elif bubber.key_right:
-                    dx = 1
-                else:
-                    dx = 0
+                dx = bubber.wannago(self.saved_caps)
                 if dx and dx != self.dir:
                     self.dir = dx
                     self.resetimages()
@@ -712,11 +697,10 @@ class Springy(Monster):
                 if onground(nx, (self.y//CELL+1)*CELL):
                     self.move(nx, self.y)
                     break
-            if yf >= boards.bheight:
-                yf -= boards.bheightmod
-            elif yf < -2*CELL:
-                yf += boards.bheightmod
+            (nx, yf), moebius = boards.vertical_warp(nx, yf)
             self.move(nx, int(yf))
+            if moebius:
+                self.moebius()
             yield None
         self.gen.append(self.falling())
 
