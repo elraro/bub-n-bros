@@ -30,7 +30,7 @@ def goodmatch(addr1, addr2):
 
 
 class Entry:
-    AnyAction = 0
+    Notice = ''
     FIELDS = [('server', 128), ('desc', 128), ('icon', 64),
               ('orig', 64), ('dele1', 64), ('dele2', 64)]
     
@@ -63,7 +63,6 @@ class Entry:
         for fname, flen in self.FIELDS:
             data = getattr(self, fname, '')[:flen]
             f.write(data + ' '*(flen-len(data)))
-        Entry.AnyAction = 1
 
 
 def main():
@@ -109,6 +108,7 @@ def main():
                     else:
                         e.server = ''      # remove server
                     e.write(f)
+                    Entry.Notice = 'd'
         if e.server:
             published.append((e.pos, e))
         else:
@@ -124,13 +124,28 @@ def main():
                 e = Entry(f)
                 if e.pos >= SIZEMAX:
                     raise "Sorry, server database too big"
-            e.server = srv
-            e.icon = ''
-            e.desc = desc
-            e.orig = REMOTE_ADDR
-            e.dele1 = e.dele2 = ''
-            e.write(f)
-            published.append((e.pos, e))
+            hostname = string.split(srv, ':')[0]
+            if '.' not in hostname:
+                Entry.Notice = 'Server hostname "%s" incomplete.' % hostname
+            else:
+                import socket
+                try:
+                    result = socket.gethostbyaddr(hostname)
+                except socket.error, e:
+                    Entry.Notice = ('%s: %s' % (hostname, e))
+                else:
+                    if result[0] == 'projects.sourceforge.net':  # ????
+                        Entry.Notice = ('Server hostname "%s" does not exist.' %
+                                        hostname)
+                    else:
+                        e.server = srv
+                        e.icon = ''
+                        e.desc = desc
+                        e.orig = REMOTE_ADDR
+                        e.dele1 = e.dele2 = ''
+                        e.write(f)
+                        published.append((e.pos, e))
+                        Entry.Notice = 'a'
 
     f.close()
 
@@ -219,19 +234,22 @@ def publish_img(serverlist):
     f.close()
 
 def publish_register(serverlist):
-    if fieldlist('a'):
-        if Entry.AnyAction:
-            banner = "The game server is now registered to SourceForge."
-        else:
+    if Entry.Notice == 'a':
+        banner = 'The game server is now registered to SourceForge.'
+    elif Entry.Notice == 'd':
+        banner = ('Server <font color="#FF8000">unregistered</font> '
+                  'from SourceForge.')
+    elif Entry.Notice == '':
+        if fieldlist('a'):
             banner = "The game server is already registered to SourceForge."
-    elif fieldlist('d'):
-        if Entry.AnyAction:
-            banner = 'Server <font color="#FF8000">unregistered</font> from SourceForge.'
-        else:
+        elif fieldlist('d'):
             banner = 'The game server was <font color="#FF8000">already absent</font> from SourceForge.'
-    else:
-        publish_default(serverlist)
-        return
+        else:
+            publish_default(serverlist)
+            return
+    else: # errors
+        banner = ('%s<br><br>' % Entry.Notice +
+                  'If you are behind a firewall or NAT device (e.g. ADSL routers) you can still make your server reachable but it requires manual configuration.  (Instructions not available yet -- sorry)')
     f = open('started.html', 'r')
     header, row, footer = string.split(f.read(), '\\')
     f.close()
