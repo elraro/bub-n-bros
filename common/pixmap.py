@@ -36,6 +36,25 @@ def vflip(w, h, data):
     lines.reverse()
     return ''.join(lines)
 
+def hflip(w, h, data):
+    scanline = w*3
+    lines = [''.join([data[p:p+3] for p in range(p1+scanline-3, p1-3, -3)])
+             for p1 in range(0, len(data), scanline)]
+    return ''.join(lines)
+
+def rotate_cw(w, h, data):
+    scanline = w*3
+    lastline = len(data) - scanline
+    lines = [''.join([data[p:p+3] for p in range(lastline + p1, -1, -scanline)])
+             for p1 in range(0, scanline, 3)]
+    return ''.join(lines)
+
+def rotate_ccw(w, h, data):
+    scanline = w*3
+    lines = [''.join([data[p:p+3] for p in range(p1, len(data), scanline)])
+             for p1 in range(scanline-3, -3, -3)]
+    return ''.join(lines)
+
 def makebkgnd(w, h, data):
     scanline = 3*w
     result = []
