@@ -602,7 +602,7 @@ then use the following address:
     p = game.FnPlayers()[id]
     p.setplayername(name)
 
-  def set_udp_port(self, port, *rest):
+  def set_udp_port(self, port, addr=None, *rest):
     if port == MSG_BROADCAST_PORT:
       #self.log('set_udp_port: broadcast')
       broadcast_clients[self] = 1
@@ -620,7 +620,7 @@ then use the following address:
       else:
         self.udpsocket = socket(AF_INET, SOCK_DGRAM)
         self.udpsocket.setblocking(0)
-        self.udpsocket.connect((self.addr[0], port))
+        self.udpsocket.connect((addr or self.addr[0], port))
         #self.log('set_udp_port: %d' % port)
 
   def enable_sound(self, sound_mode=1, *rest):
