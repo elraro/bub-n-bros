@@ -74,10 +74,6 @@ def kExcHandler(kbd):
   frametime = 20
   return 1
 
-def kCrasher():
-  import boards
-  boards.BoardGen = [crasher()]
-
 gamesrv.playfield.width = boards.bwidth + 9*boards.CELL
 gamesrv.playfield.height = boards.bheight
 gamesrv.playfield.backcolor = 0x000000

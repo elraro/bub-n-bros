@@ -241,11 +241,12 @@ class DragonBubble(Bubble):
 
 class BubblingEyes(ActiveSprite):
     
-    def __init__(self, bubber, saved_caps):
+    def __init__(self, bubber, saved_caps, bubble):
         ico = images.sprget(('eyes', 0, 0))
-        ActiveSprite.__init__(self, ico, -ico.w, 0)
+        ActiveSprite.__init__(self, ico, bubble.x, bubble.y)
         self.bubber = bubber
         self.saved_caps = saved_caps
+        self.gen = [self.playing_bubble(bubble)]
         
     def playing_bubble(self, bubble):
         from player import Dragon

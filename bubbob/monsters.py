@@ -515,6 +515,7 @@ class Monster(ActiveSprite):
                     if dist1 > distance:
                         break
                     distance = dist1
+        self.angry = 0
         self.gen = [self.default_mode()]
         self.resetimages()
 

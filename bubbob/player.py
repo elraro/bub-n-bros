@@ -299,8 +299,7 @@ class Dragon(ActiveSprite):
 
             import bubbles
             bubble.to_front()
-            m = bubbles.BubblingEyes(self.bubber, self.dcap)
-            m.gen = [m.playing_bubble(bubble)]
+            m = bubbles.BubblingEyes(self.bubber, self.dcap, bubble)
             self.bubber.dragons.append(m)
             self.gen = [ActiveSprite.die(self, bubbles.Bubble.exploding_bubbles)]
             return 1

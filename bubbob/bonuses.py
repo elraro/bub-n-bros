@@ -204,6 +204,7 @@ class Parabolic(ActiveSprite):
 
 
 class Parabolic2(Parabolic):
+    points = 0
 
     def __init__(self, x, y, imglist, imgspeed=3, onplace=0, y_amplitude=-8.0):
         Parabolic.__init__(self, images.sprget(imglist[0]), x, y)
@@ -213,6 +214,12 @@ class Parabolic2(Parabolic):
             self.gen.append(self.moving(y_amplitude))
         if len(imglist) > 1:
             self.setimages(self.cyclic(imglist, imgspeed))
+
+    def touched(self, dragon):
+        if self.points:
+            points(self.x + self.ico.w/2, self.y + self.ico.h/2 - CELL,
+                   dragon, self.points)
+            self.kill()
 
 
 class BonusMaker(Parabolic2):
@@ -637,8 +644,10 @@ class Fruits(RandomBonus):
             self.repeatcount = random.randrange(50,100)
     def taken1(self, dragons):
         if self.repeatcount:
-            image, self.points = self.superfruit
-            Parabolic2(self.x, self.y, [image], y_amplitude = -1.5)
+            image, points = self.superfruit
+            f = Parabolic2(self.x, self.y, [image], y_amplitude = -1.5)
+            f.points = points
+            f.touchable = 1
             self.repeatcount -= 1
             self.gen.append(self.taking(1, 2))
             return -1
@@ -1084,7 +1093,7 @@ Classes = [c for c in globals().values()
 Classes.remove(RandomBonus)
 Classes.remove(TemporaryBonus)
 Cheat = [] #[Book, Door, Bomb, Ham]
-#Classes = [...]  # CHEAT
+#Classes = [Fruits]  # CHEAT
 
 AllOutcomes = ([(c,) for c in Classes if c is not Fruits] +
                2 * [(MonsterBonus, lvl)
