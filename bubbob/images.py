@@ -368,6 +368,7 @@ extramap = {
     ('emotic', 4): ('extra7.ppm', (0, 32, 8, 8)),
     ('emotic', 5): ('extra7.ppm', (0, 40, 8, 8)),
     ('emotic', 6): ('extra7.ppm', (0, 48, 8, 8)),
+    'glue': ('glue.ppm', (0, 0, 32, 32)),
     'black': ('black.ppm', (0, 0, 32, 32)),
     }
 hatmap = {

@@ -28,6 +28,7 @@ class Dragon(ActiveSprite):
         'bubbledelay': 0,
         'shootbubbles': (),
         'pinball': 0,
+        'nojump': 0,
         'autofire': 0,
         'ring': 0,
         'hotstuff': 0,
@@ -171,6 +172,8 @@ class Dragon(ActiveSprite):
                 if self.dcap['pinball'] > 1:
                     if self.up:
                         self.up *= 0.982 ** self.dcap['pinball']
+            if self.dcap['nojump']:
+                wannajump = 0
             if self.dcap['hotstuff']:
                 if not wannago:
                     if self.dir * (random.random()-0.07) < 0:
