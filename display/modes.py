@@ -101,7 +101,10 @@ def graphicmodeslist():
                     {'shm': 'yes'}),
         GraphicMode('windows', 'MS Windows', []),
         GraphicMode('pygame', 'PyGame library (all platforms)',
-                    [], url='http://www.pygame.org'),
+                    ['--transparency=yes  slightly transparent bubbles (default)',
+                     '--transparency=no   disable it (a bit faster)'],
+                    {'transparency': 'yes'},
+                    url='http://www.pygame.org'),
         ]
 
 def soundmodeslist():

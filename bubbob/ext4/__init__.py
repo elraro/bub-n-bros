@@ -284,14 +284,15 @@ class Brick(ActiveSprite):
 
 class Tetris:
     
-    def bgen(self, limittime = 50.1): # 0:50
+    def bgen(self, limittime = 90.1): # 1:30
         import boards
         from player import BubPlayer
 
-        for t in boards.exit_board(0, music=[music]*4):
+        for t in boards.exit_board(0):
             yield t
         for t in curboard.clean_gen_state():
             yield t
+        gamesrv.set_musics([], [music])
 
         tc = boards.TimeCounter(limittime)
         self.ready = 0

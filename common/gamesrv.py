@@ -23,11 +23,14 @@ def protofilepath(filename):
 class Icon:
   count = 0
 
-  def __init__(self, bmpcode, code, x,y,w,h):
+  def __init__(self, bmpcode, code, x,y,w,h, alpha=255):
     self.w = w
     self.h = h
     self.code = code
-    self.msgdef = message(MSG_DEF_ICON, bmpcode, code, x,y,w,h)
+    if alpha == 255:
+      self.msgdef = message(MSG_DEF_ICON, bmpcode, code, x,y,w,h)
+    else:
+      self.msgdef = message(MSG_DEF_ICON, bmpcode, code, x,y,w,h, alpha)
     framemsgappend(self.msgdef)
     #print "Icon(%d, %d, %d,%d,%d,%d)" % (bmpcode, code, x,y,w,h)
 
@@ -83,12 +86,12 @@ class Bitmap(DataChunk):
     self.colorkey = colorkey
     DataChunk.__init__(self)
 
-  def geticon(self, x,y,w,h):
+  def geticon(self, x,y,w,h, alpha=255):
     rect = (x,y,w,h)
     try:
       return self.icons[rect]
     except:
-      ico = Icon(self.code, Icon.count, x,y,w,h)
+      ico = Icon(self.code, Icon.count, x,y,w,h, alpha)
       Icon.count += 1
       self.icons[rect] = ico
       return ico

@@ -11,7 +11,9 @@ from modes import KeyPressed, KeyReleased
 
 class Display:
     
-    def __init__(self, width, height, title):
+    def __init__(self, width, height, title, transparency='yes'):
+        self.use_transparency = not transparency.startswith('n')
+
         # Initialize pygame
         pygame.init()
 
@@ -51,11 +53,23 @@ class Display:
             g = (colorkey >> 8) & 0xFF
             b = (colorkey >> 16) & 0xFF
             img.set_colorkey([r, g, b])
+        return img   # not optimized -- must use getopticon()
+
+    def getopticon(self, pixmap, rect, alpha=255):
+        if not self.use_transparency:
+            alpha = 255
+        img = pixmap.subsurface(rect)
+        colorkey = pixmap.get_colorkey()
+        if alpha == 255 and not colorkey:
+            return img.convert(self.offscreen)
+        else:
+            if colorkey:
+                img.set_colorkey(colorkey, RLEACCEL)
+            if alpha < 255:
+                img.set_alpha(alpha, RLEACCEL)
             img = img.convert_alpha(self.offscreen)
             img.set_alpha(255, RLEACCEL)
-        else:
-            img = img.convert(self.offscreen)
-        return img
+            return img
 
 ##    def vflipppm(self, img):
 ##        w, h = img.get_size()
@@ -68,7 +82,7 @@ class Display:
     def getppm(self, rect, bkgnd=None):
         if bkgnd is None:
             bkgnd = pygame.Surface(rect[2:])
-        bkgnd.blit(self.offscreen, (0, 0), Rect(rect))
+        bkgnd.blit(self.offscreen, (0, 0), rect)
         return bkgnd
 
     def putppm(self, x, y, bitmap, rect=None):
@@ -133,7 +147,7 @@ class Display:
     def taskbar(self, (x, y, w, h)):
         tbs, tbh = self.tbcache
         if tbh != h:
-            tbs = pygame.Surface((32, h)).convert_alpha()
+            tbs = pygame.Surface((32, h)).convert_alpha(self.offscreen)
             alpha_f = 256.0 / h
             for j in range(h):
                 tbs.fill((128, 128, 255, int(j*alpha_f)),
@@ -161,3 +175,10 @@ def events_dispatch(handlers = EVENT_HANDLERS):
             break
         elif handlers.has_key(e.type):
             handlers[e.type](e)
+
+
+def htmloptionstext(nameval):
+    return '''
+<%s> Draw slightly transparent bubbles</input><%s><br>
+''' % (nameval("checkbox", "transparency", "yes", default="yes"),
+       nameval("hidden", "transparency", "no"))

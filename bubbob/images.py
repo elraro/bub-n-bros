@@ -2,6 +2,7 @@ from __future__ import generators
 import gamesrv, os
 from sprmap import sprmap as original_sprmap
 from patmap import patmap
+import mnstrmap
 
 KEYCOL = 0x010101
 
@@ -215,9 +216,21 @@ def action(sprlist, len=len):
                         key[self] = 1
                         self.ranges.append(key)
 
-def sprget(n):
-    filename, rect = sprmap[n]
-    return gamesrv.getbitmap(filename, KEYCOL).geticon(*rect)
+def sprget(n, spriconcache={}):
+    try:
+        return spriconcache[n]
+    except KeyError:
+        filename, rect = sprmap[n]
+        if isinstance(n, int):
+            n1 = n % 1000
+        elif isinstance(n, tuple):
+            n1 = n[0]
+        else:
+            n1 = n
+        alpha = transparency.get(n1, 255)
+        ico = gamesrv.getbitmap(filename, KEYCOL).geticon(alpha=alpha, *rect)
+        spriconcache[n] = ico
+        return ico
 
 def sprget_vflip(n, vflipped={}):
     filename, (x,y,w,h) = sprmap[n]
@@ -310,6 +323,26 @@ sprmap = {}
 for n, (filename, rect) in original_sprmap.items() + extramap.items():
     sprmap[n] = os.path.join('images', filename), rect
 del n, filename, rect
+
+transparency = {
+    mnstrmap.GreenAndBlue.new_bubbles[0][0]: 0xA0,
+    mnstrmap.GreenAndBlue.new_bubbles[0][1]: 0xB0,
+    mnstrmap.GreenAndBlue.new_bubbles[0][2]: 0xC0,
+    mnstrmap.GreenAndBlue.new_bubbles[0][3]: 0xD0,
+    mnstrmap.GreenAndBlue.normal_bubbles[0][0]: 0xE0,
+    mnstrmap.GreenAndBlue.normal_bubbles[0][1]: 0xE0,
+    mnstrmap.GreenAndBlue.normal_bubbles[0][2]: 0xE0,
+    mnstrmap.DyingBubble.first[0]: 0xD0,
+    mnstrmap.DyingBubble.first[1]: 0xD0,
+    mnstrmap.DyingBubble.first[2]: 0xD0,
+    mnstrmap.DyingBubble.medium[0]: 0xC0,
+    mnstrmap.DyingBubble.medium[1]: 0xC0,
+    mnstrmap.DyingBubble.medium[2]: 0xC0,
+    mnstrmap.DyingBubble.last[0]: 0xB0,
+    mnstrmap.DyingBubble.last[1]: 0xB0,
+    mnstrmap.DyingBubble.last[2]: 0xB0,
+    'starbub': 0xE0,
+    }
 
 def sprcharacterget(c, filename=os.path.join('images', 'extra8.ppm')):
     n = ord(c) - 32

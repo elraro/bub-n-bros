@@ -39,12 +39,18 @@ def loadpixmap(dpy, data, colorkey=None):
     return dpy.pixmap(w, h, data, colorkey)
 
 class Icon:
+    alpha = 255
     def __init__(self, playfield):
         self.playfield = playfield
         self.size = 0, 0
     def __getattr__(self, attr):
         if attr == 'pixmap':
+            rect = self.rect    # can trigger KeyError
             self.pixmap = self.playfield.getpixmap(self.bmpcode)
+            if hasattr(self.playfield.dpy, 'getopticon'):
+                self.pixmap = self.playfield.dpy.getopticon(
+                    self.pixmap, rect, self.alpha)
+                self.rect = None # (0, 0) + rect[2:]
             return self.pixmap
         elif attr in ('bmpcode', 'rect'):
             raise KeyError, attr
@@ -534,7 +540,7 @@ class Playfield:
     def msg_def_key(self, name, num, *icons):
         self.keys[name] = num, [self.geticon(ico) for ico in icons]
 
-    def msg_def_icon(self, bmpcode, icocode, x, y, w, h, *rest):
+    def msg_def_icon(self, bmpcode, icocode, x, y, w, h, alpha=255, *rest):
 ##        if h<0:
 ##            try:
 ##                bitmap, height = self.flippedbitmaps[bmpcode]
@@ -548,6 +554,8 @@ class Playfield:
         ico.bmpcode = bmpcode
         ico.rect = x, y, w, h
         ico.size = w, h
+        if alpha < 255:
+            ico.alpha = alpha
 
     def msg_def_bitmap(self, bmpcode, data, colorkey=None, *rest):
         if type(data) is not type(''):
