@@ -495,103 +495,239 @@ class FireBubble(BonusBubble):
             FireDrop(x0*CELL, self.y)
         return 10
 
-class WaterCell(ActiveSprite):
-    ICONS = {
-        ( 0,1, None) : Water.bottom,
-        ( 1,0, None) : Water.start_left,
-        (-1,0, None) : Water.start_right,
-        ( 0,0, None) : Water.bottom,
+##class WaterCell(ActiveSprite):
+##    ICONS = {
+##        ( 0,1, None) : Water.bottom,
+##        ( 1,0, None) : Water.start_left,
+##        (-1,0, None) : Water.start_right,
+##        ( 0,0, None) : Water.bottom,
         
-        (0,1,   0,1) : Water.v_flow,
-        (0,1,   1,0) : Water.bl_corner,
-        (0,1,  -1,0) : Water.br_corner,
+##        (0,1,   0,1) : Water.v_flow,
+##        (0,1,   1,0) : Water.bl_corner,
+##        (0,1,  -1,0) : Water.br_corner,
 
-        (-1,0,  0,1) : Water.tl_corner,
-        (-1,0,  1,0) : Water.start_right,
-       #(-1,0, -1,0) : Water.h_flow,
+##        (-1,0,  0,1) : Water.tl_corner,
+##        (-1,0,  1,0) : Water.start_right,
+##       #(-1,0, -1,0) : Water.h_flow,
 
-        (1,0,   0,1) : Water.tr_corner,
-       #(1,0,   1,0) : Water.h_flow,
-        (1,0,  -1,0) : Water.start_left,
+##        (1,0,   0,1) : Water.tr_corner,
+##       #(1,0,   1,0) : Water.h_flow,
+##        (1,0,  -1,0) : Water.start_left,
 
-        (0,0,   0,1) : Water.top,
-        (0,0,   1,0) : Water.top,
-        (0,0,  -1,0) : Water.top,
+##        (0,0,   0,1) : Water.top,
+##        (0,0,   1,0) : Water.top,
+##        (0,0,  -1,0) : Water.top,
 
-        (None,  0,1) : Water.top,
-        (None, -1,0) : Water.start_left,
-        (None,  1,0) : Water.start_right,
-        (None,  0,0) : Water.top,
-        }
+##        (None,  0,1) : Water.top,
+##        (None, -1,0) : Water.start_left,
+##        (None,  1,0) : Water.start_right,
+##        (None,  0,0) : Water.top,
+##        }
     
-    def __init__(self, x, y):
-        ActiveSprite.__init__(self, images.sprget(Water.top), x, y)
-        self.touchable = 1
+##    def __init__(self, x, y):
+##        ActiveSprite.__init__(self, images.sprget(Water.top), x, y)
+##        self.touchable = 1
         
-    def ready(self, celllist):
-        self.gen.append(self.flooding(celllist))
+##    def ready(self, celllist):
+##        self.gen.append(self.flooding(celllist))
 
-    def flooding(self, celllist):
+##    def flooding(self, celllist):
+##        from monsters import Monster
+##        x0 = self.x // 16
+##        y0 = self.y // 16
+##        ping = 0
+##        dir = random.choice([-1, 1])
+##        take_with_us = [[] for cell in celllist]
+##        poplist = [None]
+##        icons = {}
+##        for key, value in self.ICONS.items():
+##            icons[key] = images.sprget(value)
+##        icodef = images.sprget(Water.h_flow)
+##        stop = 0
+##        while not stop:
+##            dx = dy = 0
+##            if bget(x0, y0+1) == ' ':
+##                dy = y0*16 < boards.bheight
+##                ping = 0
+##            elif bget(x0+dir, y0) == ' ':
+##                dx = dir
+##            elif bget(x0-dir, y0) == ' ':
+##                ping += 1
+##                if ping < 3:
+##                    dir = -dir
+##                    dx = dir
+##            # change the head icon
+##            head = celllist[0]
+##            second = celllist[1]
+##            head.seticon(icons.get((x0-second.x//16, y0-second.y//16,
+##                                    dx, dy), icodef))
+##            # move the tail to the new head position
+##            x0 += dx
+##            y0 += dy
+##            newhead = celllist.pop()
+##            celllist.insert(0, newhead)
+##            newhead.move(x0*16, y0*16, icons.get((dx,dy, None), icodef))
+##            # change the new tail icon
+##            tail = celllist[-1]
+##            second = celllist[-2]
+##            tail.seticon(icons.get((None, (second.x-tail.x)//16,
+##                                          (second.y-tail.y)//16), icodef))
+##            # take monsters with us
+##            for i in range(0, len(celllist), 3):
+##                for s in celllist[i].touching(0):
+##                    if isinstance(s, Monster):
+##                        s.untouchable()
+##                        s.gen = []
+##                        take_with_us[i].append(s)
+##                    elif isinstance(s, Bubble):
+##                        s.pop(poplist)
+##            yield 0
+##            stop = dx == dy == 0
+##            for cell, takelist in zip(celllist, take_with_us):
+##                stop &= cell.x == newhead.x and cell.y == newhead.y
+##                for s in takelist:
+##                    if s.alive:
+##                        s.move(x2bounds(cell.x-8), cell.y-16)
+##                        if stop:
+##                            s.argh(poplist, onplace=1)
+##        for c in celllist:
+##            c.kill()
+##    def touched(self, dragon):
+##        dragon.watermove(x2bounds(self.x-HALFCELL), self.y-CELL+1)
+##        return 1
+
+class WaterCell(ActiveSprite):
+    TESTLIST = [(-CELL,0), (CELL,0), (0,CELL), (0,-CELL)]
+    ICONS = [Water.v_flow,
+             Water.start_left,
+             Water.start_right,
+             Water.h_flow,
+             Water.top,
+             Water.tr_corner,
+             Water.tl_corner,
+             Water.h_flow,
+             
+             Water.bottom,
+             Water.br_corner,
+             Water.bl_corner,
+             Water.h_flow,
+             Water.v_flow,
+             Water.v_flow,
+             Water.v_flow,
+             Water.v_flow]
+    
+    def __init__(self, x, y, dir, watercells, poplist, repeat):
+        ActiveSprite.__init__(self, images.sprget(Water.top), x, y)
+        self.poplist = poplist
+        self.take_with_me = []
+        self.ping = 0
+        self.repeat = repeat
+        self.watercells = watercells
+        self.touchable = repeat % 3 == 1
+        if (x, y, dir) not in watercells:
+            watercells[x,y,dir] = self
+            if None not in watercells or not watercells[None].alive:
+                self.in_charge()
+        else:
+            watercells[x,y,dir].join(self)
+
+    def join(self, other):
+        self.take_with_me += other.take_with_me
+        self.ping = min(self.ping, other.ping)
+        self.repeat += other.repeat
+        self.touchable = self.touchable or other.touchable
+        del other.take_with_me[:]
+        other.kill()
+
+    def in_charge(self):
+        self.gen = [self.flooding()]
+        self.watercells[None] = self
+
+    def kill(self):
         from monsters import Monster
-        x0 = self.x // 16
-        y0 = self.y // 16
-        ping = 0
-        dir = random.choice([-1, 1])
-        take_with_us = [[] for cell in celllist]
-        poplist = [None]
-        icons = {}
-        for key, value in self.ICONS.items():
-            icons[key] = images.sprget(value)
-        icodef = images.sprget(Water.h_flow)
-        stop = 0
-        while not stop:
-            dx = dy = 0
-            if bget(x0, y0+1) == ' ':
-                dy = y0*16 < boards.bheight
-                ping = 0
-            elif bget(x0+dir, y0) == ' ':
-                dx = dir
-            elif bget(x0-dir, y0) == ' ':
-                ping += 1
-                if ping < 3:
-                    dir = -dir
-                    dx = dir
-            # change the head icon
-            head = celllist[0]
-            second = celllist[1]
-            head.seticon(icons.get((x0-second.x//16, y0-second.y//16,
-                                    dx, dy), icodef))
-            # move the tail to the new head position
-            x0 += dx
-            y0 += dy
-            newhead = celllist.pop()
-            celllist.insert(0, newhead)
-            newhead.move(x0*16, y0*16, icons.get((dx,dy, None), icodef))
-            # change the new tail icon
-            tail = celllist[-1]
-            second = celllist[-2]
-            tail.seticon(icons.get((None, (second.x-tail.x)//16,
-                                          (second.y-tail.y)//16), icodef))
-            # take monsters with us
-            for i in range(0, len(celllist), 3):
-                for s in celllist[i].touching(0):
-                    if isinstance(s, Monster):
-                        s.untouchable()
-                        s.gen = []
-                        take_with_us[i].append(s)
-                    elif isinstance(s, Bubble):
-                        s.pop(poplist)
-            yield 0
-            stop = dx == dy == 0
-            for cell, takelist in zip(celllist, take_with_us):
-                stop &= cell.x == newhead.x and cell.y == newhead.y
-                for s in takelist:
-                    if s.alive:
-                        s.move(x2bounds(cell.x-8), cell.y-16)
-                        if stop:
-                            s.argh(poplist, onplace=1)
-        for c in celllist:
-            c.kill()
+        for s in self.take_with_me[:]:
+            if isinstance(s, Monster) and s.alive:
+                s.argh(self.poplist, onplace=1)
+        del self.take_with_me[:]
+        ActiveSprite.kill(self)
+        if not self.watercells[None].alive:
+            del self.watercells[None]
+            for s in self.watercells.values():
+                if s.alive:
+                    s.in_charge()
+                    break
+
+    def flooding(self):
+        from monsters import Monster
+        watercells = self.watercells
+        while watercells[None] is self:
+
+            new = []
+            nwatercells = {None: self}
+            for key, s in watercells.items():
+                if key:
+                    x, y, dir = key
+                    if s.repeat:
+                        new.append((x, y, dir, watercells,
+                                    s.poplist, s.repeat-1))
+                        s.repeat = 0
+                    x0 = x // CELL
+                    y0 = y // CELL
+                    if bget(x0, y0+1) == ' ':
+                        if y >= boards.bheight:
+                            s.kill()
+                            continue
+                        s.ping = 0
+                        y += CELL
+                    elif bget(x0+dir, y0) == ' ':
+                        x += dir*CELL
+                    elif bget(x0-dir, y0) == ' ':
+                        s.ping += 1
+                        if s.ping == 3:
+                            s.kill()
+                            continue
+                        dir = -dir
+                        x += dir*CELL
+                    else:
+                        s.kill()
+                        continue
+                    key = x, y, dir
+                    if key in nwatercells:
+                        nwatercells[key].join(s)
+                    else:
+                        nwatercells[key] = s
+            
+            watercells.clear()
+            watercells.update(nwatercells)
+            for args in new:
+                WaterCell(*args)
+            
+            for key, s in watercells.items():
+                if key:
+                    x, y, dir = key
+                    flag = 0
+                    for k in range(4):
+                        dx, dy = s.TESTLIST[k]
+                        if ((x+dx, y+dy, -1) in watercells or
+                            (x+dx, y+dy,  1) in watercells):
+                            flag += 1<<k
+                    ico = images.sprget(s.ICONS[flag])
+                    s.move(x, y, ico)
+                    if s.touchable:
+                        for s1 in s.touching(0):
+                            if isinstance(s1, Monster):
+                                s1.untouchable()
+                                s1.gen = []
+                                s.take_with_me.append(s1)
+                            elif isinstance(s1, Bubble):
+                                s1.pop(s.poplist)
+                        for s1 in s.take_with_me:
+                            if s1.alive:
+                                s1.move(x2bounds(x-HALFCELL), y-CELL)
+            yield None
+        if not watercells[None].alive:
+            self.in_charge()
+
     def touched(self, dragon):
         dragon.watermove(x2bounds(self.x-HALFCELL), self.y-CELL+1)
         return 1
@@ -605,18 +741,19 @@ class WaterBubble(BonusBubble):
         if dragon:
             x0 = self.x // CELL + 1
             y0 = self.y // CELL + 1
-            if bget(x0,y0) == '#':
-                if bget(x0+1,y0) == '#':
-                    y0 += 1
-                    if bget(x0,y0) == '#':
-                        #if bget(x0+1,y0) == '#':
-                        #    return
-                        x0 += 1
-                else:
-                    x0 += 1
-            celllist = [WaterCell(x0*CELL, y0*CELL) for i in range(20)]
-            celllist[0].ready(celllist)
+            for x1 in [x0, x0+1, x0-1]:
+                if bget(x1,y0) == ' ' or bget(x1,y0+1) == ' ':
+                    x0 = x1
+                    break
+            watercell(x0*CELL, y0*CELL, [None], repeat=19)
         return 10
+
+def watercell(x, y, poplist, dir=None, repeat=4):
+    b = boards.curboard
+    if not hasattr(b, 'watercells'):
+        b.watercells = {}
+    dir = dir or random.choice([-1, 1])
+    WaterCell(x, y, dir, b.watercells, poplist, repeat)
 
 class FiredLightning(ActiveSprite):
     def __init__(self, x, y, dir, poplist):

@@ -648,9 +648,8 @@ def fire_rain(x, poplist):
     FireDrop(x, -CELL, poplist)
 
 def water_rain(x, poplist):
-    from bubbles import WaterCell
-    celllist = [WaterCell(x, 0) for i in range(5)]
-    celllist[0].ready(celllist)
+    from bubbles import watercell
+    watercell(x, 0, poplist)
 
 def ball_rain(x, poplist):
     from bubbles import SpinningBall
