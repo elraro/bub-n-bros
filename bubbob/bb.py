@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 
 from __future__ import generators
-import sys, os, random
+import sys, os, random, time
 
 if __name__ == '__main__':
     LOCALDIR = sys.argv[0]
@@ -27,7 +27,8 @@ class BubBobGame(gamesrv.Game):
                  stepboard   = 1,
                  limitlives  = None,
                  extralife   = 50000,
-                 autoreset   = 0):
+                 autoreset   = 0,
+                 metaserver  = 0):
         gamesrv.Game.__init__(self)
         self.game_reset_gen = None
         self.levelfile  = levelfile
@@ -36,10 +37,22 @@ class BubBobGame(gamesrv.Game):
         self.limitlives = limitlives
         self.extralife  = extralife
         self.autoreset  = autoreset
+        self.metaserver = metaserver
+        self.metaregister = 0
         levelsname, ext = os.path.splitext(os.path.basename(levelfile))
         self.FnDesc     = BubBobGame.FnDesc + ' ' + levelsname
         self.reset()
         self.openserver()
+        if self.metaserver:
+            setuppath('metaserver')
+            import metaclient
+            metaclient.meta_register(self)
+        else:
+            for s in gamesrv.findsockets('META'):
+                try:
+                    s.shutdown(2)
+                except:
+                    pass
 
     def openboard(self, num=None):
         if num is None:
@@ -65,6 +78,12 @@ class BubBobGame(gamesrv.Game):
                         BubPlayer.PlayerList))
 
     def FnFrame(self):
+        if self.metaregister:
+            self.metaregister = 0
+            if self.metaserver:
+                setuppath('metaserver')
+                import metaclient
+                metaclient.meta_register(self)
         frametime = 0.0
         while frametime < 1.1:
             import boards
@@ -128,11 +147,16 @@ class BubBobGame(gamesrv.Game):
             s = 'board %d with %s' % (boards.curboard.num+1, s)
         return s
 
+    def updateplayers(self):
+        self.metaregister = 1
+    updateboard = updateplayers
 
-def setuphttp2path():
-    dir = os.path.abspath(os.path.join(LOCALDIR, os.pardir, 'http2'))
+
+def setuppath(dirname):
+    dir = os.path.abspath(os.path.join(LOCALDIR, os.pardir, dirname))
     if not os.path.isdir(dir):
-        print >> sys.stderr, '../http2: directory not found ("cvs update -d" ?)'
+        print >> sys.stderr, (
+            '../%s: directory not found ("cvs update -d" ?)' % dirname)
         sys.exit(1)
     sys.path.append(dir)
 
@@ -173,13 +197,12 @@ def parse_cmdline(argv):
         usage()
         
     options = {}
-    metaserver = 0
     #webbrowser = 1
     pipe_url_to = None
     quiet = 0
     for key, value in opts:
         if key in ('-m', '--metaserver'):
-            metaserver = 1
+            options['metaserver'] = 1
         elif key in ('-b', '--start', '--begin'):
             options['beginboard'] = int(value)
         elif key in ('-s', '--step'):
@@ -207,10 +230,6 @@ def parse_cmdline(argv):
         levelfile = os.path.abspath(args[0])
         os.chdir(LOCALDIR)
         BubBobGame(levelfile, **options)
-        if metaserver:
-            setuphttp2path()
-            import httppages
-            httppages.meta_register()
     else:
         if options:
             print >> sys.stderr, 'bb.py: command-line options ignored'
@@ -218,7 +237,7 @@ def parse_cmdline(argv):
 
 def start_metaserver(pipe_url_to, quiet):
     os.chdir(LOCALDIR)
-    setuphttp2path()
+    setuppath('http2')
     import httppages
     httppages.main(BubBobGame, pipe_url_to, quiet)
 

@@ -107,15 +107,13 @@ class DataChunk(caching.Data):
 class Playfield:
     TASKBAR_HEIGHT = 48
     
-    def __init__(self, sockaddr):
-        print "connecting to %r..." % (sockaddr,)
-        self.s = socket(AF_INET, SOCK_STREAM)
-        self.s.connect(sockaddr)
+    def __init__(self, s, sockaddr):
+        self.s = s
+        self.sockaddr = sockaddr
         try:
             self.s.setsockopt(SOL_IP, IP_TOS, 0x10)  # IPTOS_LOWDELAY
         except error, e:
             print >> sys.stderr, "Cannot set IPTOS_LOWDELAY:", str(e)
-        self.sockaddr = sockaddr
         if read(self.s, len(MSG_WELCOME)) != MSG_WELCOME:
             raise error, "connected to something not a game server"
         line2 = ''
@@ -778,11 +776,11 @@ class Playfield:
         }
 
 
-def run(server, *args, **kw):
+def run(s, sockaddr, *args, **kw):
     try:
         import psyco
     except ImportError:
         pass
     else:
         psyco.bind(Playfield.update_sprites)
-    Playfield(server).run(*args, **kw)
+    Playfield(s, sockaddr).run(*args, **kw)

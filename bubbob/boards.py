@@ -163,6 +163,8 @@ class Board(Copyable):
                 w.to_front()
 
         curboard = self
+        if gamesrv.game:
+            gamesrv.game.updateboard()
         if not complete:
             return
         # add players
@@ -318,6 +320,9 @@ def onground(x, y):
     #        ((bget(x1,y0)=='#') or
     #         (bget(x0,y0)=='#' and bget(x0,y0-1)==' ') or
     #         (bget(x2,y0)=='#' and bget(x2,y0-1)==' ')))
+
+def onground_nobottom(x, y):
+    return onground(x, y) and y+32 < bheight
 
 def underground(x, y):
     if y % CELL:

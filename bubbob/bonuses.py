@@ -46,7 +46,7 @@ class Bonus(ActiveSprite):
 
     def faller(self):
         while self.y < boards.bheight:
-            if onground(self.x, self.y):
+            if onground_nobottom(self.x, self.y):
                 yield None
                 yield None
             else:

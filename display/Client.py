@@ -32,6 +32,7 @@ def parse_cmdline(argv):
         print >> sys.stderr, '  -s#  --sound=#    sound driver (see below)'
         print >> sys.stderr, '       --music=no   disable background music'
         print >> sys.stderr, '  -h   --help       display this text'
+        print >> sys.stderr, '  -m   --metaserver connect with the help of the metaserver'
         print >> sys.stderr, '  -t   --tcp        for slow or proxy connections'
         print >> sys.stderr, '  -u   --udp        for fast direct connections'
         print >> sys.stderr, '                      (default is to autodetect tcp or udp)'
@@ -46,8 +47,9 @@ def parse_cmdline(argv):
         print >> sys.stderr
         sys.exit(2)
 
-    shortopts = 'd:s:htu'
-    longopts = ['display=', 'sound=', 'music=', 'help', 'tcp', 'udp', 'cfg=']
+    shortopts = 'd:s:htum'
+    longopts = ['display=', 'sound=', 'music=', 'help', 'tcp', 'udp',
+                'cfg=', 'metaserver']
     for info in modes.graphicmodeslist() + modes.soundmodeslist():
         short, long = info.getformaloptions()
         shortopts += short
@@ -64,6 +66,7 @@ def parse_cmdline(argv):
         print >> sys.stderr
         usage()
 
+    metaserver = 0
     driver = sound = None
     extraopts = {}
     for key, value in opts:
@@ -75,6 +78,8 @@ def parse_cmdline(argv):
             extraopts['udp_over_tcp'] = 1
         elif key in ('-u', '--udp'):
             extraopts['udp_over_tcp'] = 0
+        elif key in ('-m', '--metaserver'):
+            metaserver = 1
         elif key == '--cfg':
             extraopts['cfgfile'] = value
         elif key in ('-h', '--help'):
@@ -82,6 +87,11 @@ def parse_cmdline(argv):
         else:
             extraopts[key] = value
     mode = driver, sound, extraopts
+
+    if metaserver:
+        if len(args) != 1 or ':' not in args[0]:
+            usage()
+        return metaconnect(args[0]), mode
 
     if args:
         if len(args) > 1:
@@ -100,14 +110,28 @@ def parse_cmdline(argv):
             server = host, port
         else:
             usage()
-    else:
-        from common import hostchooser
-        server = hostchooser.pick(UdpLookForServer * 3)
-    return server, mode
+        return directconnect(server), mode
+
+    from common import hostchooser
+    server = hostchooser.pick(UdpLookForServer * 3)
+    return directconnect(server), mode
+
+def directconnect(sockaddr):
+    print "connecting to %s:%d..." % sockaddr
+    from socket import socket, AF_INET, SOCK_STREAM
+    s = socket(AF_INET, SOCK_STREAM)
+    s.connect(sockaddr)
+    return s, sockaddr
+
+def metaconnect(metaaddr):
+    from metaserver import metaclient
+    s = metaclient.meta_connect(metaaddr)
+    sockaddr = s.getpeername()
+    return s, sockaddr
 
 def main():
-    server, mode = parse_cmdline(sys.argv[1:])
-    pclient.run(server, mode)
+    (s, sockaddr), mode = parse_cmdline(sys.argv[1:])
+    pclient.run(s, sockaddr, mode)
 
 if __name__ == '__main__':
     main()

@@ -7,12 +7,11 @@ try:
 except NameError:
     FILE = sys.argv[0]
 LOCALDIR = os.path.abspath(os.path.dirname(FILE))
-METASERVER = "http://bub-n-bros.sourceforge.net/cgi-bin/bb12.py"
-#METASERVER = "http://127.0.0.1/cgi-bin/bb12.py"
 
 sys.path.append(os.path.abspath(os.path.join(LOCALDIR, os.pardir, 'common')))
 sys.path.append(os.path.abspath(os.path.join(LOCALDIR, os.pardir)))
 import gamesrv, httpserver, hostchooser
+from metaserver import metaclient
 from httpserver import HTTPRequestError
 
 
@@ -40,27 +39,27 @@ class PageServer:
     def __init__(self, Game):
         self.Game = Game
         self.seed = hex(random.randrange(0x1000, 0x10000))
-        self.unique_actions = {}
+        #self.unique_actions = {}
         self.localhost = gamesrv.HOSTNAME
         self.filename = os.path.join(LOCALDIR, self.CONFIGFILE)
         data = self.loadoptionfile()
         self.globaloptions = Options(data.get('*', {}))
         self.localoptions  = Options(data.get(self.localhost, {}))
-        self.inetserverlist = None
-        self.inetservers = {}
-        self.has_been_published = 0
+        #self.inetserverlist = None
+        #self.inetservers = {}
+        #self.has_been_published = 0
 
     def registerpages(self):
         prefix = '%s/' % self.seed
         httpserver.register('controlcenter.html',  self.controlcenterloader)
         httpserver.register(prefix,                self.indexloader)
         httpserver.register(prefix+'index.html',   self.indexloader)
-        httpserver.register(prefix+'list.html',    self.listloader)
+        #httpserver.register(prefix+'list.html',    self.listloader)
         httpserver.register(prefix+'new.html',     self.newloader)
         httpserver.register(prefix+'run.html',     self.runloader)
         httpserver.register(prefix+'stop.html',    self.stoploader)
         httpserver.register(prefix+'join.html',    self.joinloader)
-        httpserver.register(prefix+'register.html',self.registerloader)
+        #httpserver.register(prefix+'register.html',self.registerloader)
         httpserver.register(prefix+'options.html', self.optionsloader)
         httpserver.register(prefix+'name.html',    self.nameloader)
         for fn in os.listdir(os.path.join(LOCALDIR, 'data')):
@@ -89,45 +88,45 @@ class PageServer:
         servers.sort()
         self.localservers = servers
 
-    def parse_inetserv(self, s):
-        try:
-            host, port, udpport, httpport = s.split(':')
-            return host, int(port), int(udpport)
-        except (ValueError, IndexError):
-            return None, None, None
+##    def parse_inetserv(self, s):
+##        try:
+##            host, port, udpport, httpport = s.split(':')
+##            return host, int(port), int(udpport)
+##        except (ValueError, IndexError):
+##            return None, None, None
 
-    def getinetservers(self):
-        if self.inetserverlist is None:
-            return None
-        result = []
-        for s in self.inetserverlist:
-            host, port, udpport = self.parse_inetserv(s)
-            addr = host, port
-            if addr in self.inetservers:
-                result.append((addr, self.inetservers[addr]))
-        return result
+##    def getinetservers(self):
+##        if self.inetserverlist is None:
+##            return None
+##        result = []
+##        for s in self.inetserverlist:
+##            host, port, udpport = self.parse_inetserv(s)
+##            addr = host, port
+##            if addr in self.inetservers:
+##                result.append((addr, self.inetservers[addr]))
+##        return result
 
-    def setinetserverlist(self, lst):
-        self.inetserverlist = lst
+##    def setinetserverlist(self, lst):
+##        self.inetserverlist = lst
 
-    def checkinetserverlist(self):
-        ulist = []
-        for s in self.inetserverlist:
-            host, port, udpport = self.parse_inetserv(s)
-            if host is not None:
-                ulist.append((host, udpport))
-        srvs = hostchooser.find_servers(ulist, delay=0.8)
-        self.inetservers = {}
-        for srv in srvs.items():
-            if not self.filterserver(srv):
-                continue
-            (host, port), info = srv
-            try:
-                host = socket.gethostbyaddr(host)[0]
-            except socket.error:
-                pass
-            self.inetservers[host, port] = info
-        #print 'hostchooser:', self.inetserverlist, '->', self.inetservers
+##    def checkinetserverlist(self):
+##        ulist = []
+##        for s in self.inetserverlist:
+##            host, port, udpport = self.parse_inetserv(s)
+##            if host is not None:
+##                ulist.append((host, udpport))
+##        srvs = hostchooser.find_servers(ulist, delay=0.8)
+##        self.inetservers = {}
+##        for srv in srvs.items():
+##            if not self.filterserver(srv):
+##                continue
+##            (host, port), info = srv
+##            try:
+##                host = socket.gethostbyaddr(host)[0]
+##            except socket.error:
+##                pass
+##            self.inetservers[host, port] = info
+##        #print 'hostchooser:', self.inetserverlist, '->', self.inetservers
 
     def filterserver(self, ((host, port), info)):
         for c in host+str(port):
@@ -135,14 +134,14 @@ class PageServer:
                 return 0
         return 1
 
-    def statusservers(self):
-        result = [], []
-        for s in self.inetserverlist:
-            host, port, udpport = self.parse_inetserv(s)
-            addr = host, port
-            found = addr in self.inetservers
-            result[found].append(s)
-        return result
+##    def statusservers(self):
+##        result = [], []
+##        for s in self.inetserverlist:
+##            host, port, udpport = self.parse_inetserv(s)
+##            addr = host, port
+##            found = addr in self.inetservers
+##            result[found].append(s)
+##        return result
 
     def loadoptionfile(self):
         try:
@@ -177,21 +176,28 @@ class PageServer:
             kwds['extralife'] = int(options.extralife)
         if options.autoreset is not None:
             kwds['autoreset'] = options.autoreset.startswith('y')
+        if options.metapublish is not None:
+            kwds['metaserver'] = options.metapublish.startswith('y')
         self.Game(options.file, **kwds)
 
     ### loaders ###
 
-    def mainpage(self, headers, metaquery=None, juststarted=0):
-        servers = self.getlocalservers()
-        metaserver = METASERVER
-        running = my_server()
+    def metaserverpage(self, headers):
+        metaserver_url = metaclient.METASERVER_URL
         myhost = my_host(headers)
+        joinurl = quote_plus('%s/%s' % (myhost, self.seed))
+        return metaserver_url + '?join=%s&time=%s' % (joinurl, time.time())
+
+    def mainpage(self, headers, juststarted=0):
+        servers = self.getlocalservers()
+        running = my_server()
         count = len(gamesrv.clients)
-        if running:
-            metapublish = my_server_meta_address()
-            fndesc = quote_plus(gamesrv.game.FnDesc)
-        else:
-            metapublish = None
+        tim = time.time()
+        #if running:
+        #    metapublish = my_server_meta_address()
+        #    fndesc = quote_plus(gamesrv.game.FnDesc)
+        #else:
+        #    metapublish = None
         return httpserver.load(os.path.join(LOCALDIR, 'data', 'index.html'),
                                'text/html', locals=locals())
 
@@ -205,7 +211,7 @@ class PageServer:
                 bonuses.Cheat.append(tuple(c))
         else:
             self.searchlocalservers()
-        return self.mainpage(headers)
+        return self.mainpage(headers, juststarted=('juststarted' in options))
 
     def controlcenterloader(self, headers, **options):
         host = headers['remote host']
@@ -214,16 +220,16 @@ class PageServer:
             raise HTTPRequestError, "Access denied"
         return None, self.indexurl
 
-    def listloader(self, headers, s=[], **options):
-        self.setinetserverlist(s)
-        self.checkinetserverlist()
-        query = []
-        missing, found = self.statusservers()
-        for s in missing:
-            query.append('d=' + s)
-        for s in found:
-            query.append('a=' + s)
-        return self.mainpage(headers, query)
+##    def listloader(self, headers, s=[], **options):
+##        self.setinetserverlist(s)
+##        self.checkinetserverlist()
+##        query = []
+##        missing, found = self.statusservers()
+##        for s in missing:
+##            query.append('d=' + s)
+##        for s in found:
+##            query.append('a=' + s)
+##        return self.mainpage(headers, query)
 
     def newloader(self, headers, **options):
         locals = {
@@ -234,28 +240,23 @@ class PageServer:
         return httpserver.load(os.path.join(LOCALDIR, 'data', 'new.html'),
                                'text/html', locals=locals)
 
-    def runloader(self, headers, id, **options):
-        id, = id
-        juststarted = id not in self.unique_actions
-        if juststarted:
-            self.globaloptions.metapublish = 'n'
-            self.globaloptions.autoreset = 'n'
-            for key, value in options.items():
-                if len(value) == 1:
-                    setattr(self.globaloptions, key, value[0])
-            self.saveoptions()
-            self.startgame()
-            self.unique_actions[id] = 1
-        self.searchlocalservers()
-        return self.mainpage(headers, juststarted=juststarted)
+    def runloader(self, headers, **options):
+        self.globaloptions.metapublish = 'n'
+        self.globaloptions.autoreset = 'n'
+        for key, value in options.items():
+            if len(value) == 1:
+                setattr(self.globaloptions, key, value[0])
+        self.saveoptions()
+        self.startgame()
+        return None, 'index.html?juststarted=%s' % time.time()
 
     def stoploader(self, headers, really=[], **options):
         count = len(gamesrv.clients)
         if count == 0 or really:
             locals = {
                 'self': self,
-                'metaserver': METASERVER,
-                'metapublish': gamesrv.game and my_server_meta_address(),
+                #'metaserver': METASERVER,
+                #'metapublish': gamesrv.game and my_server_meta_address(),
                 'localdir': LOCALDIR,
                 }
             gamesrv.closeeverything()
@@ -268,37 +269,58 @@ class PageServer:
             return httpserver.load(os.path.join(LOCALDIR, 'data', 'confirm.html'),
                                    'text/html', locals=locals)
 
-    def registerloader(self, headers, a=[], d=[], **options):
-        if a:  # the lists 'a' and 'd' contain dummies !!
-            self.globaloptions.metapublish = 'y'
-            self.has_been_published = 1
-            kwd = 'a'
-        else:
-            self.globaloptions.metapublish = 'n'
-            kwd = 'd'
-        url = "%s?cmd=register&%s=%s" % (METASERVER,
-                                         kwd, my_server_meta_address())
-        if a and gamesrv.game:
-            url += '&desc=' + quote_plus(gamesrv.game.FnDesc)
-        return None, url
+##    def registerloader(self, headers, a=[], d=[], **options):
+##        if a:  # the lists 'a' and 'd' contain dummies !!
+##            self.globaloptions.metapublish = 'y'
+##            self.has_been_published = 1
+##            kwd = 'a'
+##        else:
+##            self.globaloptions.metapublish = 'n'
+##            kwd = 'd'
+##        url = "%s?cmd=register&%s=%s" % (METASERVER,
+##                                         kwd, my_server_meta_address())
+##        if a and gamesrv.game:
+##            url += '&desc=' + quote_plus(gamesrv.game.FnDesc)
+##        return None, url
 
-    def joinloader(self, headers, host=[], port=[], httpport=[], **options):
+    def joinloader(self, headers, host=[], port=[], httpport=[],
+                   m=[], **options):
         args = self.buildclientoptions()
-        assert len(host) == len(port) == 1
+        assert len(host) == 1
+        host = host[0]
+        if len(port) == 1:
+            port = port[0]
+        else:
+            try:
+                host, port = host.split(':')
+            except:
+                port = None
         if args is None:
             # redirect to the Java applet
             try:
                 httpport = int(httpport[0])
             except (ValueError, IndexError):
-                raise HTTPRequestError, "This server is not running HTTP."
-            return None, 'http://%s:%s/' % (host[0], httpport)
-        
-        address = '%s:%s' % (host[0], port[0])
+                if port:
+                    raise HTTPRequestError, "This server is not running HTTP."
+                else:
+                    raise HTTPRequestError, "Sorry, I cannot connect the Java applet to a server using this field."
+            return None, 'http://%s:%s/' % (host, httpport)
+
+        if port:
+            address = '%s:%s' % (host, port)
+        else:
+            address = host
         nbclients = len(gamesrv.clients)
         script = os.path.join(LOCALDIR, os.pardir, 'display', 'Client.py')
+        if m:
+            args.insert(0, '-m')
         args = [script] + args + [address]
         launch(args)
-        if my_server_address() == address:
+        if m:
+            time.sleep(1)
+            s = 'Connecting to %s.' % address
+            return None, self.metaserverpage(headers) + '&head=' + quote_plus(s)
+        elif my_server_address() == address:
             endtime = time.time() + 3.0
             while gamesrv.recursiveloop(endtime, []):
                 if len(gamesrv.clients) > nbclients:
@@ -440,60 +462,60 @@ def my_server_address():
     else:
         return None
 
-def my_server_meta_address():
-    s = gamesrv.opentcpsocket()
-    ps = gamesrv.openpingsocket()
-    hs = gamesrv.openhttpsocket()
-    fullname = gamesrv.HOSTNAME
-    try:
-        fullname = socket.gethostbyaddr(fullname)[0]
-    except socket.error:
-        pass
-    return '%s:%s:%s:%s' % (fullname,
-                            gamesrv.displaysockport(s),
-                            gamesrv.displaysockport(ps),
-                            gamesrv.displaysockport(hs))
+##def my_server_meta_address():
+##    s = gamesrv.opentcpsocket()
+##    ps = gamesrv.openpingsocket()
+##    hs = gamesrv.openhttpsocket()
+##    fullname = gamesrv.HOSTNAME
+##    try:
+##        fullname = socket.gethostbyaddr(fullname)[0]
+##    except socket.error:
+##        pass
+##    return '%s:%s:%s:%s' % (fullname,
+##                            gamesrv.displaysockport(s),
+##                            gamesrv.displaysockport(ps),
+##                            gamesrv.displaysockport(hs))
 
-def meta_register():
-    # Note: this tries to open a direct HTTP connection to the meta-server
-    #       which may not work if the proxy is not configured in $http_proxy
-    try:
-        import urllib
-    except ImportError:
-        print >> sys.stderr, "cannot register with the meta-server: Python's urllib missing"
-        return
-    print "registering with the meta-server...",
-    sys.stdout.flush()
-    addr = my_server_meta_address()
-    try:
-        f = urllib.urlopen('%s?a=%s&desc=%s' % (
-            METASERVER, addr, quote_plus(gamesrv.game.FnDesc)))
-        f.close()
-    except Exception, e:
-        print
-        print >> sys.stderr, "cannot contact the meta-server (check $http_proxy):"
-        print >> sys.stderr, "%s: %s" % (e.__class__.__name__, e)
-    else:
-        print "ok"
-        unregister_at_exit(addr)
+##def meta_register():
+##    # Note: this tries to open a direct HTTP connection to the meta-server
+##    #       which may not work if the proxy is not configured in $http_proxy
+##    try:
+##        import urllib
+##    except ImportError:
+##        print >> sys.stderr, "cannot register with the meta-server: Python's urllib missing"
+##        return
+##    print "registering with the meta-server...",
+##    sys.stdout.flush()
+##    addr = my_server_meta_address()
+##    try:
+##        f = urllib.urlopen('%s?a=%s&desc=%s' % (
+##            METASERVER, addr, quote_plus(gamesrv.game.FnDesc)))
+##        f.close()
+##    except Exception, e:
+##        print
+##        print >> sys.stderr, "cannot contact the meta-server (check $http_proxy):"
+##        print >> sys.stderr, "%s: %s" % (e.__class__.__name__, e)
+##    else:
+##        print "ok"
+##        unregister_at_exit(addr)
 
-def meta_unregister(addr):
-    import urllib
-    print "unregistering from the meta-server...",
-    sys.stdout.flush()
-    try:
-        f = urllib.urlopen(METASERVER + '?d=' + addr)
-        f.close()
-    except Exception, e:
-        print "failed"
-    else:
-        print "ok"
+##def meta_unregister(addr):
+##    import urllib
+##    print "unregistering from the meta-server...",
+##    sys.stdout.flush()
+##    try:
+##        f = urllib.urlopen(METASERVER + '?d=' + addr)
+##        f.close()
+##    except Exception, e:
+##        print "failed"
+##    else:
+##        print "ok"
 
-def unregister_at_exit(addr, firsttime=[1]):
-    if firsttime:
-        import atexit
-        atexit.register(meta_unregister, addr)
-        del firsttime[:]
+##def unregister_at_exit(addr, firsttime=[1]):
+##    if firsttime:
+##        import atexit
+##        atexit.register(meta_unregister, addr)
+##        del firsttime[:]
 
 QuoteTranslation = {}
 for c in ('ABCDEFGHIJKLMNOPQRSTUVWXYZ'
@@ -510,7 +532,7 @@ def quote_plus(s):
 
 
 def main(Game, pipe_url_to=None, quiet=0):
-    gamesrv.openpingsocket(0)  # try to reserve the standard UDP port
+    #gamesrv.openpingsocket(0)  # try to reserve the standard UDP port
     srv = PageServer(Game)
     srv.registerpages()
     if not srv.opensocket():

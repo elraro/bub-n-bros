@@ -617,12 +617,16 @@ then use the following address:
     self.socket = None
     if not clients and game is not None:
       game.FnDisconnected()
+    if game:
+      game.updateplayers()
 
   def killplayer(self, player):
     for id, p in self.players.items():
       if p is player:
         framemsgappend(message(MSG_PLAYER_KILL, id))
         del self.players[id]
+        if game:
+          game.updateplayers()
 
   def joinplayer(self, id, *rest):
     if self.players.has_key(id):
@@ -642,6 +646,7 @@ then use the following address:
       p.playerjoin()
       p.setplayername('')
       self.players[id] = p
+      game.updateplayers()
       for c in clients:
         c.msgl.append(message(MSG_PLAYER_JOIN, id, c is self))
 
@@ -967,18 +972,7 @@ def opentcpsocket(port=PORTS.get('LISTEN', INADDR_ANY)):
 
     def tcpsocket_handler(s=s):
       conn, addr = s.accept()
-      if len(clients)==MAX_CLIENTS:
-        print "Too many connections; refusing new connection from", addr
-        conn.close()
-      else:
-        try:
-          addrname = (gethostbyaddr(addr[0])[0],) + addr[1:]
-        except:
-          addrname = addr
-        print 'Connected by', addrname
-        c = FnClient(conn, addrname)
-        if game is not None:
-          c.opengame(game)
+      game.newclient(conn, addr)
     
     addsocket('LISTEN', s, tcpsocket_handler)
   return s
@@ -1178,6 +1172,26 @@ class Game:
     else:
       return '%d players' % players
 
+  def updateplayers(self):
+    pass
+
+  def updateboard(self):
+    pass
+
+  def newclient(self, conn, addr):
+    if len(clients)==MAX_CLIENTS:
+      print "Too many connections; refusing new connection from", addr
+      conn.close()
+    else:
+      try:
+        addrname = (gethostbyaddr(addr[0])[0],) + addr[1:]
+      except:
+        addrname = addr
+      print 'Connected by', addrname
+      c = FnClient(conn, addrname)
+      if game is not None:
+        c.opengame(game)
+
 
 def recursiveloop(endtime, extra_sockets):
   global game
@@ -1227,7 +1241,8 @@ def mainloop():
             if s in serversockets:
               serversockets[s]()    # call handler
           servertimeout = None
-        elif clients or getattr(game, 'autoreset', 0):
+        elif (clients or getattr(game, 'autoreset', 0)
+                      or getattr(game, 'metaserver', 0)):
           servertimeout = None
         elif servertimeout is None:
           servertimeout = time() + SERVER_TIMEOUT

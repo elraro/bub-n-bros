@@ -5,7 +5,7 @@
 &nbsp;
 
 <form name="n" action="run.html" method="get">
-<input type=hidden name="id" value="%(time.time())s">
+<input type=hidden name="time" value="%(time.time())s">
 
 %(
 def nameval(name, value, default=0, options=options):
@@ -64,7 +64,7 @@ def nameval(name, value, default=0, options=options):
 <tr>
 <td bgcolor="#000000">&nbsp;</td>
 <td bgcolor="#FFFFFF" align="right">
-  <a href="index.html">Back to the main page</a>
+  <a href="index.html?time=%(time.time())s">Back to the main page</a>
 </td>
 <td bgcolor="#000000">&nbsp;</td>
 </tr>
@@ -170,8 +170,7 @@ for i, text in steps:
       <table border=0>
       <tr>
         <td width=48><img src="sfbub.png"></td>
-        <td><p><input type=checkbox %(nameval("metapublish", "y", 1))s>&nbsp;register the server on the SourceForge meta-server, allowing it to appear on everybody's Internet Games list</input></p>
-<p><font size=-1>Note: if your browser doesn't automatically load images or refuses to load images coming from another host than the page, then this option has no effect (!) until you click on "register again to the SourceForge meta-server" after you started the server.</font></p></td>
+        <td><p><input type=checkbox %(nameval("metapublish", "y", 1))s>&nbsp;register the server on the SourceForge meta-server, allowing it to appear on everybody's Internet Games list</input></p></td>
       </tr>
       </table>
     </td>

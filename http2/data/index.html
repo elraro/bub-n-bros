@@ -5,76 +5,8 @@
 &nbsp;
 <center><table cellspacing=0 cellpadding=0 border=0 width="95%%">
 
-
 %(
 externaltarget = running and ' target="new"' or ''
-def showlist(tag, text, bgcolor1, bgcolor2, bubimg, servers, action, btntext,
-             **hidden):
-    found = []
-    def show((addr, (info, ping)), found=found):
-        import socket
-        infolst = info.split(':') or ['?']
-        if len(infolst) >= 3:
-            httpport = infolst.pop(2)
-        else:
-            httpport = 'off'
-        print '<a href="join.html?host=%s&port=%d&httpport=%s">' % (
-            addr[0], addr[1], httpport)
-        host, port = addr
-        #host = socket.gethostbyaddr(host)[0]
-        if ping is not None:
-            infolst.append('ping: %dms' % int(ping*1000))
-        if (addr, infolst[0]) == running:
-            infolst.append('this is your own server')
-            found.append(1)
-        infolst = map(htmlquote, infolst)
-        print '<strong>%s:%s</strong></a> playing <strong>%s</strong>' % (
-            host, port, infolst[0])
-        if len(infolst) > 1:
-            print '&nbsp;(%s)' % ' &middot; &middot; '.join(infolst[1:])
-
-    if servers is None:
-        rowspan = 1
-    else:
-        rowspan = (len(servers) or 1)+1
-    print '<td><table width="100%" cellpadding=7><tr>'
-    print '<td width="20%"',
-    print 'bgcolor="%s" align="center" rowspan="%d">' % (bgcolor1, rowspan)
-    print '<font size=+1 color="#FFFF00">'
-    print '<strong>%s</strong>' % text
-    print '</font></td>'
-    print '<td bgcolor="%s">' % bgcolor2
-    if servers is not None:
-        if servers:
-            show(servers[0])
-        else:
-            print "(no server found)"
-        print '</td></tr>'
-        for s in servers[1:]:
-            print '<tr><td bgcolor="%s">' % bgcolor2
-            show(s)
-            print '</td></tr>'
-        print '<tr><td bgcolor="%s">' % bgcolor2
-    print '<form name="%s" action="%s" method="get">' % (tag, action)
-    for key, value in hidden.items():
-        print '<input type=hidden name="%s" value="%s">' % (key, value)
-    print '<table border=0>'
-    print '<tr>'
-    print '<td width=48><img src="%s"></td>' % bubimg
-    print '<td>'
-    if tag=='L' and running and not found:
-        print '<p><font size=-1>Note: your server does not appear in this list',
-        import hostchooser, gamesrv
-        if gamesrv.displaysockport(gamesrv.openpingsocket()) != hostchooser.UDP_PORT:
-            print 'because the UDP port %d is already in use (is another Bub & Bob server running on this machine?);' % hostchooser.UDP_PORT
-        else:
-            print 'for an unknown reason;'
-        print 'either register to the meta-server and use the Internet games list below, or use the full server address <strong>%s:%s</strong></font></p>' % running[0]
-    print '<input type=submit value="%s"></td>' % btntext
-    print '</tr>'
-    print '</table>'
-    print '</form>'
-    return '</td></tr></table>'
 )s
 
 
@@ -86,7 +18,7 @@ def showlist(tag, text, bgcolor1, bgcolor2, bubimg, servers, action, btntext,
 
 <tr>
 <td bgcolor="#000000">&nbsp;</td>
-<td bgcolor="#FFFFFF"><a href="stop.html"><img src="close.png" width=17 height=17>&nbsp;<font color="#FF0000" size=+1>Stop this program</font></a></td>
+<td bgcolor="#FFFFFF"><a href="stop.html?time=%(tim)s"><img src="close.png" width=17 height=17>&nbsp;<font color="#FF0000" size=+1>Stop this program</font></a></td>
 <td bgcolor="#000000">&nbsp;</td>
 </tr>
 
@@ -143,6 +75,7 @@ def showlist(tag, text, bgcolor1, bgcolor2, bubimg, servers, action, btntext,
         <td>%(
 if running:
     print '<form name="S" action="index.html" method="get">'
+    print '<input type=hidden name="time" value="%s">' % tim
     print '<table width="100%" border=0><tr><td><p><strong>'
     if juststarted:
         print 'Server started!'
@@ -155,30 +88,31 @@ if running:
     print '</strong></p></td>'
     print '<td align="center"><input type=submit value="Update on connected clients"></td>'
     print '</tr></table></form>'
-    print '<p><strong><a href="join.html?host=%s&port=%s&httpport=%s">' % (running[0][0], running[0][1], self.httpport),
+    print '<p><strong><a href="join.html?host=%s&port=%s&httpport=%s&time=%s">' % (running[0][0], running[0][1], self.httpport, tim),
     print 'Join your own game now</a></strong> at <strong>%s:%s</strong></p>' % (
         running[0])
-if metapublish:
-    import time
-    print '<p><a href="register.html?a=%s">' % time.time()
-    if self.globaloptions.metapublish == 'y':
-        self.has_been_published = 1
-        metaquery = metaquery or []
-        metaquery.insert(0, 'desc='+fndesc)
-        s = 'a=' + metapublish
-        if s not in metaquery:
-            metaquery.insert(0, s)
-        print 'Register again',
-    else:
-        print 'Register (after all)',
-    print 'your server to the SourceForge meta-server</a><br>'
-    print '<a href="register.html?d=%s">' % time.time()
-    print 'Unregister your server</a>',
-    print '<font size=-1>(it is unregistered automatically after some time',
-    print 'when other people cannot find it, or',
-    print 'if you stop it with the link <font color="#FF2000">Stop this program</font> at the top of the page)</font></p>'
+##if metapublish:
+##    import time
+##    print '<p><a href="register.html?a=%s">' % time.time()
+##    if self.globaloptions.metapublish == 'y':
+##        self.has_been_published = 1
+##        metaquery = metaquery or []
+##        metaquery.insert(0, 'desc='+fndesc)
+##        s = 'a=' + metapublish
+##        if s not in metaquery:
+##            metaquery.insert(0, s)
+##        print 'Register again',
+##    else:
+##        print 'Register (after all)',
+##    print 'your server to the SourceForge meta-server</a><br>'
+##    print '<a href="register.html?d=%s">' % time.time()
+##    print 'Unregister your server</a>',
+##    print '<font size=-1>(it is unregistered automatically after some time',
+##    print 'when other people cannot find it, or',
+##    print 'if you stop it with the link <font color="#FF2000">Stop this program</font> at the top of the page)</font></p>'
 )s
 <form name="n" action="new.html" method="get">
+<input type=hidden name="time" value="%(tim)s">
 <input type=submit value="%(running and 'Start another game' or 'Start a new game')s">
 </form>
         </td>
@@ -205,11 +139,86 @@ if metapublish:
 
 <tr>
 <td bgcolor="#000000">&nbsp;</td>
-%(
-localservers = self.getlocalservers()[:]
-print showlist("L", "Local games", "#FF0080", "#FFC0C0", "boob.png", 
-               localservers, "index.html", "Search again for local servers")
+<td>%(
+servers = self.getlocalservers()[:]
+
+found = []
+def show((addr, (info, ping)), found=found):
+    import socket
+    infolst = info.split(':') or ['?']
+    if len(infolst) >= 3:
+        httpport = infolst.pop(2)
+    else:
+        httpport = 'off'
+    print '<a href="join.html?host=%s&port=%d&httpport=%s">' % (
+        addr[0], addr[1], httpport)
+    host, port = addr
+    #host = socket.gethostbyaddr(host)[0]
+    if ping is not None:
+        infolst.append('ping: %dms' % int(ping*1000))
+    if (addr, infolst[0]) == running:
+        infolst.append('this is your own server')
+        found.append(1)
+    infolst = map(htmlquote, infolst)
+    print '<strong>%s:%s</strong></a> playing <strong>%s</strong>' % (
+        host, port, infolst[0])
+    if len(infolst) > 1:
+        print '&nbsp;(%s)' % ' &middot; &middot; '.join(infolst[1:])
+
+if servers is None:
+    rowspan = 1
+else:
+    rowspan = (len(servers) or 1)+1
 )s
+<table width="100%%" cellpadding=7><tr>
+  <td width="20%%" bgcolor="#FF0080" align="center" rowspan="%(rowspan)s">
+    <font size=+1 color="#FFFF00">
+    <strong>Local games</strong>
+    </font>
+  </td>
+  <td bgcolor="#FFC0C0">
+%(
+if servers is not None:
+    if servers:
+        show(servers[0])
+    else:
+        print "(no server found)"
+    print '</td></tr>'
+    for s in servers[1:]:
+        print '<tr><td bgcolor="#FFC0C0">'
+        show(s)
+        print '</td></tr>'
+    print '<tr><td bgcolor="#FFC0C0">'
+)s
+    <table border=0><tr>
+      <td width=48><img src="boob.png"></td>
+      <td>
+%(
+if running and not found:
+    print '<p><font size=-1>Note: your server does not appear in this list',
+    import hostchooser, gamesrv
+    if gamesrv.displaysockport(gamesrv.openpingsocket()) != hostchooser.UDP_PORT:
+        print 'because the UDP port %d is already in use (is another Bub &amp; Bob server running on this machine?).' % hostchooser.UDP_PORT
+    else:
+        print 'for an unknown reason.'
+    print 'Use the full server address <strong>%s:%s</strong></font></p>' % running[0]
+)s
+        <form name="L" action="index.html" method="get">
+          <input type=hidden name="time" value="%(tim)s">
+          <input type=submit value="Search again for local servers">
+        </form>
+      </td>
+    </tr></table>
+    <p><form name="J" action="join.html" method="get">
+      <input type=hidden name="time" value="%(tim)s">
+      Or connect to server:
+      <input type=text name="host" size=25>
+      (<code>host</code> or <code>host:port</code>)
+      <input type=submit value="Go">
+    </form></p>
+  </td>
+</tr></table>
+</td>
 <td bgcolor="#000000">&nbsp;</td>
 </tr>
 
@@ -226,23 +235,25 @@ print showlist("L", "Local games", "#FF0080", "#FFC0C0", "boob.png",
 </tr>
 
 <tr>
-<td bgcolor="#000000"><a name=inet>&nbsp;</a></td>
-%(
-inetservers = self.getinetservers()
-action = (inetservers is None) and "Download" or "Update"
-if metaquery:
-    query = metaquery + ['cmd=img']
-    bubimg = metaserver + '?' + '&'.join(query)
-else:
-    bubimg = 'bub.png'
-tail = showlist("G", "Internet games", "#008000", "#C0FFC0", bubimg,
-         inetservers, metaserver, action + " current server list",
-         cmd="list", frag="inet",
-         url="http://%s/%s/list.html"%(myhost,self.seed))
-)s
-<p><font size=-1>%(inetservers is not None and 'Don\'t forget to <a href="name.html">give a name</a> to your dragons before you join a server!<br>The above list is limited to servers that could be contacted.' or '')s
-You can also browse the <a href="%(metaserver)s"%(externaltarget)s>full server list on SourceForge</a>.</font></p>
-%(tail)s
+<td bgcolor="#000000">&nbsp;</td>
+<td>
+  <table width="100%%" cellpadding=7>
+  <tr>
+    <td width="20%%" bgcolor="#008000" align="center"><font size=+1 color="#FFFF00"><strong>Internet games</strong></font></td>
+    <td bgcolor="#C0FFCC">
+      <table border=0>
+      <tr>
+        <td width=48><img src="bub.png"></td>
+        <td><p><a href="%(self.metaserverpage(headers))s">Go to the Internet servers page</a></p>
+        <p><font size=-1>Don't forget to <a href="name.html">give a name</a>
+           to your dragons before you join a server!
+        </font></p></td>
+      </tr>
+      </table>
+    </td>
+  </tr>
+  </table>
+</td>
 <td bgcolor="#000000">&nbsp;</td>
 </tr>
 
