@@ -315,7 +315,8 @@ class Monster(ActiveSprite):
         self.kill()
 
     def freeze(self, poplist):
-        if self.regular():
+        # don't freeze monsters largely out of screen, or they'll never come in
+        if self.regular() and -self.ico.h < self.y < boards.bheight:
             self.gen = []
             self.poplist = poplist
 

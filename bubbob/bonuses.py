@@ -67,8 +67,11 @@ class Bonus(ActiveSprite):
             self.y + self.ico.h     > dragon.y + 10):
             if not self.taken_by:
                 self.gen = [self.taking()]
-                if self.sound:
-                    self.play(getattr(images.Snd, self.sound))
+                sound = self.sound
+                if sound:
+                    if isinstance(sound, str):
+                        sound = getattr(images.Snd, sound)
+                    self.play(sound)
             if dragon not in self.taken_by:
                 self.taken_by.append(dragon)
 
@@ -134,7 +137,7 @@ class Bonus(ActiveSprite):
 
 
 def points(x, y, dragon, points):
-    dragon.bubber.givepoints(points)
+    dragon.bubber.givepoints(abs(points))
     pn = dragon.bubber.pn
     if points in GreenAndBlue.points[pn]:
         Points(x, y, pn, points)

@@ -222,7 +222,7 @@ class Sprite:
       self.alive = 0
 
   def prefix(self, n, m=0):
-    sprites[self.alive] = pack("!hhh", n, m, -2) + sprites[self.alive]
+    sprites[self.alive] = pack("!hhh", n, m, 32767) + sprites[self.alive]
 
   def to_front(self):
     if self.alive and self.alive < len(sprites)-1:
@@ -245,8 +245,9 @@ class Sprite:
         keys.remove(self.alive)
         keys.sort()
         keys = keys[keys.index(n1):]
-        for n in keys:
-          sprites_by_n[n].to_front()
+        reinsert = [sprites_by_n[n] for n in keys]
+        for s1 in reinsert:
+          s1.to_front()
         assert n1 not in sprites_by_n
       info = sprites[self.alive]
       sprites[self.alive] = ''

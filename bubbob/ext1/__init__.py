@@ -2,7 +2,7 @@ from __future__ import generators
 import os, math, random
 import images, gamesrv
 from images import ActiveSprite
-from boards import CELL, HALFCELL, FRAME_TIME
+from boards import CELL, HALFCELL
 from mnstrmap import GreenAndBlue
 from bubbles import BubblingEyes
 from bonuses import Bonus
