@@ -10,15 +10,20 @@ from modes import KeyPressed, KeyReleased
 
 
 class Display:
-    
-    def __init__(self, width, height, title, transparency='yes'):
+    musthidemouse = 0
+    mousevisible = 1
+
+    def __init__(self, width, height, title, transparency='yes', fullscreen='no'):
         self.use_transparency = not transparency.startswith('n')
+        self.use_fullscreen = fullscreen.startswith('y')
 
         # Initialize pygame
         pygame.init()
 
         # Set the display mode
-        winstyle = HWSURFACE  # |FULLSCREEN
+        winstyle = HWSURFACE
+        if self.use_fullscreen:
+            winstyle |= FULLSCREEN
         bestdepth = pygame.display.mode_ok((width, height), winstyle, 32)
         self.screen = pygame.display.set_mode((width, height),
                                               winstyle, bestdepth)
@@ -35,6 +40,9 @@ class Display:
         EVENT_HANDLERS[MOUSEBUTTONDOWN] = self.mousebuttondown_handler
 
     def keydown_handler(self, e):
+        if e.key == K_ESCAPE and self.use_fullscreen:
+            raise SystemExit        # ESC to exit the game if full-screen
+        self.showmouse(not self.musthidemouse)
         self.events_key.append((e.key, KeyPressed))
         del self.events_key[:-16]
 
@@ -43,6 +51,7 @@ class Display:
         del self.events_key[:-16]
 
     def mousebuttondown_handler(self, e):
+        self.showmouse(1)
         self.events_mouse.append(e.pos)
         del self.events_mouse[:-8]
 
@@ -96,6 +105,7 @@ class Display:
         events_dispatch()
 
     def close(self):
+        self.showmouse(1)
         pygame.display.quit()
 
     def clear(self):
@@ -129,6 +139,7 @@ class Display:
     def pointermotion(self):
         position = pygame.mouse.get_pos()
         if position != self.prevposition:
+            self.showmouse(1)
             self.prevposition = position
             return position
         else:
@@ -159,6 +170,15 @@ class Display:
             else:
                 self.offscreen.blit(tbs, (i, y))
 
+    def settaskbar(self, tb_visible):
+        self.showmouse(1)
+        self.musthidemouse = not tb_visible # and self.use_fullscreen
+
+    def showmouse(self, v):
+        if v != self.mousevisible:
+            self.mousevisible = v
+            pygame.mouse.set_visible(v)
+
 
 def quit_handler(e):
     raise SystemExit
@@ -178,6 +198,9 @@ def events_dispatch(handlers = EVENT_HANDLERS):
 
 def htmloptionstext(nameval):
     return '''
+<%s> Full Screen (Esc key to exit)</input><%s><br>
 <%s> Draw slightly transparent bubbles</input><%s><br>
-''' % (nameval("checkbox", "transparency", "yes", default="yes"),
+''' % (nameval("checkbox", "fullscreen", "yes", default="no"),
+       nameval("hidden", "fullscreen", "no"),
+       nameval("checkbox", "transparency", "yes", default="yes"),
        nameval("hidden", "transparency", "no"))

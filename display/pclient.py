@@ -174,6 +174,13 @@ class Playfield:
 
     def run(self, mode, udp_over_tcp='auto'):
         self.setup(mode, udp_over_tcp)
+        try:
+            self.mainloop()
+        finally:
+            if self.dpy:
+                self.dpy.close()
+
+    def mainloop(self):
         pss = hostchooser.serverside_ping()
         self.initial_iwtd = [self.s, pss]
         self.iwtd = self.initial_iwtd[:]
@@ -547,6 +554,8 @@ class Playfield:
                                 (self.keydefinition is not None))
             if nmode:
                 self.taskbartimeout = time.time() + 5.0
+            if hasattr(self.dpy, 'settaskbar'):
+                self.dpy.settaskbar(self.taskbarmode)
 
     def define_key(self, keysym):
         clic_id, df = self.keydefinition
