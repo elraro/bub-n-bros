@@ -40,10 +40,11 @@ class Level(boards.Board):
 
     WIND_DELTA = boards.CELL
     winds = None
+    monsters = []
 
     def __init__(self, num):
         walls = [line for line in self.walls.split('\n') if line]
-        self.monsters = []
+        self.monsters = list(self.monsters)
         for y in range(len(walls)):
             line = walls[y]
             for x in range(len(line)):

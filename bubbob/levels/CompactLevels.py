@@ -2,7 +2,7 @@
 #  A series of compact levels.
 #
 
-import boarddef
+import boarddef, mnstrmap
 from boarddef import LNasty, LMonky, LGhosty, LFlappy
 from boarddef import LSpringy, LOrcy, LGramy, LBlitzy
 from boarddef import RNasty, RMonky, RGhosty, RFlappy
@@ -1125,6 +1125,65 @@ class level32(boarddef.Level):
 >>^                       ^<<
 >>^                       ^<<
 >>^          xxx          ^<<
+>>^                       ^<<
+>>^                       ^<<
+>>^                       ^<<
+>>^                       ^<<
+>>^                       ^<<
+>>^                       ^<<
+>>^                       ^<<
+"""
+
+class level33(boarddef.Level):
+    monsters = [mnstrmap.Gramy(14, -2, 1),
+                mnstrmap.Gramy(13, -2, 0)] * 10
+    top = 1
+    
+    walls = """
+##         ##   ##         ##
+##         ##   ##         ##
+##         ##   ##         ##
+##    #######   #######    ##
+##    #               #    ##
+##    #               #    ##
+##    #  ###########  #    ##
+##    #               #    ##
+##    #               #    ##
+##    #######   #######    ##
+##    #               #    ##
+##    #               #    ##
+##    #  ###########  #    ##
+##    #               #    ##
+##    #               #    ##
+##    #######   #######    ##
+##    #               #    ##
+##    #               #    ##
+##    #  ###########  #    ##
+##    #               #    ##
+##    #               #    ##
+##    #######   #######    ##
+##         ##   ##         ##
+#############   #############
+"""   #|#    #|#    #|#   """
+
+    winds = """
+>>                         <<
+>>>xxxxxxxxxxxxxxxxxxxxxxx<<<
+>>^                       ^<<
+>>^                       ^<<
+>>^                       ^<<
+>>^                       ^<<
+>>^                       ^<<
+>>^                       ^<<
+>>^                       ^<<
+>>^                       ^<<
+>>^                       ^<<
+>>^                       ^<<
+>>^                       ^<<
+>>^                       ^<<
+>>^                       ^<<
+>>^                       ^<<
+>>^                       ^<<
 >>^                       ^<<
 >>^                       ^<<
 >>^                       ^<<
