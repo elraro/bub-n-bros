@@ -244,7 +244,7 @@ public class pclient extends Applet {
     }
 
     public final Image getIcon(int ico) {
-        if (ico >= iconImages.length)
+        if (ico < 0 || ico >= iconImages.length)
             return null;
         else
             return iconImages[ico];
