@@ -11,6 +11,12 @@ import monsters, bubbles
 
 LocalDir = os.path.abspath(os.path.dirname(__file__) or os.curdir)
 
+localmap = {
+    ('gala', 0) :  ('image1.ppm', ( 0,  0, 32, 32)),
+    ('gala', 1) :  ('image1.ppm', ( 0, 32, 32, 32)),
+    ('gala', 2) :  ('image1.ppm', ( 0, 64, 32, 32)),
+    }
+
 music = gamesrv.getmusic(os.path.join(LocalDir, 'music.wav'))
 snd_shoot = gamesrv.getsample(os.path.join(LocalDir, 'shoot.wav'))
 
@@ -19,20 +25,51 @@ class GalagaDragon(Dragon):
 
     def firenow(self):
         self.fire = 1
-        self.dir = -self.dir
-        self.dcap['lookforward'] *= -1
-        self.gen.append(self.restorelook())
+##        self.dir = -self.dir
+##        self.dcap['lookforward'] *= -1
+##        self.gen.append(self.restorelook())
         ico = images.sprget(GreenAndBlue.new_bubbles[self.bubber.pn][0])
         s = Shot(ico, self.x, self.y)
         s.d = self
         s.gen = [s.straightup(self)]
         self.play(snd_shoot)
 
-    def restorelook(self):
-        for i in range(4):
-            yield None
-        self.dcap['lookforward'] *= -1
-        self.dir = -self.dir
+##    def restorelook(self):
+##        for i in range(4):
+##            yield None
+##        self.dcap['lookforward'] *= -1
+##        self.dir = -self.dir
+
+    def galaga_setup(self):
+        icons = [images.sprget(ico)
+                 for ico in GreenAndBlue.comming[self.bubber.pn]]
+        self.galaga_icons = ([icons[0]] * 4 +
+                             [icons[1]] * 4 +
+                             [icons[2]] * 4 +
+                             [icons[1]] * 4)
+        self.overlay_icons = [images.sprget(('gala', n)) for n in range(3)]
+        self.overlay_sprite = ActiveSprite(self.overlay_icons[0], self.x, self.y)
+
+    def dying(self, *args, **kw):
+        del self.galaga_icons[:]
+        dxy = [3*self.dir, -7]
+        self.overlay_sprite.gen.append(self.overlay_sprite.parabolic(dxy))
+        self.overlay_sprite = None
+        for t in Dragon.dying(self, *args, **kw):
+            yield t
+
+    def seticon(self, ico):
+        if self.galaga_icons:
+            ico = self.galaga_icons.pop(0)
+            self.galaga_icons.append(ico)
+        Dragon.seticon(self, ico)
+
+    def to_front(self):
+        Dragon.to_front(self)
+        if self.overlay_sprite:
+            self.overlay_sprite.move(self.x, self.y,
+                                     random.choice(self.overlay_icons))
+            self.overlay_sprite.to_front()
 
 
 class Shot(bubbles.Bubble):
@@ -97,7 +134,7 @@ class Alien(monsters.Monster):
         if relative:
             shoot_prob = 0.007
         else:
-            shoot_prob = 0.0251
+            shoot_prob = 0.025
         while cont:
             if self.angry:
                 self.kill()   # never getting out of a bubble
@@ -274,6 +311,7 @@ class Galaga:
                     dragon = random.choice(realdragons)
                     self.scores[p] = 0
                     dragon.__class__ = GalagaDragon
+                    dragon.galaga_setup()
                     dragon.galaga = self
                     dragons.remove(dragon)
                     p.emotic(dragon, 4)
@@ -291,5 +329,9 @@ class Galaga:
 def run():
     global curboard
     from boards import curboard
-    
+
+    for key, (filename, rect) in localmap.items():
+        filename = os.path.join(LocalDir, filename)
+        images.sprmap[key] = (filename, rect)
+
     boards.replace_boardgen(Galaga().bgen())

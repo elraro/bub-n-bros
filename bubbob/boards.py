@@ -9,7 +9,11 @@ FRAME_TIME = 0.025
 DEFAULT_LEVEL_FILE = 'levels/scratch.py'
 
 
-class Board:
+class Copyable:
+    pass   # see bonuses.py, class Clock
+
+
+class Board(Copyable):
     letter    = 0
     fire      = 0
     lightning = 0
@@ -561,7 +565,7 @@ def last_monster_killed(end_delay=390, music=None):
 ##    monsters.argh_em_all()
 ##    replace_boardgen(last_monster_killed())
 
-class TimeCounter:
+class TimeCounter(Copyable):
     def __init__(self, limittime):
         from player import BubPlayer
         self.saved_time = BubPlayer.LimitTime

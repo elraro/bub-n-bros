@@ -13,12 +13,10 @@ class Parameter(object):
         self.name = name
         self.rng = rng
     def __get__(self, instance, cls):
-        try:
-            return getattr(instance, self.name)
-        except AttributeError:
-            value = self.rng()
-            setattr(instance, self.name, value)
-            return value
+        assert self.name not in instance.__dict__
+        value = self.rng()
+        setattr(instance, self.name, value)
+        return value
 
 class ChoiceParameter(Parameter):
     def __init__(self, name, list):

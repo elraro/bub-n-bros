@@ -439,27 +439,36 @@ class Book(RandomBonus):
 class Potion(RandomBonus):
     "Potions. Clear the level and fill its top with bonuses."
     nimages = [Bonuses.red_potion, Bonuses.green_potion, Bonuses.yellow_potion]
-    Potions = [(Bonuses.red_potion,    150,
-                     [(PotionBonuses.coin, 350), (PotionBonuses.rainbow, 600)]),
-               (Bonuses.green_potion,  350,
-                     [(PotionBonuses.flower, 1000), (PotionBonuses.trefle, 2000)]),
-               (Bonuses.yellow_potion, 550,
-                     [(PotionBonuses.green_note, 2000), (PotionBonuses.blue_note, 3000)]),
+    Potions = [(Bonuses.red_potion,    150,  [(PotionBonuses.coin,        350),
+                                              (PotionBonuses.rainbow,     600)]),
+               (Bonuses.green_potion,  350,  [(PotionBonuses.flower,     1000),
+                                              (PotionBonuses.trefle,     2000)]),
+               (Bonuses.yellow_potion, 550,  [(PotionBonuses.green_note, 2000),
+                                              (PotionBonuses.blue_note,  3000)]),
+               ('potion4',             750,  None),
                ]
     LocalDir = os.path.dirname(__file__) or os.curdir
     Extensions = [s for s in os.listdir(LocalDir)
                     if s.startswith('ext') and
                        os.path.isdir(os.path.join(LocalDir, s))]
-    if Extensions:
-        #del Potions[:] # CHEAT
-        Potions.append(('potion4',     750,   None))
+    random.shuffle(Extensions)
 
     def __init__(self, x, y):
-        self.mode = random.choice(Potion.Potions)
-        # make extensions rare in the bonus level
-        for i in range(random.randrange(1,3)):
-            if self.mode[2] is None and boards.curboard.bonuslevel:
-                self.mode = random.choice(Potion.Potions)
+        p_normal = 2
+        if boards.curboard.bonuslevel:
+            p_extension = 1       # make extensions rare in the bonus level
+        else:
+            p_extension = 3
+        if not Potion.Extensions:
+            p_extension = 0
+        choices = []
+        for mode in Potion.Potions:
+            if mode[2] is None:
+                p = p_extension
+            else:
+                p = p_normal
+            choices += [mode] * p
+        self.mode = random.choice(choices)
         RandomBonus.__init__(self, x, y, *self.mode[:2])
     def taken1(self, dragons):
         blist = self.mode[2]
@@ -467,8 +476,8 @@ class Potion(RandomBonus):
             if random.random() < 0.6:
                 blist = [random.choice(blist)]
             boards.replace_boardgen(boards.potion_fill(blist))
-        else:
-            ext = random.choice(Potion.Extensions)
+        elif Potion.Extensions:
+            ext = Potion.Extensions.pop()
             ext = __import__(ext, globals(), locals(), ['run'])
             ext.run()
 
@@ -877,7 +886,7 @@ else:
     import new
     def standard_build(self):
         return new.instance(self.__class__)
-    boards.Board.inst_build = standard_build
+    boards.Copyable.inst_build = standard_build
     gamesrv.Sprite.inst_build = standard_build
     
     class Clock(RandomBonus):
