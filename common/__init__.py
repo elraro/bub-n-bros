@@ -42,7 +42,7 @@ def run(UdpLookForServer, Display):
             kw['server'] = Host, Port
         else:
             raise ValueError, 'unknown argument %r' % arg
-    if 'server' not in kw:
+    if not kw.has_key('server'):
         import hostchooser
         kw['server'] = hostchooser.pick(UdpLookForServer * 5)
     import display.pclient
