@@ -494,6 +494,31 @@ def force_singlegen():
 def has_singlegen():
     return len(BoardGen) <= 1
 
+def display_hat(p, d):
+    if p.team == -1 or getattr(d,'isdying',0) or hasattr(d,'no_hat'):
+        return
+    try:
+        bottom_up = d.bottom_up()
+    except AttributeError:
+        bottom_up = 0
+    try:
+        image = ('hat', p.team, d.dir, d.hatangle)
+    except AttributeError:
+        image = ('hat', p.team)
+    if bottom_up:
+        ico = images.sprget_vflip(image)
+        y = d.y
+    else:
+        ico = images.sprget(image)
+        y = d.y - 16
+    if (getattr(d,'hatsprite',None) is None or
+        not d.hatsprite.alive):
+        d.hatsprite = images.ActiveSprite(ico, d.x, y)
+    else:
+        d.hatsprite.to_front()
+        d.hatsprite.move(d.x, y, ico)
+    d.hatsprite.gen = [d.hatsprite.die([None])]
+
 def normal_frame():
     from player import BubPlayer
     BubPlayer.FrameCounter += 1
@@ -508,20 +533,7 @@ def normal_frame():
             p.zarkon()
             for d in p.dragons:
                 d.to_front()
-                if not (p.team == -1 or getattr(d,'isdying',0) or
-                        hasattr(d,'no_hat')):
-                    try:
-                        ico = images.sprget(('hat', p.team, d.dir, d.hatangle))
-                    except AttributeError:
-                        ico = images.sprget(('hat', p.team))
-                    y = d.y - 16
-                    if (getattr(d,'hatsprite',None) is None or
-                        not d.hatsprite.alive):
-                        d.hatsprite = images.ActiveSprite(ico, d.x, y)
-                    else:
-                        d.hatsprite.to_front()
-                        d.hatsprite.move(d.x, y, ico)
-                    d.hatsprite.gen = [d.hatsprite.die([None])]
+                display_hat(p, d)
                 d.prefix(p.pn)
     if not (BubPlayer.FrameCounter & 31):
         gamesrv.compactsprites()

@@ -265,6 +265,7 @@ class Dragon(ActiveSprite):
 
             if wannafire and not self.fire:
                 self.firenow()
+            self.hatangle = 1
             if self.fire:
                 if self.fire <= 5:
                     mode = 3
@@ -272,8 +273,6 @@ class Dragon(ActiveSprite):
                 elif self.fire <= 10:
                     mode = 4
                     self.hatangle = 3
-                else:
-                    self.hatangle = 1
                 self.fire += 1
                 if self.fire >= 64 // self.dcap['firerate']:
                     self.fire = 0
