@@ -216,7 +216,7 @@ def parse_cmdline(argv):
         opts, args = getopt(argv, 'mb:s:l:M:ih',
                             ['metaserver', 'start=', 'step=',
                              'lives=', 'monsters=', 'infinite', 'help',
-                             'saveurlto=', 'quiet', 'port='])
+                             'saveurlto=', 'quiet', 'port=', 'makeimages'])
     except error, e:
         print >> sys.stderr, 'bb.py: %s' % str(e)
         print >> sys.stderr
@@ -250,6 +250,9 @@ def parse_cmdline(argv):
             portvalue = int(portvalue)
             import msgstruct
             msgstruct.PORTS[portname] = portvalue
+        elif key == '--makeimages':
+            import images
+            sys.exit(0)
         #elif key in ('-w', '--webbrowser'):
         #    webbrowser = value.startswith('y')
     if args:
