@@ -58,6 +58,12 @@ class GalagaDragon(Dragon):
         for t in Dragon.dying(self, *args, **kw):
             yield t
 
+    def kill(self):
+        if self.overlay_sprite is not None:
+            self.overlay_sprite.kill()
+            self.overlay_sprite = None
+        Dragon.kill(self)
+
     def seticon(self, ico):
         if self.galaga_icons:
             ico = self.galaga_icons.pop(0)
