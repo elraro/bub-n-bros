@@ -305,6 +305,7 @@ class Arkanoid:
             self.build_paddles()
             yield t
         self.remove_paddles()
+        self.unframe()
 
     def frame(self):
         for y in range(curboard.height-1, curboard.height//2, -1):
@@ -339,6 +340,10 @@ class Arkanoid:
         self.killedbricks = 0
         while self.killedbricks < self.nbbricks:
             yield None
+
+    def unframe(self):
+        for x in range(2, curboard.width-2):
+            curboard.killwall(x, -1)
 
     def build_paddles(self):
         from player import BubPlayer

@@ -360,8 +360,9 @@ class Tetris:
                 for i in range(2):
                     while bget(x, y) == '#':
                         y -= 1
-                    curboard.putwall(x, y)
-                    heights[x] += 1
+                    if y >= 3:
+                        curboard.putwall(x, y)
+                        heights[x] += 1
         curboard.reorder_walls()
         
         walls_by_pos = curboard.walls_by_pos
