@@ -1179,7 +1179,7 @@ if 'StarBubble' in EXTRA_BONUSES:
         "Star Bubbles. Makes you fire bonus bubbles."
         nimage = 'moebius'
         def taken(self, dragon):
-            dragon.dcap['shootbubbles'] = ['StarBubble'] * 5
+            dragon.dcap['shootbubbles'] = ['StarBubble'] * 3
             dragon.carrybonus(self)
 
 
