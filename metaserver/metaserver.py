@@ -205,7 +205,9 @@ def makehosthtml(srv, bottommsg, join):
     <li>the server is not behind a firewall;
     <li>you don't mind not hearing the nice background music.
 </ul></p>
-<p>Alternatively, install the <a href="http://bub-n-bros.sourceforge.net/download.html">Python version</a> of the client, which can cope with any of the above problems.</p>
+<p>Alternatively, install the
+<a href="http://bub-n-bros.sourceforge.net/download.html">Python version</a>
+of the client, which can cope with all of the above problems.</p>
 <br>"""
             if javamsg not in bottommsg:
                 bottommsg.append(javamsg)
@@ -240,10 +242,17 @@ def indexloader(headers, join=[], head=[], **options):
             Sorry, there is no registered server at the moment.
         </td></tr>''')
     if join:
-        extrafooter = """<p><img src="home.png"> <a href="http://%s/?time=%s">Back to local games</a></p>""" % (join, time.time())
+        extrafooter = '''<p><img src="home.png">
+        <a href="http://%s/?time=%s">Back to local games</a></p>''' % (
+            join, time.time())
     else:
         extrafooter = ''
     bottommsg = '\n'.join(bottommsg)
+    tbfiles = [s for s in os.listdir('.') if s.startswith('tb-')]
+    if tbfiles:
+        tbfiles = len(tbfiles)
+    else:
+        tbfiles = ''
     data.append(FOOTER % locals())
     return StringIO(''.join(data)), 'text/html'
 
