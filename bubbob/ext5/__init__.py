@@ -140,6 +140,7 @@ class Lemming(Monster):
         y0 = self.y // 16
         while self.y == y0*16:
             yield None
+            yield None
             if random.random() < 0.1 and self.overlapping():
                 yield None
             nx = self.x + self.dir*2
