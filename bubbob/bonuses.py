@@ -678,7 +678,7 @@ class Cactus(RandomBonus):
                 count += 1
         cactusbonussound()
 
-Cactus1 = Cactus # increase probability
+#Cactus1 = Cactus # increase probability
 
 def makecactusbonus(cls, *args):
     bonus = cls(-3*CELL, 0, *args)
