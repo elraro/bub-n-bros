@@ -34,17 +34,28 @@ class MetaClientSrv(MessageSocket):
         self.synsockets = {}
         import gamesrv
         gamesrv.addsocket('META', s, self.receive)
+        self.closed = 0
+
+    def close(self):
+        if not self.closed:
+            self.disconnect()
+            try:
+                self.s.shutdown(2)
+            except:
+                pass
 
     def disconnect(self):
         import gamesrv
         gamesrv.removesocket('META', self.s)
-        print '*** disconnected from the meta-server'
+        self.closed = 1
+        print 'disconnected from the meta-server'
 
     def send_traceback(self):
-        import traceback, cStringIO
-        f = cStringIO.StringIO()
-        traceback.print_exc(file = f)
-        self.s.sendall(message(MMSG_TRACEBACK, f.getvalue()))
+        if not self.closed:
+            import traceback, cStringIO
+            f = cStringIO.StringIO()
+            traceback.print_exc(file = f)
+            self.s.sendall(message(MMSG_TRACEBACK, f.getvalue()))
 
     def msg_wakeup(self, origin, *rest):
         if self.lastwakeup is None or time.time()-self.lastwakeup > 4.0:
@@ -112,7 +123,10 @@ class MetaClientSrv(MessageSocket):
         RMSG_SYNC:    msg_sync,
         }
 
+metaclisrv = None
+
 def meta_register(game):
+    global metaclisrv
     import gamesrv
     info = {}
     if game.FnDesc:
@@ -124,16 +138,19 @@ def meta_register(game):
     port = int(gamesrv.displaysockport(s))
     info['httpport'] = gamesrv.displaysockport(hs)
 
-    try:
-        client = game._meta_client
-    except AttributeError:
+    if not metaclisrv or metaclisrv.closed:
         s = connect()
         if not s:
             return
-        client = game._meta_client = MetaClientSrv(s, game)
-    client.s.sendall(message(MMSG_INFO, encodedict(info)) +
-                     message(MMSG_START, port))
-    return client
+        metaclisrv = MetaClientSrv(s, game)
+    metaclisrv.s.sendall(message(MMSG_INFO, encodedict(info)) +
+                         message(MMSG_START, port))
+
+def meta_unregister(game):
+    global metaclisrv
+    if metaclisrv:
+        metaclisrv.close()
+        metaclisrv = None
 
 
 # ____________________________________________________________

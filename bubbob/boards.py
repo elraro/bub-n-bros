@@ -683,6 +683,7 @@ def bonus_play():
         yield t
         if tc.time == 0.5:
             gamesrv.game.End = 'gameover'
+            gamesrv.game.updateboard()
             replace_boardgen(game_over(), 1)
             return
     # special board end

@@ -38,21 +38,11 @@ class BubBobGame(gamesrv.Game):
         self.extralife  = extralife
         self.autoreset  = autoreset
         self.metaserver = metaserver
-        self.metaregister = 0
+        self.updatemetaserver()
         levelsname, ext = os.path.splitext(os.path.basename(levelfile))
         self.FnDesc     = BubBobGame.FnDesc + ' ' + levelsname
         self.reset()
         self.openserver()
-        if self.metaserver:
-            setuppath('metaserver')
-            import metaclient
-            self.metaserver = metaclient.meta_register(self)
-        else:
-            for s in gamesrv.findsockets('META'):
-                try:
-                    s.shutdown(2)
-                except:
-                    pass
 
     def openboard(self, num=None):
         if num is None:
@@ -64,6 +54,7 @@ class BubBobGame(gamesrv.Game):
         self.height = boards.bheight
         boards.curboard = None
         boards.BoardGen = [boards.next_board(num)]
+        self.updatemetaserver()
 
     def reset(self):
         import player
@@ -79,11 +70,7 @@ class BubBobGame(gamesrv.Game):
 
     def FnFrame(self):
         if self.metaregister:
-            self.metaregister = 0
-            if self.metaserver:
-                setuppath('metaserver')
-                import metaclient
-                metaclient.meta_register(self)
+            self.do_updatemetaserver()
         frametime = 0.0
         while frametime < 1.1:
             import boards
@@ -122,7 +109,13 @@ class BubBobGame(gamesrv.Game):
         if not kbd:
             try:
                 if self.metaserver:
-                    self.metaserver.send_traceback()
+                    try:
+                        import metaclient
+                    except ImportError:
+                        pass
+                    else:
+                        if metaclient.metaclisrv:
+                            metaclient.metaclisrv.send_traceback()
             except Exception, e:
                 print '! %s: %s' % (e.__class__.__name__, e)
         import boards
@@ -149,13 +142,31 @@ class BubBobGame(gamesrv.Game):
     def FnExtraDesc(self):
         import boards
         s = gamesrv.Game.FnExtraDesc(self)
-        if boards.curboard:
+        if boards.curboard and self.End != 'gameover':
             s = 'board %d with %s' % (boards.curboard.num+1, s)
         return s
 
-    def updateplayers(self):
-        self.metaregister = 1
-    updateboard = updateplayers
+    def do_updatemetaserver(self):
+        self.metaregister -= 1
+        if self.metaregister > 0:
+            return
+        if self.metaserver and (self.autoreset or self.End != 'gameover'):
+            setuppath('metaserver')
+            import metaclient
+            metaclient.meta_register(self)
+            print '.'
+        else:
+            try:
+                import metaclient
+            except ImportError:
+                pass
+            else:
+                metaclient.meta_unregister(self)
+
+    def updatemetaserver(self):
+        self.metaregister = 2
+
+    updateboard = updateplayers = updatemetaserver
 
 
 def setuppath(dirname):
@@ -164,7 +175,8 @@ def setuppath(dirname):
         print >> sys.stderr, (
             '../%s: directory not found ("cvs update -d" ?)' % dirname)
         sys.exit(1)
-    sys.path.append(dir)
+    if dir not in sys.path:
+        sys.path.append(dir)
 
 def parse_cmdline(argv):
     # parse command-line

@@ -617,8 +617,6 @@ then use the following address:
     self.socket = None
     if not clients and game is not None:
       game.FnDisconnected()
-    if game:
-      game.updateplayers()
 
   def killplayer(self, player):
     for id, p in self.players.items():
