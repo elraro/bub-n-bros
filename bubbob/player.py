@@ -147,7 +147,7 @@ class Dragon(ActiveSprite):
                 timeout, bonus = carrying.pop(0)
                 bonus.endaction(self)
                 del bonus
-            
+
             bubber = self.bubber
             wannafire = bubber.key_fire
             wannajump = bubber.key_jump
@@ -460,6 +460,7 @@ class BubPlayer(gamesrv.Player):
         self.key_right = KeyOff
         self.key_jump  = KeyOff
         self.key_fire  = KeyOff
+        self.last_key_dir = 0
         players = [p for p in BubPlayer.PlayerList
                    if p.isplaying() and p is not self]
         self.enterboard(players)
@@ -527,11 +528,13 @@ class BubPlayer(gamesrv.Player):
     def kLeft(self):
         self.key_left = KeyJustPressed
         self.key_right &= 3
+        self.last_key_dir = -1
     def kmLeft(self):
         self.key_left &= 5
     def kRight(self):
         self.key_right = KeyJustPressed
         self.key_left &= 3
+        self.last_key_dir = 1
     def kmRight(self):
         self.key_right &= 5
     def kJump(self):
@@ -549,7 +552,7 @@ class BubPlayer(gamesrv.Player):
             scoreboard()
 
     def wannago(self, dcap):
-        if self.key_left and self.key_left > self.key_right:
+        if self.key_left and (not self.key_right or self.last_key_dir < 0):
             return -dcap['left2right']
         elif self.key_right:
             return dcap['left2right']

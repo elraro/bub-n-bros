@@ -439,8 +439,10 @@ def force_singlegen():
 def normal_frame():
     from player import BubPlayer
     BubPlayer.FrameCounter += 1
-    #BubPlayer.RealtimeRatio **= 0.99
-    alldragons = {}
+    # MAIN GENERATOR DISPATCH LOOP
+    for s in images.ActiveSprites[:]:
+        s.action()
+    # END
     frametime = 10
     for p in BubPlayer.PlayerList:
         if p.isplaying():
@@ -454,9 +456,6 @@ def normal_frame():
         if reset and BubPlayer.FrameCounter >= reset:
             BubPlayer.MultiplyerReset = 0
             set_frametime(1.0)
-    
-    for s in images.ActiveSprites[:]:
-        s.action()
     return frametime
 
 def normal_play():
