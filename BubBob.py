@@ -45,7 +45,7 @@ def look_for_local_server():
         return None
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
-        s.connect(('', port))
+        s.connect(('127.0.0.1', port))
     except socket.error:
         return None
     try:
