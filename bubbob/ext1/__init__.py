@@ -262,7 +262,7 @@ class Arkanoid:
         import boards
         from player import BubPlayer
 
-        for t in boards.exit_board(0, music=[music, music]):
+        for t in boards.exit_board(0, repeatmusic=[music]):
             yield t
         for t in curboard.clean_gen_state():
             yield t

@@ -290,11 +290,10 @@ class Tetris:
         import boards
         from player import BubPlayer
 
-        for t in boards.exit_board(0):
+        for t in boards.exit_board(0, repeatmusic=[music]):
             yield t
         for t in curboard.clean_gen_state():
             yield t
-        gamesrv.set_musics([], [music])
 
         tc = boards.TimeCounter(limittime)
         self.ready = 0

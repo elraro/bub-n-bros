@@ -781,7 +781,7 @@ def skiplevels(blink, skip):
         for t in next_board(complete=(skip==0)):
             yield t
 
-def exit_board(delay=8, music=None):
+def exit_board(delay=8, music=None, repeatmusic=[]):
     from bubbles import Bubble
     from bonuses import RandomBonus
     from player import BubPlayer
@@ -795,8 +795,8 @@ def exit_board(delay=8, music=None):
     music = music or []
     if BubPlayer.MegaBonus:
         music[:1] = [images.music_modern]
-    if music:
-        gamesrv.set_musics(music, [])
+    if music or repeatmusic:
+        gamesrv.set_musics(music, repeatmusic)
     for i in range(delay):
         yield normal_frame()
     bubble_outcome = BubPlayer.BubblesBecome or Bubble.pop

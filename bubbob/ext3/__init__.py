@@ -218,7 +218,7 @@ class Alien(monsters.Monster):
 class Galaga:
     
     def bgen(self):
-        for t in boards.exit_board(0, music=[music]*99):
+        for t in boards.exit_board(0, repeatmusic=[music]):
             yield t
         for t in curboard.clean_gen_state():
             yield t

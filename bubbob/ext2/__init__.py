@@ -242,7 +242,7 @@ class Pacman:
         for d in monsters:
             PacGhost(self, d.x, d.y)
 
-        for t in boards.exit_board(0, music=[music]*3):
+        for t in boards.exit_board(0, repeatmusic=[music]):
             yield t
         for t in curboard.clean_gen_state():
             yield t

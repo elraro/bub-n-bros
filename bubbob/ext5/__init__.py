@@ -189,11 +189,10 @@ class Lemming(Monster):
 class Lemmings:
     
     def bgen(self, limittime = 60.1): # 0:60
-        for t in boards.exit_board(0):
+        for t in boards.exit_board(0, repeatmusic=[music]):
             yield t
         for t in curboard.clean_gen_state():
             yield t
-        gamesrv.set_musics([], [music])
         self.lemmap = {}
         for key in localmap:
             self.lemmap[key] = images.sprget(key)
