@@ -34,6 +34,5 @@ def setup(bkgnd=1, httpport=8000, **kw):
     # register a '' and an 'index.html' file
     httpserver.register('', indexloader)
     httpserver.register('index.html', indexloader)
-    
-    httpserver.runserver(bkgnd, httpport)
-    return 1
+
+    return httpserver.runserver(bkgnd, httpport)

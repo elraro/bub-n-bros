@@ -682,7 +682,9 @@ def Run():
     import javaserver
     if javaserver.setup(httpport=FnHttpPort, title=FnDesc, gameport=PORT,
                         width=playfield.width, height=playfield.height):
-      extramsg = ', HTTP %d' % FnHttpPort
+      extramsg = 'HTTP Java server: http://%s:%d' % (gethostname(), FnHttpPort)
+    else:
+      extramsg = 'Cannot start HTTP Java server on port %d' % FnHttpPort
 
   broadcast_next  = None
   broadcast_port = random.choice(hostchooser.BROADCAST_PORT_RANGE)
@@ -696,9 +698,11 @@ def Run():
     broadcast_socket = None
     broadcast_port = None
     
-  print '%s server at %s:%d, Broadcast %d, UDP %d%s' % (
+  print '%s server at %s:%d, Broadcast %d, UDP %d' % (
     FnDesc, gethostname(), PORT, broadcast_port,
-    hostchooser.UDP_PORT, extramsg)
+    hostchooser.UDP_PORT)
+  if extramsg:
+    print extramsg
   nextframe = time()
 
   try:
