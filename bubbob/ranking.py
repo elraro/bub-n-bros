@@ -261,7 +261,7 @@ def screen_monster():
     pairs.reverse()
     del pairs[5:]
     lines = []
-    if len(pairs) > 1:
+    if pairs:
         lines.append([RText('Best Monster Bubblers')])
         for count, p, p2 in pairs:
             pic = RPicture()
@@ -285,7 +285,7 @@ def screen_catch():
     pairs.reverse()
     del pairs[5:]
     lines = []
-    if len(pairs) > 1:
+    if pairs:
         lines.append([RText('Best Dragon Bubblers')])
         for count, p, p2 in pairs:
             pic = RPicture()
@@ -316,7 +316,7 @@ def screen_bonus():
     pairs = npairs
     del pairs[5:]
     lines = []
-    if len(pairs) > 1:
+    if pairs:
         lines.append([RText('Best Bonus Catchers')])
         for count, p, p2 in pairs:
             pic = RPicture()
@@ -336,7 +336,7 @@ def screen_bubble():
     pairs.reverse()
     del pairs[5:]
     lines = []
-    if len(pairs) > 1:
+    if pairs:
         lines.append([RText('Best Bubble Exploders')])
         for count, p in pairs:
             pic = RPicture()

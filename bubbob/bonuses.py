@@ -74,13 +74,9 @@ class Bonus(ActiveSprite):
                     self.play(sound)
             if dragon not in self.taken_by:
                 self.taken_by.append(dragon)
-                try:
-                    key = self.nimage
-                except AttributeError:
-                    pass
-                else:
+                if isinstance(self, (RandomBonus, MonsterBonus)):
                     s_bonus = dragon.bubber.stats.setdefault('bonus', {})
-                    s_bonus[key] = s_bonus.get(key, 0) + 1
+                    s_bonus[self.nimage] = s_bonus.get(self.nimage, 0) + 1
 
     def taking(self, follow_dragons=0, delay=1):
         from player import Dragon
