@@ -569,6 +569,7 @@ def main(Game, save_url_to=None, quiet=0):
             print "Logging to", f.filename
             sys.stdout = sys.stderr = f
     if save_url_to:
+        data = srv.indexurl + '\n'
         def try_to_unlink(fn):
             try:
                 os.unlink(fn)
@@ -576,9 +577,16 @@ def main(Game, save_url_to=None, quiet=0):
                 pass
         import atexit
         atexit.register(try_to_unlink, save_url_to)
-        f = open(save_url_to, 'w')
-        print >> f, srv.indexurl
-        f.close()
+        try:
+            fno = os.open(save_url_to, os.O_CREAT | os.O_TRUNC | os.O_WRONLY,
+                          0600)
+            if os.write(fno, data) != len(data):
+                raise OSError
+            os.close(fno)
+        except:
+            f = open(save_url_to, 'w')
+            f.write(data)
+            f.close()
     #if webbrowser:
     #    srv.launchbrowser()
 
