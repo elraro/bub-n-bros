@@ -4,7 +4,7 @@ from time import localtime, ctime
 
 class LogFile:
     
-    def __init__(self, filename=None, limitsize=16384):
+    def __init__(self, filename=None, limitsize=32768):
         if filename is None:
             filename = sys.argv[0]
             if filename.endswith('.py'):
@@ -27,9 +27,10 @@ class LogFile:
     def __nonzero__(self):
         return self.f is not None
 
-    def _open(self, filename, mode='a+'):
+    def _open(self, filename):
         try:
-            self.f = open(filename, mode, 1)
+            self.f = open(filename, 'r+', 1)
+            self.f.seek(0, 2)
         except (OSError, IOError):
             return 0
         else:
