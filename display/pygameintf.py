@@ -71,10 +71,9 @@ class Display:
             self.offscreen.blit(bitmap, (x, y))
 
     def flip(self):
-        if pygame.event.get([QUIT]):
-            raise SystemExit
         self.screen.blit(self.offscreen, (0, 0))
         pygame.display.flip()
+        self.events_poll()
 
     def close(self):
         pygame.display.quit()

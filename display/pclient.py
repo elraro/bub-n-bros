@@ -568,6 +568,12 @@ class Playfield:
 
 
 def run(server, *args, **kw):
+    try:
+        import psyco
+    except ImportError:
+        pass
+    else:
+        psyco.bind(Playfield.update_sprites)
     Playfield(server).run(*args, **kw)
 
 def usage():

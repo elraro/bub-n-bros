@@ -53,6 +53,9 @@ def Display_PYGAME(width, height, title):
     import pygameintf
     return pygameintf.Display(width, height, title)
 
+def Display_PYXLIB(width, height, title):
+    import pythonxlibintf
+    return pythonxlibintf.Display(width, height, title)
 
 
 def open_dpy(mode, width, height, title):
