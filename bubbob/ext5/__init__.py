@@ -262,7 +262,6 @@ class Lemmings:
             yield None
 
         while self.lemlist:
-            print len(self.lemlist), self.lemtotal
             yield None
 
 
