@@ -7,13 +7,16 @@ METASERVER_URL = 'http://codespeak.net:8050/bub-n-bros.html'
 #METASERVER = ('127.0.0.1', 8055)
 #METASERVER_URL = 'http://127.0.0.1:8050/bub-n-bros.html'
 
-def connect():
+def connect(failure=[]):
+    if len(failure) >= 2:
+        return None
     print >> sys.stderr, 'Connecting to the meta-server %s:%d...' % METASERVER
     try:
         s = socket(AF_INET, SOCK_STREAM)
         s.connect(METASERVER)
     except error, e:
         print >> sys.stderr, '*** cannot contact meta-server:', str(e)
+        failure.append(e)
         return None
     else:
         print >> sys.stderr, 'connected.'
