@@ -365,7 +365,7 @@ def vertical_warp(nx, ny):
 MODULES = ['boards', 'bonuses', 'bubbles', 'images',
            'mnstrmap', 'monsters', 'player',
            'binboards', 'macbinary', 'boarddef',
-           'ext1', 'ext2', 'ext3', 'ext4']
+           'ext1', 'ext2', 'ext3', 'ext4', 'ext5']
 
 def loadmodules(force=0):
     levelfilename = gamesrv.game.levelfile

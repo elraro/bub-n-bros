@@ -222,13 +222,15 @@ class DragonBubble(Bubble):
         ny = self.y
         stop = 0
         withmonster = 0
+        self.warp = 0
         while abs(hspeed) >= 4.0:
             touched_monsters = [s for s in self.touching(9)
                                 if isinstance(s, Monster)]
             if touched_monsters:
-                random.choice(touched_monsters).in_bubble(self)
-                withmonster = 1
-                break
+                if random.choice(touched_monsters).in_bubble(self) is None:
+                    self.warp = 1
+                    break
+                withmonster = self.withmonster = 1
             if asin:
                 (nx, ny), moebius = vertical_warp(nx + hspeed*acos, ny + hspeed*asin)
                 if moebius:
@@ -244,7 +246,6 @@ class DragonBubble(Bubble):
                 self.move(int(nx+0.5), int(ny+0.5))
             yield None
 
-        self.warp = withmonster
         if not withmonster:
             from bonuses import Bonus, BonusMaker
             touched_bonuses = [s for s in self.touching(15)

@@ -28,7 +28,9 @@ class Monster(ActiveSprite):
         self.dir = dir
         ActiveSprite.__init__(self, images.sprget(self.imgrange()[0]), x, y)
         self.gen.append(self.waiting())
-        self.in_list = in_list or BubPlayer.MonsterList
+        if in_list is None:
+            in_list = BubPlayer.MonsterList
+        self.in_list = in_list
         self.in_list.append(self)
         self.no_shoot_before = 0
         #images.ActiveSprites.remove(self)
@@ -120,7 +122,7 @@ class Monster(ActiveSprite):
         self.gen.append(self.default_mode())
 
     def overlapping(self):
-        for s in BubPlayer.MonsterList:
+        for s in self.in_list:
             if (-6 <= s.x-self.x <= 6 and -6 <= s.y-self.y < 6 and
                 #s.dir == self.dir and s.vdir == self.vdir and
                 s.vx == self.vx and s.vy == self.vy and
@@ -273,7 +275,8 @@ class Monster(ActiveSprite):
         self.untouchable()
         self.angry = []
         bubble.move(self.x, self.y)
-        bubble.to_front()
+        if not hasattr(bubble, 'withmonster'):
+            bubble.to_front()
         self.to_front()
         img = self.mdef.jailed
         self.gen = [self.bubbling(bubble)]

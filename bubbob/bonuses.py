@@ -486,7 +486,7 @@ class Potion(RandomBonus):
             ext.run()
             boards.BoardGen.append(boards.extra_bkgnd_black(self.x, self.y))
     def _import_note():      # for import auto-detection
-        import ext1; import ext2; import ext3; import ext4
+        import ext1; import ext2; import ext3; import ext4; import ext5
 
 class FireBubble(RandomBonus):
     "Fire Bubbles. Makes you fire napalm bubbles."
