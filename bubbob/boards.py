@@ -176,23 +176,29 @@ class Board(Copyable):
             return
         # add players
         from player import BubPlayer, scoreboard
+        if not inplace:
+            random.shuffle(BubPlayer.PlayerList)
         scoreboard(1, inplace=inplace)
         playing = []
-        plist = BubPlayer.PlayerList[:]
-        random.shuffle(plist)
-        for p in plist:
+        for p in BubPlayer.PlayerList:
             if p.isplaying():
                 p.enterboard(playing)
                 p.zarkon()
                 playing.append(p)
         # add monsters
         import monsters
+        f_monsters = gamesrv.game.f_monsters
+        if f_monsters < 0.1:
+            f_monsters = max(1.0, min(2.0, (len(playing)-2)/2.2+1.0))
         for mdef in self.monsters:
             yield 2
             cls = getattr(monsters, mdef.__class__.__name__)
-            cls(mdef)
-            if random.random() < (len(playing)-2)/2.2:
-                cls(mdef, dir=-mdef.dir)
+            dir = mdef.dir
+            i = random.random()
+            while i < f_monsters:
+                cls(mdef, dir=dir)
+                dir = -dir
+                i += 1.0
         self.playingboard = 1
 
     def putwall(self, x, y, w=None):

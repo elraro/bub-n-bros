@@ -28,7 +28,8 @@ class BubBobGame(gamesrv.Game):
                  limitlives  = None,
                  extralife   = 50000,
                  autoreset   = 0,
-                 metaserver  = 0):
+                 metaserver  = 0,
+                 monsters    = 0):
         gamesrv.Game.__init__(self)
         self.game_reset_gen = None
         self.levelfile  = levelfile
@@ -38,6 +39,7 @@ class BubBobGame(gamesrv.Game):
         self.extralife  = extralife
         self.autoreset  = autoreset
         self.metaserver = metaserver
+        self.f_monsters = monsters
         self.updatemetaserver()
         levelsname, ext = os.path.splitext(os.path.basename(levelfile))
         self.FnDesc     = BubBobGame.FnDesc + ' ' + levelsname
@@ -65,8 +67,10 @@ class BubBobGame(gamesrv.Game):
 
     def FnPlayers(self):
         from player import BubPlayer
-        return dict(zip(range(len(BubPlayer.PlayerList)),
-                        BubPlayer.PlayerList))
+        result = {}
+        for p in BubPlayer.PlayerList:
+            result[p.pn] = p
+        return result
 
     def FnFrame(self):
         if self.metaregister:
@@ -187,13 +191,15 @@ def parse_cmdline(argv):
 ##        print >> sys.stderr, 'where:'
 ##        print >> sys.stderr, '  -w  --webbrowser=no  don''t automatically start web browser'
         print >> sys.stderr, 'or:'
-        print >> sys.stderr, '  python bb.py [level-file.bin] [-m] [-b#] [-s#] [-l#]'
+        print >> sys.stderr, '  python bb.py [level-file.bin] [-m] [-b#] [-s#] [-l#] [-M#]'
         print >> sys.stderr, 'with options:'
         print >> sys.stderr, '  -m  --metaserver  register the server on the Metaserver so anyone can join'
         print >> sys.stderr, '  -b#  --begin #    start at board number # (default 1)'
         print >> sys.stderr, '       --start #    synonym for --begin'
         print >> sys.stderr, '  -s#  --step #     advance board number by steps of # (default 1)'
         print >> sys.stderr, '  -l#  --lives #    limit the number of lives to #'
+        print >> sys.stderr, '  -M#  --monsters # multiply the number of monsters by #'
+        print >> sys.stderr, '                      (default between 1.0 and 2.0 depending on # of players)'
         print >> sys.stderr, '  -i   --infinite   restart the server at the end of the game'
         print >> sys.stderr, '  --port LISTEN=#   set fixed tcp port for game server'
         print >> sys.stderr, '  --port HTTP=#     set fixed tcp port for http server'
@@ -207,9 +213,9 @@ def parse_cmdline(argv):
         from getopt import getopt
     from getopt import error
     try:
-        opts, args = getopt(argv, 'mb:s:l:ih',
+        opts, args = getopt(argv, 'mb:s:l:M:ih',
                             ['metaserver', 'start=', 'step=',
-                             'lives=', 'infinite', 'help',
+                             'lives=', 'monsters=', 'infinite', 'help',
                              'saveurlto=', 'quiet', 'port='])
     except error, e:
         print >> sys.stderr, 'bb.py: %s' % str(e)
@@ -229,6 +235,8 @@ def parse_cmdline(argv):
             options['stepboard'] = int(value)
         elif key in ('-l', '--lives'):
             options['limitlives'] = int(value)
+        elif key in ('-M', '--monsters'):
+            options['monsters'] = float(value)
         elif key in ('-i', '--infinite'):
             options['autoreset'] = 1
         elif key in ('-h', '--help'):
