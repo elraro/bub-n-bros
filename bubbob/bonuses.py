@@ -502,6 +502,10 @@ class Ring(TemporaryBonus):
     points = 4000
     capname = 'ring'
     captime = 700
+    def __init__(self, x, y):
+        TemporaryBonus.__init__(self, x, y)
+        if boards.curboard.bonuslevel:
+            self.kill()
 
 class GreenPepper(TemporaryBonus):
     "Hot Pepper. Run! Run! That burns."
