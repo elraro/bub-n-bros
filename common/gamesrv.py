@@ -1,7 +1,7 @@
 from socket import *
 from select import select
 from struct import pack, unpack
-import zlib, os, random, struct, md5
+import zlib, os, random, struct, md5, sys
 from time import time, ctime
 from msgstruct import *
 from errno import EWOULDBLOCK
@@ -448,8 +448,10 @@ class Client:
               del self.sounds[key]
         if broadcast_extras is None or self not in broadcast_clients:
           try:
-            self.udpsockcounter += self.udpsocket.send(udpdata)
-          except error:
+            l = self.udpsocket.send(udpdata)
+            self.udpsockcounter += l
+          except error, e:
+            print >> sys.stderr, 'ignored:', str(e)
             pass  # ignore UDP send errors (buffer full, etc.)
       if self.has_music > 1 and NOW >= self.musicstreamer:
         self.musicstreamer += 0.99
@@ -607,12 +609,25 @@ then use the following address:
         # client requests data in-line on the TCP stream
         import udpovertcp
         self.udpsocket = udpovertcp.SocketMarshaller(self.socket, self)
+        s = self.udpsocket.tcpsock
         #self.log('set_udp_port: udp-over-tcp')
       else:
         self.udpsocket = socket(AF_INET, SOCK_DGRAM)
         self.udpsocket.setblocking(0)
-        self.udpsocket.connect((addr or self.addr[0], port))
+        try:
+          addr = addr or self.addr[0]
+          self.udpsocket.connect((addr, port))
+        except error, e:
+          print >> sys.stderr, "Cannot set UDP socket to", addr, str(e)
+          self.udpsocket = None
+          self.udpsockcounter = sys.maxint
+        s = self.udpsocket
         #self.log('set_udp_port: %d' % port)
+      if s:
+        try:
+          s.setsockopt(SOL_IP, IP_TOS, 0x10)  # IPTOS_LOWDELAY
+        except error, e:
+          print >> sys.stderr, "Cannot set IPTOS_LOWDELAY:", str(e)
 
   def enable_sound(self, sound_mode=1, *rest):
     if sound_mode != self.has_sound:

@@ -111,6 +111,10 @@ class Playfield:
         print "connecting to %r..." % (sockaddr,)
         self.s = socket(AF_INET, SOCK_STREAM)
         self.s.connect(sockaddr)
+        try:
+            self.s.setsockopt(SOL_IP, IP_TOS, 0x10)  # IPTOS_LOWDELAY
+        except error, e:
+            print >> sys.stderr, "Cannot set IPTOS_LOWDELAY:", str(e)
         self.sockaddr = sockaddr
         if read(self.s, len(MSG_WELCOME)) != MSG_WELCOME:
             raise error, "connected to something not a game server"
