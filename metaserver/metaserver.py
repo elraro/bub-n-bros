@@ -7,7 +7,7 @@ from metastruct import *
 import httpserver, stdlog
 
 if __name__ == '__main__':
-    os.chdir(os.path.dirname(sys.argv[0]))
+    os.chdir(os.path.dirname(sys.argv[0]) or os.curdir)
 
 META_SERVER_HTTP_PORT = 8050
 META_SERVER_PORT = 8055
