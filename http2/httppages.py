@@ -520,23 +520,20 @@ def main(Game, pipe_url_to=None, quiet=0):
 
 def launch(args):
     # platform-specific hacks
-    print 'Running client with arguments', ' '.join(args)
+    args.insert(0, sys.executable)
+    print '>', ' '.join(args)
     if sys.platform == 'darwin':   # must start as a UI process
         import tempfile
         cmdname = tempfile.mktemp('_BubBob.command')
+        # XXX poor quoting
         f = open(cmdname, 'w')
-        print >> f, "#!", sys.executable
-        print >> f, "import os, sys"
-        print >> f, "try: os.unlink(%r)" % cmdname
-        print >> f, "except OSError: pass"
-        print >> f, "sys.argv[:] = %r" % (args,)
-        print >> f, "__file__ = %r" % args[0]
-        print >> f, "execfile(%r)" % args[0]
+        print >> f, '#! /bin/sh'
+        print >> f, ' '.join(['"%s"' % a for a in args])
+        print >> f, 'rm "%s"' % cmdname
         f.close()
         os.chmod(cmdname, 0700)
-        os.system('/usr/bin/open ' + cmdname)
+        os.system('/usr/bin/open "%s"' % cmdname)
     else:
-        args.insert(0, sys.executable)
         # try to close the open fds first
         if hasattr(os, 'fork'):
             try:
