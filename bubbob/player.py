@@ -504,16 +504,15 @@ class BubPlayer(gamesrv.Player):
         self.keepalive = time.time() + KEEPALIVE
         scoreboard()
 
-    def enterboard(self, players, leftteam=None, rightteam=None):
-        if self.team == leftteam:
-            self.start_left = 1
-        elif self.team == rightteam:
-            self.start_left = 0
-        else:
-            leftplayers = [p for p in players if p.start_left]
-            rightplayers = [p for p in players if not p.start_left]
-            self.start_left = (len(leftplayers) + random.random() <
-                               len(rightplayers) + random.random())
+    def sameteam(self, other):
+        return self.team != -1 and self.team == other.team
+
+    def enterboard(self, players):
+        players = [p for p in players if not p.sameteam(self)]
+        leftplayers = [p for p in players if p.start_left]
+        rightplayers = [p for p in players if not p.start_left]
+        self.start_left = (len(leftplayers) + random.random() <
+                           len(rightplayers) + random.random())
 
     def savecaps(self):
         dragons = self.dragons

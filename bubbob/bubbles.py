@@ -75,8 +75,8 @@ class Bubble(ActiveSprite):
             # count caught dragons, excluding team mates, but including self
             count = 0
             for d in dragons:
-                if d.bubber is author.bubber or (
-                    d.bubber.team == -1 or d.bubber.team != author.bubber.team):
+                if (d.bubber is author.bubber or
+                    not d.bubber.sameteam(author.bubber)):
                     count += 1
             if count:
                 if count == 1:
