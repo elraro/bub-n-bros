@@ -61,7 +61,7 @@ class Lemming(Monster):
         Monster.__init__(self, Lemmy, x, y, dir, in_list=lemmings.lemlist)
         self.lemmings = lemmings
 
-    def argh(self, *args):
+    def argh(self, *args, **kwds):
         pass
 
     def resetimages(self):
