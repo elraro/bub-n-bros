@@ -90,6 +90,8 @@ class MiniHandler(SimpleHTTPRequestHandler):
         addr, host, path, query1, fragment = urlparse.urlsplit(self.path)
         path = canonicalpath(path)
         if path not in pathloaders:
+            if path + '/' in pathloaders:
+                return self.redirect(path + '/')
             self.send_error(404)
             return None
         kwds = {}
