@@ -286,6 +286,35 @@ def makebkgndpattern(bitmap, (x,y,w,h), darker={}):
     h = int(CELL*vscale)
     return nbitmap, (x,y,w,h)
 
+def sprget_big3_lazy(n, bigger={}):
+    try:
+        result, computing = bigger[n]
+    except KeyError:
+        import pixmap
+        filename, rect = sprmap[n]
+        bitmap = gamesrv.getbitmap(filename, KEYCOL)
+        data = bitmap.read()
+        data = pixmap.decodepixmap(data)
+        data = pixmap.cropimage(data, rect)
+        bigger[n] = None, pixmap.imagezoomer(*data)
+        return None
+    if computing is not None:
+        result = computing.next()
+        if result is None:
+            return None   # still computing
+        import pixmap
+        w, h, data = result
+        data = pixmap.encodepixmap(w, h, data)
+        result = gamesrv.newbitmap(data, KEYCOL).geticon(0, 0, w, h)
+        bigger[n] = result, None
+    return result
+
+def sprget_big3(n):
+    result = None
+    while result is None:
+        result = sprget_big3_lazy(n)
+    return result
+
 extramap = {
     'shield-left':  ('extra1.ppm', (0, 0, 32, 32)),
     'shield-right': ('extra1.ppm', (0, 32, 32, 32)),
@@ -295,6 +324,7 @@ extramap = {
     'potion4':      ('extra1.ppm', (0, 160, 32, 32)),
     ('glasses', -1):('extra1.ppm', (0, 192, 32, 16)),
     ('glasses', +1):('extra1.ppm', (0, 208, 32, 16)),
+    'cactus':       ('extra1.ppm', (0, 224, 32, 32)),
     'questionmark3':('extra2.ppm', (0, 0, 16, 16)),
     'questionmark1':('extra2.ppm', (0, 16, 16, 16)),
     'questionmark5':('extra2.ppm', (0, 32, 16, 16)),

@@ -16,6 +16,7 @@ CheatDontDie = 0
 class Dragon(ActiveSprite):
     priority = 1
     mdef = PlayerBubbles
+    fly_counter = 0
 
     DCAP = {
         'hspeed': 1,
@@ -250,7 +251,12 @@ class Dragon(ActiveSprite):
             else:
                 mode = 10
                 if self.dcap['fly']:
-                    ny = self.y+(1,-1)[bottom_up]
+                    self.fly_counter += 1
+                    if self.fly_counter < self.dcap['fly']:
+                        ny = self.y
+                    else:
+                        del self.fly_counter
+                        ny = self.y+(1,-1)[bottom_up]
                 else:
                     ny = (self.y+(4,-1)[bottom_up]) & ~3
                 nx = self.x

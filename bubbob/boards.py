@@ -48,12 +48,12 @@ class Board(Copyable):
         self.bonuslevel = not self.monsters
         self.cleaning_gen_state = 0
 
-    def set_musics(self):
+    def set_musics(self, prefix=[]):
         if (self.num+1) % 20 < 10:
-            gamesrv.set_musics([images.music_intro], [images.music_game],
+            gamesrv.set_musics(prefix + [images.music_intro], [images.music_game],
                                reset=0)
         else:
-            gamesrv.set_musics([], [images.music_game2], reset=0)
+            gamesrv.set_musics(prefix + [], [images.music_game2], reset=0)
 
     def writesprites(self, name, xyicolist):
         sprlist = self.sprites.setdefault(name, [])

@@ -465,6 +465,7 @@ class LetterBubble(BonusBubble):
         return 50
 
 class FireFlame(ActiveSprite):
+    timeout = 17
     def __init__(self, x0, y0, poplist, dirs=None, countdown=0):
         ico = images.sprget(Fire.ground[0])
         ActiveSprite.__init__(self, ico, x0*CELL, y0*CELL)
@@ -480,7 +481,7 @@ class FireFlame(ActiveSprite):
         for dir in dirs:
             if bget(x0+dir, y0+1) == '#' and bget(x0+dir, y0) == ' ':
                 FireFlame(x0+dir, y0, self.poplist, [dir], countdown-1)
-        for i in range(17):
+        for i in range(self.timeout):
             yield None
             if self.poplist:
                 for s in self.touching(0):
