@@ -69,7 +69,7 @@ class Shape:
     platforms = BoolParameter('platforms')
     platholes = BoolParameter('platholes')
     platfull  = BoolParameter('platfull')
-    mess = ChoiceParameter('mess', '    ..!')
+    mess = ChoiceParameter('mess', '        ....!')
     closed = BoolParameter('closed')
     bonuses = ChoiceParameter('bonuses', range(2**len(Bonuses)))
     
@@ -187,7 +187,7 @@ class Shape:
         if self.mess != ' ':
             threshold = {
                 '.': 0.02 + 0.08*random.random(),   # normal
-                '!': 0.3  + 0.3 *random.random(),   # super-filled
+                '!': 0.25 + 0.2 *random.random(),   # super-filled
                 }
             lvl.genwalls.append((RandomLevel.mess, threshold[self.mess]))
         if self.holes:
@@ -243,8 +243,8 @@ else:
     Levels = []
     for s in makeshapes():
         class level(RandomLevel):
-            WIDTH  = 32
-            HEIGHT = 26
+            WIDTH  = 28
+            HEIGHT = 23
             def enter(self, *args, **kw):
                 result = RandomLevel.enter(self, *args, **kw)
                 params = self.autogen_shape.__dict__.items()
@@ -260,5 +260,6 @@ else:
     class levelfinal(RandomLevel):
         WIDTH = level.WIDTH
         HEIGHT = level.HEIGHT
-        genwalls = [(RandomLevel.platforms,(4,3),(lambda:flat(1,1),lambda:flat(4,2)),1)]
+        genwalls = [(RandomLevel.platforms,(5,3),(lambda:flat(2,1),lambda:flat(6,2)),1),
+                    (RandomLevel.close,)]
     Levels.append(levelfinal)

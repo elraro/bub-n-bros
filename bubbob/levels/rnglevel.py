@@ -69,7 +69,8 @@ class RandomLevel(boarddef.Level):
 
         if hasattr(self, 'mlist'):
             self.do_monsters()
-        
+
+        self.dig_vertical_walls()
         self.do_walls()
 	self.walls = self.__class__.walls
         #print self.walls
@@ -137,8 +138,8 @@ class RandomLevel(boarddef.Level):
 		    x -= w
 		else:
                     w = min(w,self.WIDTH-x)
-            for x in range(x,x+w):
-                self.setw(x,y)
+            for x1 in range(x,x+w):
+                self.setw(x1,y)
             for i in range(rng_holes()):
                 hx = randint(x,x+w)
                 hw = rng_width()
@@ -225,6 +226,16 @@ class RandomLevel(boarddef.Level):
         for x in range(self.WIDTH):
             self.setw(x,0) 
             self.setw(x,self.HEIGHT)
+
+    def dig_vertical_walls(self):
+        "Check that no vertical wall spans the whole height of the level"
+        for x in range(self.WIDTH):
+            for y in range(self.HEIGHT):
+                if self.wmap[y][x] == ' ':
+                    break
+            else:
+                for y in range(1,self.HEIGHT-2,3):
+                    self.clrw(x,y)
 
     def do_monsters(self):
         """Create monsters based on the requested settings.
