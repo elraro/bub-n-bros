@@ -78,11 +78,11 @@ class Monster(ActiveSprite):
 
     def blocked(self):
         if self.dir < 0:
-            x0 = (self.x-1)//CELL
+            x0 = (self.x-1)//16
         else:
-            x0 = (self.x+1)//CELL + 2
-        y0 = self.y // CELL + 1
-        y1 = (self.y + CELL - 1) // CELL + 1
+            x0 = (self.x+1)//16 + 2
+        y0 = self.y // 16 + 1
+        y1 = (self.y + 15) // 16 + 1
         return bget(x0,y0) == '#' or bget(x0,y1) == '#'
 
     def tryhstep(self):
@@ -96,12 +96,12 @@ class Monster(ActiveSprite):
 
     def vblocked(self):
         if self.vdir < 0:
-            y0 = self.y//CELL
+            y0 = self.y//16
         else:
-            y0 = (self.y+1)//CELL + 2
-        x0 = self.x // CELL
-        x1 = self.x // CELL + 1
-        x2 = (self.x+2*CELL-1) // CELL
+            y0 = (self.y+1)//16 + 2
+        x0 = self.x // 16
+        x1 = self.x // 16 + 1
+        x2 = (self.x+31) // 16
         return bget(x0,y0) == '#' or bget(x1,y0) == '#' or bget(x2,y0) == '#'
 
     def tryvstep(self):
@@ -119,25 +119,24 @@ class Monster(ActiveSprite):
         self.resetimages()
         self.gen.append(self.default_mode())
 
-    def overlapping(self, chance=0.2):
-        if random.random() < chance:
-            for s in BubPlayer.MonsterList:
-                if (abs(s.x-self.x) <= 6 and abs(s.y-self.y) < 6 and
-                    #s.dir == self.dir and s.vdir == self.vdir and
-                    s.vx == self.vx and s.vy == self.vy and s.angry == self.angry):
-                    return s is not self
+    def overlapping(self):
+        for s in BubPlayer.MonsterList:
+            if (-6 <= s.x-self.x <= 6 and -6 <= s.y-self.y < 6 and
+                #s.dir == self.dir and s.vdir == self.vdir and
+                s.vx == self.vx and s.vy == self.vy and s.angry == self.angry):
+                return s is not self
         return 0
 
     def walking(self):
         while onground(self.x, self.y):
             yield None
-            if self.overlapping():
+            if random.random() < 0.2 and self.overlapping():
                 yield None
             x1 = self.x
             if self.dir > 0:
                 x1 += self.vx
-            if (x1 % CELL) < self.vx and random.random() < self.special_prob:
-                self.move((x1//CELL) * CELL, self.y)
+            if (x1 & 15) < self.vx and random.random() < self.special_prob:
+                self.move(x1 & -16, self.y)
                 if self.special():
                     return
             self.tryhstep()
@@ -189,10 +188,10 @@ class Monster(ActiveSprite):
         while not onground(self.x, self.y):
             yield None
             ny = self.y + 3
-            if (ny % CELL) > CELL-2:
-                ny = (ny//CELL+1)*CELL
-            elif (ny % CELL) < 3:
-                ny = (ny//CELL)*CELL
+            if (ny & 15) > 14:
+                ny = (ny//16+1)*16
+            elif (ny & 15) < 3:
+                ny = (ny//16)*16
             self.move(self.x, ny)
             if self.y >= boards.bheight:
                 self.vertical_warp()
@@ -235,7 +234,7 @@ class Monster(ActiveSprite):
         self.seticon(images.sprget(self.imgrange()[1]))
         for ny in range(self.y-4, limity-4, -4):
             self.move(self.x, ny)
-            if ny < -2*CELL:
+            if ny < -32:
                 self.vertical_warp()
             yield None
         if bubber:
@@ -317,7 +316,7 @@ class Monster(ActiveSprite):
     def flying(self):
         blocked = 0
         while 1:
-            if self.overlapping():
+            if random.random() < 0.2 and self.overlapping():
                 yield None
             hstep = self.tryhstep()
             vstep = self.tryvstep()
@@ -518,10 +517,10 @@ class MonsterShot(ActiveSprite):
 
     def blocked(self):
         if self.speed < 0:
-            x0 = (self.x-self.speed-HALFCELL)//CELL
+            x0 = (self.x-self.speed-8)//16
         else:
-            x0 = (self.x+self.ico.w+self.speed-HALFCELL)//CELL
-        y0 = (self.y+HALFCELL) // CELL + 1
+            x0 = (self.x+self.ico.w+self.speed-8)//16
+        y0 = (self.y+8) // 16 + 1
         return not (' ' == bget(x0,y0) == bget(x0+1,y0))
 
     def moving(self):
@@ -644,15 +643,15 @@ class Springy(Monster):
     def walking(self):
         self.spring_down = 1
         self.resetimages()
-        for t in range(2+self.overlapping(1.0)):
+        for t in range(2+self.overlapping()):
             yield None
         self.spring_down = 2
         self.resetimages()
-        for t in range(4+2*self.overlapping(1.0)):
+        for t in range(4+2*self.overlapping()):
             yield None
         self.spring_down = 1
         self.resetimages()
-        for t in range(2+self.overlapping(1.0)):
+        for t in range(2+self.overlapping()):
             yield None
         self.spring_down = 0
         self.resetimages()
@@ -666,10 +665,10 @@ class Springy(Monster):
                 self.dir = -self.dir
                 self.resetimages()
             nx = self.x + self.dir*self.vx
-            if self.y//CELL < int(yf)//CELL:
-                if onground(self.x, (self.y//CELL+1)*CELL):
+            if self.y//16 < int(yf)//16:
+                if onground(self.x, (self.y//16+1)*16):
                     break
-                if onground(nx, (self.y//CELL+1)*CELL):
+                if onground(nx, (self.y//16+1)*16):
                     self.move(nx, self.y)
                     break
             (nx, yf), moebius = boards.vertical_warp(nx, yf)

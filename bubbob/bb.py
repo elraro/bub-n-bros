@@ -106,11 +106,15 @@ gamesrv.FnBasePath = ["bubbob"]
 gamesrv.FnPlayers = GetPlayers
 gamesrv.FnFrame = kTimer
 gamesrv.FnExcHandler = kExcHandler
-gamesrv.Run()
 
-#import profile
-#prof = profile.Profile()
-#try:
-#  prof = prof.run('gamesrv.Run()')
-#finally:
-#  prof.dump_stats('profbb')
+PROFILE = 0
+
+if not PROFILE:
+  gamesrv.Run()
+else:
+  import profile
+  prof = profile.Profile()
+  try:
+    prof = prof.run('gamesrv.Run()')
+  finally:
+    prof.dump_stats('profbb')

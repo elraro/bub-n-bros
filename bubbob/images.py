@@ -26,9 +26,7 @@ class ActiveSprite(gamesrv.Sprite):
     def action(self):
         i = self.angry
         genlist = self.gen[:]
-        while 1:
-            if not self.alive:
-                return
+        while self.alive:
             try:
                 while genlist:
                     gen = genlist.pop(0)
@@ -42,24 +40,24 @@ class ActiveSprite(gamesrv.Sprite):
                     pass
                 continue
             if not i:
-                break
+                # record position
+                if self.touchable:
+                    x = int(self.x) & -8
+                    y = int(self.y) & -8
+                    if self.touchable != (x, y):
+                        self.touchable = x, y
+                        for key in self.ranges:
+                            del key[self]
+                        del self.ranges[:]
+                        xrange = range(x>>5, (x+self.ico.w+38)>>5)
+                        for y in range(y>>4, (y+self.ico.h+22)>>4):
+                            for x in xrange:
+                                key = SpritesByLoc.setdefault((x,y), {})
+                                key[self] = 1
+                                self.ranges.append(key)
+                return
             i = 0
             genlist = self.gen[:]
-        # record position
-        if self.touchable:
-            x = int(self.x) &~ 7
-            y = int(self.y) &~ 7
-            if self.touchable != (x, y):
-                self.touchable = x, y
-                for key in self.ranges:
-                    del key[self]
-                del self.ranges[:]
-                xrange = range(x>>5, (x+self.ico.w+38)>>5)
-                for y in range(y>>4, (y+self.ico.h+22)>>4):
-                    for x in xrange:
-                        key = SpritesByLoc.setdefault((x,y), {})
-                        key[self] = 1
-                        self.ranges.append(key)
     def kill(self):
         self.untouchable()
         del self.gen[:]
@@ -103,18 +101,20 @@ class ActiveSprite(gamesrv.Sprite):
     # common generators
     def cyclic(self, nimages, speed=5):
         images = [sprget(n) for n in nimages]
+        speed = range(speed)
         while 1:
             for img in images:
                 self.seticon(img)
-                for i in range(speed):
+                for i in speed:
                     yield None
 
     def cyclic_vflip(self, nimages, speed=5):
         images = [sprget_vflip(n) for n in nimages]
+        speed = range(speed)
         while 1:
             for img in images:
                 self.seticon(img)
-                for i in range(speed):
+                for i in speed:
                     yield None
 
     def imgseq(self, nimages, speed=5, repeat=1):

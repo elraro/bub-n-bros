@@ -3,7 +3,7 @@ import random, os, sys, math
 import gamesrv
 import images
 
-CELL = 16
+CELL = 16    # this constant is inlined at some places, don't change
 HALFCELL = CELL//2
 FRAME_TIME = 0.025
 DEFAULT_LEVEL_FILE = 'levels/scratch.py'
@@ -225,8 +225,9 @@ def bget(x, y):
         return '#'
 
 def wget(x, y):
-    x = (x + curboard.WIND_DELTA) // CELL
-    y = (y + curboard.WIND_DELTA) // CELL
+    delta = WIND_DELTA
+    x = (x + delta) // 16
+    y = (y + delta) // 16
     if 0 <= x < curboard.width:
         if y < 0:
             y = 0
@@ -239,12 +240,12 @@ def wget(x, y):
         return '<'
 
 def onground(x, y):
-    if y % CELL:
+    if y & 15:
         return 0
-    x0 = (x+5) // CELL
-    x1 = (x+CELL) // CELL
-    x2 = (x+2*CELL-5) // CELL
-    y0 = y // CELL + 2
+    x0 = (x+5) // 16
+    x1 = (x+16) // 16
+    x2 = (x+27) // 16
+    y0 = y // 16 + 2
 
     if x0 < 0 or x2 >= curboard.width:
         return 0
@@ -285,17 +286,17 @@ def underground(x, y):
             not (' ' == y1[x0] == y1[x1] == y1[x2]))
 
 def x2bounds(x):
-    if x < 2*CELL:
-        return 2*CELL
-    elif x > bwidth - 4*CELL:
-        return bwidth - 4*CELL
+    if x < 32:
+        return 32
+    elif x > bwidth - 64:
+        return bwidth - 64
     else:
         return x
 
 def vertical_warp(nx, ny):
     if ny >= bheight:
         ny -= bheightmod
-    elif ny < -2*CELL:
+    elif ny < -32:
         ny += bheightmod
     else:
         return (nx, ny), 0
@@ -834,7 +835,7 @@ def extra_water_flood():
         bspr += sprites
         fill_by_line.append(sprites)
         for s in waves_sprites:
-            s.step(0, -CELL)
+            s.step(0, -16)
         for s in images.touching(0, waves_sprites[0].y, bwidth, bheight):
             if isinstance(s, Monster):
                 s.argh(poplist)
@@ -849,7 +850,7 @@ def extra_water_flood():
         for s in fill_by_line.pop():
             s.kill()
         for s in waves_sprites:
-            s.step(0, CELL)
+            s.step(0, 16)
     for s in waves_sprites:
         s.kill()
     del curboard.sprites['flood', atom]

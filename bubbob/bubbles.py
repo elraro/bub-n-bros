@@ -141,7 +141,7 @@ class Bubble(ActiveSprite):
                         self.step(-dx1, -dy1)
                 else:
                     self.step(dx, dy)
-                if self.y < -2*CELL or self.y >= boards.bheight:
+                if self.y < -32 or self.y >= boards.bheight:
                     if not self.warp:
                         self.poplist = None
                         self.kill()
@@ -516,12 +516,12 @@ class WaterCell(ActiveSprite):
         self.pending = 0
         self.gen.append(self.flooding())
     def onestep(self):
-        x0 = self.x // CELL
-        y0 = self.y // CELL
+        x0 = self.x // 16
+        y0 = self.y // 16
         self.cells[x0, y0] -= 1
         if bget(x0, y0+1) == ' ':
             dx, dy = 0, 1
-            if self.y + CELL > boards.bheight:
+            if self.y + 16 > boards.bheight:
                 self.kill()
                 self.pending = -1
                 return
@@ -565,8 +565,8 @@ class WaterCell(ActiveSprite):
                 if self.cells.get((x0+dx, y0+dy)):
                     flag += 1<<k
             ico = images.sprget(self.ICONS[flag])
-            x0 *= CELL
-            y0 *= CELL
+            x0 *= 16
+            y0 *= 16
             for s in self.touching(0):
                 if isinstance(s, Monster):
                     s.untouchable()
@@ -576,7 +576,7 @@ class WaterCell(ActiveSprite):
                     s.pop(self.poplist)
             for s in self.take_with_me:
                 if s.alive:
-                    s.move(x2bounds(x0-HALFCELL), y0-CELL)
+                    s.move(x2bounds(x0-8), y0-16)
             self.move(x0, y0, ico)
             yield None
         self.cells2.remove(self)
