@@ -1,0 +1,129 @@
+INSTALLATION
+------------
+
+'server' = the command-line program that computes the gameplay and
+           sends display data to the clients via the network.
+
+'client' = the display program that must run on every machine.
+
+
+Prerequisites
+-------------
+
+* Python 2.2 or later: http://www.python.org/2.2.2
+
+The client exists in three versions:
+
+* Pygame-based.  Works on any of the numerous platforms where the
+    pygame libraries can be installed: http://pygame.org
+
+* pure X Window -- works with any more-than-256-colors X Window
+  server (e.g. Unix or MacOS+XDarwin) but slowly
+
+* shared-memory X Window -- works on local Unix X Servers
+
+Only the pygame-based client can play sounds and need no
+source code compilation, so I'd recommend using it as soon as
+possible.
+
+
+Compiling
+---------
+
+Python code need not be compiled, but there are a couple of
+C extension modules that you may want to compile in the
+situations specified in the sequel.  You need a working C
+compiler for this, but note that you need to compile on
+each specific platform only the C extensions (if any) that
+are meaningful for the usage (client or server) of that
+machine, as specified below.  For example, a MacOS Pygame
+client does not need any C extension.
+
+
+Server
+------
+
+For the game server, choose either a fast machine or a machine
+that will not run a client at the same time.  The subdirectory
+'display' is not needed on the server machine.
+
+You can optionally enable the 'Clock' bonus (try it, it's fun!)
+by compiling the C extension module 'statesaver' in the
+'bubbob' directory:
+
+   cd bubbob
+   python setup.py build_ext -i
+
+Running the '*.command' scripts should work on Unix and
+MacOS-X.  On other platforms you must manually run the
+Python script 'bubbob/bb.py' with the name of the level
+file:
+
+   cd bubbob
+   python bb.py levels/HouseOfFun.bin
+
+Level files are the original Bub&Bob files transmitted
+in MacBinary mode (e.g. via the 'Fetch' FTP transfer tool).
+This distribution only includes HouseOfFun.bin.
+
+
+Clients
+-------
+
+Clients are started after the server.  They will look for a
+server and connect to it.  Each 'pclient-*.py' script contains
+a list of internet addresses to look for; by default, it
+contains the local machine's address '127.0.0.1', the broadcast
+address (local network loop), and (for now) 'magma.unil.ch'.
+
+The very large subdirectory 'bubbob' is not needed on the
+client machines.  The clients are completely game-independent;
+the game logic can be updated on the server without changing
+anything on the client machines.  In fact, we use the same
+client programs here to play other, smaller games.
+
+* only 'pclient-pygame.py' has sounds.  It requires Pygame.
+    It's probably the best client.
+
+* 'pclient-xshm.py' is very fast for local X servers.  It
+    does not work over networked X connections (i.e. the link
+    from 'pclient-xshm.py' to the X display cannot cross the
+    network, but of course the link from the game server to
+    'pclient-xshm.py' can).  Requires compilation of the
+    'xshm' extension:
+
+       cd display
+       python setup.py build_ext -i
+
+* 'pclient-X.py' is a slow traditional X client program.
+    Also requires compilation the 'xshm' extension.
+
+Move the mouse to the bottom of the window to add or remove
+players and choose the keys.  Move the mouse up to hide the
+bottom panel while you are playing.
+
+Have fun!
+
+
+Copyright
+---------
+
+Almost all sprite images, sounds, background musics and
+levels are directly taken from the MacOS version of Bub &
+Bob 1 by McSebi, and redistributed with his gracious
+permission.
+
+  http://www.mcsebi.de
+
+The game logic itself is protected by the MIT License
+included in the file LICENSE.txt.
+
+
+Authors
+-------
+
+Programming:     Armin Rigo
+Art:             stolen from McSebi
+Levels:          Gio & Armin
+Special thanks:  Odie & Brachamutanda
+Beta-testers:    IMA Connection
