@@ -1129,7 +1129,7 @@ Classes = [c for c in globals().values()
            if type(c)==type(RandomBonus) and issubclass(c, RandomBonus)]
 Classes.remove(RandomBonus)
 Classes.remove(TemporaryBonus)
-Cheat = [Moebius] #[Book, Door, Bomb, Ham]
+Cheat = [] #[Book, Door, Bomb, Ham]
 #Classes = [Fruits]  # CHEAT
 
 AllOutcomes = ([(c,) for c in Classes if c is not Fruits] +
