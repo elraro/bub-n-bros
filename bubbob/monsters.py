@@ -122,12 +122,13 @@ class Monster(ActiveSprite):
         self.gen.append(self.default_mode())
 
     def overlapping(self):
-        for s in self.in_list:
-            if (-6 <= s.x-self.x <= 6 and -6 <= s.y-self.y < 6 and
-                #s.dir == self.dir and s.vdir == self.vdir and
-                s.vx == self.vx and s.vy == self.vy and
-                (not s.angry) == (not self.angry)):
-                return s is not self
+        if self.in_list is BubPlayer.MonsterList:
+            for s in self.in_list:
+                if (-6 <= s.x-self.x <= 6 and -6 <= s.y-self.y < 6 and
+                    #s.dir == self.dir and s.vdir == self.vdir and
+                    s.vx == self.vx and s.vy == self.vy and
+                    (not s.angry) == (not self.angry)):
+                    return s is not self
         return 0
 
     def walking(self):
