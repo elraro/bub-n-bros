@@ -2,9 +2,12 @@ from socket import *
 from select import select
 from struct import pack, unpack
 import zlib, os, random
-from time import time
+from time import time, ctime
 from msgstruct import *
 import hostchooser
+
+#LOGFILE = None
+LOGFILE = 'gamesrv.log'
 
 EWOULDBLOCK = (11,     # Posix
                10035)  # Windows
@@ -312,6 +315,7 @@ class Client:
     for id, p in FnPlayers().items():
       if p.standardplayericon is not None:
         self.msgl.append(message(MSG_PLAYER_ICON, id, p.standardplayericon.code))
+    self.log('connected')
 
   def emit(self, udpdata):
     if self.initialdata:
@@ -399,6 +403,7 @@ class Client:
     if infn:
       extra += " in " + infn
     print 'Disconnected by', self.addr, extra
+    self.log('disconnected' + extra)
     for p in self.players.values():
       p._playerleaves()
     try:
@@ -448,26 +453,30 @@ class Client:
 
   def set_udp_port(self, port, *rest):
     if port == MSG_BROADCAST_PORT:
-      # client accepts broadcasted data
+      self.log('set_udp_port: broadcast')
       broadcast_clients[self] = 1
       #print "++++ Broadcasting ++++ to", self.addr
     elif port == MSG_INLINE_FRAME or port == 0:
       # client requests data in-line on the TCP stream
       import udpovertcp
       self.udpsocket = udpovertcp.SocketMarshaller(self.socket, self)
+      self.log('set_udp_port: udp-over-tcp')
     else:
       self.udpsocket = socket(AF_INET, SOCK_DGRAM)
       self.udpsocket.setblocking(0)
       self.udpsocket.connect((self.addr[0], port))
+      self.log('set_udp_port: %d' % port)
 
   def enable_sound(self, *rest):
     self.sounds = {}
     for snd in samples.values():
       self.msgl += snd.defall()
+    self.log('enable_sound')
 
   def enable_music(self, mode, *rest):
     self.has_music = mode
     self.startmusic()
+    self.log('enable_music')
 
   def startmusic(self):
     if self.has_music:
@@ -496,6 +505,12 @@ class Client:
 
   def pong(self, *rest):
     pass
+
+  def log(self, message):
+    if LOGFILE:
+      f = open(LOGFILE, 'a')
+      print >> f, ctime(), self.addr, message
+      f.close()
 
 ##  def def_file(self, filename, md5sum):
 ##    fnp = []
@@ -780,7 +795,11 @@ def Run():
               print "Too many connections; refusing new connection from", addr
               conn.close()
             else:
-              print 'Connected by', addr
+              try:
+                addrname = (gethostbyaddr(addr[0])[0],) + addr[1:]
+              except:
+                addrname = addr
+              print 'Connected by', addrname
               c = FnClient(conn, addr, broadcast_port)
               if c.init():
                 clients.append(c)
