@@ -8,6 +8,8 @@ HALFCELL = CELL//2
 FRAME_TIME = 0.025
 #DEFAULT_LEVEL_FILE = 'levels/scratch.py'
 
+BOARD_BKGND = 1    # 0 = black, 1 = darker larger wall tiles
+
 
 class Copyable:
     pass   # see bonuses.py, class Clock
@@ -85,6 +87,7 @@ class Board(Copyable):
             wny += 1
         self.wnx = wnx
         self.wny = wny
+
         if haspat((self.num, 'l')):
             lefticon = patget((self.num, 'l'))
             if haspat((self.num, 'r')):
@@ -92,12 +95,44 @@ class Board(Copyable):
             else:
                 righticon = lefticon
             xrange = range(2, self.width-2)
-            for y in range(0, self.height, lefticon.h // CELL):
-                bl.append(gamesrv.Sprite(lefticon, 0, y*CELL + deltay))
         else:
             xrange = range(self.width)
-            righticon = None
-        
+            lefticon = righticon = None
+
+        if BOARD_BKGND == 1:
+            gl = self.sprites.setdefault('background', [])
+            xmax = (self.width-2)*CELL
+            ymax = self.height*CELL
+            y = -HALFCELL
+            ystep = 0
+            firstextra = 1
+            while y < ymax:
+                x = 2*CELL+HALFCELL
+                xstep = 0
+                while x < xmax:
+                    bitmap, rect = loadpattern((self.num, xstep, ystep),
+                                               images.KEYCOL)
+                    bitmap, rect = images.makebkgndpattern(bitmap, rect)
+                    if firstextra:
+                        # special position where a bit of black might show up
+                        x -= rect[2]
+                        xstep = (xstep-1) % wnx
+                        firstextra = 0
+                        continue
+                    bkgndicon = bitmap.geticon(*rect)
+                    w = gamesrv.Sprite(bkgndicon, x, y + deltay)
+                    gl.append(w)
+                    x += rect[2]
+                    xstep = (xstep+1) % wnx
+                y += rect[3]
+                ystep = (ystep+1) % wny
+        else:
+            gl = []
+
+        if lefticon is not None:
+            for y in range(0, self.height, lefticon.h // CELL):
+                bl.append(gamesrv.Sprite(lefticon, 0, y*CELL + deltay))
+
         for y in range(self.height):
             for x in xrange:
                 c = self.walls[y][x]
@@ -108,18 +143,19 @@ class Board(Copyable):
                     self.walls_by_pos[y,x] = w
 
         if righticon is not None:
-            n = len(bl)
             for y in range(0, self.height, lefticon.h // CELL):
                 bl.append(gamesrv.Sprite(righticon, (self.width-2)*CELL, y*CELL + deltay))
 
         while deltay:
-            dy = -min(deltay, 6)
+            dy = -min(deltay, 8)
+            for w in gl:
+                w.step(0, dy)
             for w in l:
                 w.step(0, dy)
             for w in bl:
                 w.step(0, dy)
             deltay += dy
-            yield 0.77
+            yield 1
 
         if inplace:
             for w in images.ActiveSprites:
@@ -364,6 +400,9 @@ def loadmodules(force=0):
     player.BubPlayer.PlayerList = playerlist
     if reload:
         import boards
+        from images import haspat, loadpattern
+        boards.haspat = haspat
+        boards.loadpattern = loadpattern
         del boards.BoardList[:]
         if levelfilename.lower().endswith('.py'):
             levels = {}
@@ -379,8 +418,9 @@ def loadmodules(force=0):
         boards.register(levels)
     return reload
 
-patget = images.patget
-haspat = images.haspat
+def patget(n, keycol=None):
+    bitmap, rect = loadpattern(n, keycol)
+    return bitmap.geticon(*rect)
 
 def get_lives():
     return gamesrv.game.limitlives

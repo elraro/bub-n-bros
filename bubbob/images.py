@@ -251,10 +251,31 @@ def sprget_vflip(n, vflipped={}):
 def haspat(n):
     return n in patmap
 
-def patget(n, keycol=None):
+def loadpattern(n, keycol=None):
     filename, rect = patmap[n]
     filename = os.path.join('tmp', filename)
-    return gamesrv.getbitmap(filename, keycol).geticon(*rect)
+    bitmap = gamesrv.getbitmap(filename, keycol)
+    return bitmap, rect
+
+def makebkgndpattern(bitmap, (x,y,w,h), darker={}):
+    from boards import CELL
+    try:
+        nbitmap, hscale, vscale = darker[bitmap]
+    except KeyError:
+        import pixmap
+        data = bitmap.read()
+        width, height, data = pixmap.decodepixmap(data)
+        nwidth, nheight, data = pixmap.makebkgnd(width, height, data)
+        hscale = float(nwidth) / width
+        vscale = float(nheight) / height
+        data = pixmap.encodepixmap(nwidth, nheight, data)
+        nbitmap = gamesrv.newbitmap(data, None)
+        darker[bitmap] = nbitmap, hscale, vscale
+    x = int(x*hscale)
+    y = int(y*vscale)
+    w = int(CELL*hscale)
+    h = int(CELL*vscale)
+    return nbitmap, (x,y,w,h)
 
 extramap = {
     'shield-left':  ('extra1.ppm', (0, 0, 32, 32)),

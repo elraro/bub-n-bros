@@ -24,3 +24,17 @@ def vflip(w, h, data):
     lines = [data[p:p+scanline] for p in range(0, len(data), scanline)]
     lines.reverse()
     return ''.join(lines)
+
+def makebkgnd(w, h, data):
+    scanline = 3*w
+    result = []
+    for position in range(0, scanline*h, scanline):
+        line = []
+        for p in range(position, position+scanline, 3):
+            line.append(2 * (chr(ord(data[p  ]) >> 3) +
+                             chr(ord(data[p+1]) >> 3) +
+                             chr(ord(data[p+2]) >> 3)))
+        line = ''.join(line)
+        result.append(line)
+        result.append(line)
+    return w*2, h*2, ''.join(result)

@@ -102,20 +102,20 @@ def load(filename):
         if result is not None:
             w, h, data = macbinary.image2rgb(result)
             ppmdata = "P6\n%d %d\n255\n%s" % (w, h, data)
-            result = gamesrv.newbitmap(ppmdata, keycol1).geticon(0, 0, w, h)
+            result = gamesrv.newbitmap(ppmdata, keycol1), (0, 0, w, h)
         cache[code] = result
         return result
 
-    def bin_patget(code, keycol=None, loader=loader):
-        result = loader(code)
-        assert result is not None, code
-        return result
     def bin_haspat(code, loader=loader):
         try:
             return loader(code) is not None
         except KeyError:
             return 0
+    def bin_loadpattern(code, keycol=None, loader=loader):
+        result = loader(code)
+        assert result is not None, code
+        return result
 
-    boards.patget = bin_patget
     boards.haspat = bin_haspat
+    boards.loadpattern = bin_loadpattern
     return levels

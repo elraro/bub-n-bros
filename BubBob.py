@@ -2,10 +2,9 @@
 
 #
 #  This script is used to start the server.
-#  Use with '--help' for more information.
+#  For command-line usage please run
 #
-#  It is actually just a wrapper around bubbob/bb.py
-#  with some more magic to launch the web browser.
+#    python bubbob/bb.py --help
 #
 
 import sys, os
