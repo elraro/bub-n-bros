@@ -201,6 +201,7 @@ class PageServer:
 
     def controlcenterloader(self, headers, **options):
         host = headers['remote host']
+        host = socket.gethostbyname(host)
         if host != '127.0.0.1':
             raise HTTPRequestError, "Access denied"
         return None, self.indexurl
