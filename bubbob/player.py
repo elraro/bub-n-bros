@@ -17,6 +17,7 @@ class Dragon(ActiveSprite):
     priority = 1
     mdef = PlayerBubbles
     fly_counter = 0
+    glueddown = None
 
     DCAP = {
         'hspeed': 1,
@@ -47,7 +48,6 @@ class Dragon(ActiveSprite):
         self.bubber = bubber
         self.dir = dir
         ActiveSprite.__init__(self, bubber.icons[0, dir], x, y)
-        self.mytime = 0
         self.fire = 0
         self.up = 0.0
         self.watermoveable = 0
@@ -150,6 +150,7 @@ class Dragon(ActiveSprite):
         yfp = 0.0
         hfp = 0
         angryticks = 0
+        mytime = 0
         while 1:
             self.poplist = [self]
             carrying = self.dcap['carrying']
@@ -198,10 +199,55 @@ class Dragon(ActiveSprite):
                 else:
                     wannago = 1
                 self.dcap['vslippy'] = vx
-                self.mytime = (self.mytime+self.dcap['lookforward']) % 12
+                mytime = (mytime+self.dcap['lookforward']) % 12
                 hfp += abs(vx)
             else:
                 hfp += self.dcap['hspeed']
+
+            if self.glueddown and self.dcap['nojump']:
+                # glued gliding movements
+                if self.y & 1:
+                    self.step(0, 1)
+                if wannago:
+                    mytime = (mytime+self.dcap['lookforward']) % 12
+                else:
+                    hfp = 0
+                while hfp > 0:
+                    gx, gy = self.glueddown
+                    dx = wannago*gy
+                    dy = -wannago*gx
+                    x0 = (self.x + gx + dx) // CELL + 1
+                    y0 = (self.y + gy + dy) // CELL + 1
+                    if ' ' == bget(x0+dx, y0+dy) == bget(x0+dx-gx, y0+dy-gy):
+                        self.step(2*dx, 2*dy)
+                        # detached from this wall?
+                        x1 = (self.x + gx + dx) // CELL + 1
+                        y1 = (self.y + gy + dy) // CELL + 1
+                        if (' ' == bget(x1-dx+gx, y1-dy+gy)
+                                == bget(x0   +gx, y0   +gy)
+                                == bget(x0+dx+gx, y0+dy+gy)):
+                            if bget(x0-dx+gx, y0-dy+gy) != ' ':
+                                # rotate around the corner
+                                self.glueddown = -dx, -dy
+                                self.step(2*gx, 2*gy)
+                            else:
+                                del self.glueddown
+                                hfp = 0
+                    elif bget(x0-gx, y0-gy) == ' ':
+                        # attach to the wall into which we are running
+                        if (self.x*dx | self.y*dy) % CELL != 0:
+                            #self.step(-2*dx, -2*dy)
+                            del self.glueddown
+                            break
+                        else:
+                            self.glueddown = dx, dy
+                    else:
+                        del self.glueddown
+                        break
+                    self.vertical_warp()
+                    hfp -= 0.82   # slightly faster than usual
+                self.vertical_warp()
+            # normal left or right movements
             while hfp > 0:
                 hfp -= 1
                 dir = 0
@@ -219,7 +265,7 @@ class Dragon(ActiveSprite):
                         dir = +1
                 self.step(2*dir, 0)
                 if dir:
-                    self.mytime = (self.mytime+self.dcap['lookforward']) % 12
+                    mytime = (mytime+self.dcap['lookforward']) % 12
                 else:
                     self.dcap['vslippy'] *= -0.6666
             onbubble = 0
@@ -232,7 +278,22 @@ class Dragon(ActiveSprite):
             elif bubber.key_left or bubber.key_right or bubber.key_jump or bubber.key_fire:
                 self.dcap['infinite_shield'] = 0
 
-            if self.up:
+            dir = self.dir
+            imgtransform = 'vflip' * bottom_up
+            glued = self.glueddown and self.dcap['nojump']
+            if glued:
+                # glued movements: done above
+                mode = mytime // 6 * 2
+                imgtransform = {
+                    (0, 1): '',
+                    (0,-1): 'vflip',
+                    (-1,0): 'cw',
+                    ( 1,0): 'ccw',
+                    }[self.glueddown]
+                if self.glueddown == (0, -1):
+                    dir = -self.dir
+            elif self.up:
+                # going up
                 mode = 9
                 self.up -= self.dcap['gravity']
                 if (self.up,-self.up)[bottom_up] < 4.0:
@@ -245,34 +306,39 @@ class Dragon(ActiveSprite):
                     yfp = ny - self.y
                     if ny < -2*CELL or ny >= boards.bheight:
                         self.vertical_warp()
-            elif ((onground,underground)[bottom_up](self.x, self.y) or
-                  (wannajump and onbubble)):
-                if wannajump:
-                    self.play(images.Snd.Jump)
-                    yfp = 0.0
-                    self.up = (7.5,-7.5)[bottom_up]
-                    mode = 9
-                else:
-                    mode = self.mytime // 4
             else:
-                mode = 10
-                if self.dcap['fly']:
-                    self.fly_counter += 1
-                    if self.fly_counter < self.dcap['fly']:
-                        ny = self.y
+                # going down or staying on ground
+                ground = (onground,underground)[bottom_up](self.x, self.y)
+                if ground or (wannajump and onbubble):
+                    if self.dcap['nojump'] and ground:
+                        mode = 0
+                        self.glueddown = (0, (1,-1)[bottom_up])
+                    elif wannajump:
+                        self.play(images.Snd.Jump)
+                        yfp = 0.0
+                        self.up = (7.5,-7.5)[bottom_up]
+                        mode = 9
                     else:
-                        del self.fly_counter
-                        ny = self.y+(1,-1)[bottom_up]
+                        mode = mytime // 4
                 else:
-                    ny = (self.y+(4,-1)[bottom_up]) & ~3
-                nx = self.x
-                if nx < 32:
-                    nx += 2
-                elif nx > boards.bwidth - 64:
-                    nx -= 2
-                self.move(nx, ny)
-                if ny >= boards.bheight or ny < -2*CELL:
-                    self.vertical_warp()
+                    mode = 10
+                    if self.dcap['fly']:
+                        self.fly_counter += 1
+                        if self.fly_counter < self.dcap['fly']:
+                            ny = self.y
+                        else:
+                            del self.fly_counter
+                            ny = self.y+(1,-1)[bottom_up]
+                    else:
+                        ny = (self.y+(4,-1)[bottom_up]) & ~3
+                    nx = self.x
+                    if nx < 32:
+                        nx += 2
+                    elif nx > boards.bwidth - 64:
+                        nx -= 2
+                    self.move(nx, ny)
+                    if ny >= boards.bheight or ny < -2*CELL:
+                        self.vertical_warp()
 
             if wannafire and not self.fire:
                 self.firenow()
@@ -304,13 +370,12 @@ class Dragon(ActiveSprite):
                     mode = 12
                 else:
                     mode = 11
-            if bottom_up:
-                icons = self.bubber.flippedicons
-                if not icons:
-                    self.bubber.loadicons(icons, 'vflip')
-            else:
-                icons = self.bubber.icons
-            self.seticon(icons[mode, self.dir])
+            try:
+                icons = self.bubber.transformedicons[imgtransform]
+            except KeyError:
+                icons = self.bubber.transformedicons[imgtransform] = {}
+                self.bubber.loadicons(imgtransform)
+            self.seticon(icons[mode, dir])
 
             self.watermoveable = not wannajump
             yield None
@@ -390,8 +455,18 @@ class Dragon(ActiveSprite):
             self.dcap['flower'] = N*2//3
         else:  # N == 0 for triple fire
             angles = [0, -0.19, 0.19]
+        dir = self.dir
+        x = self.x
+        if self.glueddown and self.dcap['nojump']:
+            gx, gy = self.glueddown
+            dir = dir*gy
+            if not dir:
+                dir = 1
+                delta = self.dir*gx * math.pi/2
+                angles = [angle-delta for angle in angles]
+                x -= 16
         for angle in angles:
-            bubbles.DragonBubble(self, self.x + 4*self.dir, self.y, self.dir,
+            bubbles.DragonBubble(self, x + 4*dir, self.y, dir,
                                  special_bubbles, angle)
         #else:
         #    from monsters import DragonShot
@@ -420,13 +495,13 @@ class BubPlayer(gamesrv.Player):
         }
     TRANSIENT_DATA = ('_client', 'key_left', 'key_right',
                       'key_jump', 'key_fire', 'pn', 'nameicons',
-                      'icons', 'flippedicons',
+                      'icons', 'transformedicons',
                       'standardplayericon', 'iconnames')
 
     def __init__(self, n):
         self.pn = n
         self.icons = {}
-        self.flippedicons = {}
+        self.transformedicons = {'': self.icons}
         self.standardplayericon = images.sprget(GreenAndBlue.players[n][3])
         self.iconnames = {
             (0, -1): GreenAndBlue.players[n][0],  # walk
@@ -472,7 +547,8 @@ class BubPlayer(gamesrv.Player):
         self.keepalive = None
         self.stats = {'bubble': 0, 'die': 0}
 
-    def loadicons(self, icons, flip):
+    def loadicons(self, flip):
+        icons = self.transformedicons[flip]
         for key, value in self.iconnames.items():
             icons[key] = images.sprget((flip, value))
 
@@ -495,7 +571,7 @@ class BubPlayer(gamesrv.Player):
     def playerjoin(self):
         n = self.pn
         if not self.icons:
-            self.loadicons(self.icons, flip='')
+            self.loadicons(flip='')
         self.keepalive = None
         if self.points or self.letters:
             print 'New player continues at position #%d.' % n

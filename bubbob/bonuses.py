@@ -847,22 +847,13 @@ class Mushroom(TemporaryBonus):
     capname = 'pinball'
     captime = 625
     bigbonus = {'captime': captime*2, 'multiply': 2}
-    def taken(self, dragon):
-        dragon.dcap[Glue.capname] = 0
-        dragon.dcap[self.capname] += 1
-        dragon.carrybonus(self)
 
 class Glue(TemporaryBonus):
     "Glue. Keep your feet on the ground."
     nimage = 'glue'
-    points = 900
+    points = 850
     capname = 'nojump'
-    captime = 625
-    bigbonus = {'captime': captime*2}
-    def taken(self, dragon):
-        dragon.dcap[Mushroom.capname] = 0
-        dragon.dcap[self.capname] += 1
-        dragon.carrybonus(self)
+    captime = 635
 
 class AutoFire(TemporaryBonus):
     "Auto Fire. Makes you fire continuously."
