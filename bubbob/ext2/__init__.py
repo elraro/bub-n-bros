@@ -18,7 +18,7 @@ localmap = {
     ('pac-sm',  1,0) :  ('image1.ppm', (32, 64, 32, 32)),
     ('pac-lg',  0,1) :  ('image1.ppm', ( 0, 96, 32, 32)),
     ('pac-sm',  0,1) :  ('image1.ppm', (32, 96, 32, 32)),
-    'black'          :  ('image2.ppm', ( 0,  0, 32, 32)),
+    'pac-black'      :  ('image2.ppm', ( 0,  0, 32, 32)),
     'pac-dot'        :  ('image2.ppm', ( 0,  32, 8,  8)),
     }
 
@@ -41,32 +41,42 @@ class PacSprite(ActiveSprite):
     def moving(self):
         import boards
         dx = dy = 0
+        turned = None
         was_clear = 0
         while 1:
-            if self.wannadx != dx or self.wannady != dy:
-                if ((self.wannadx and not (self.y % CELL)) or
-                    (self.wannady and not (self.x % CELL))):
-                    dx = self.wannadx
-                    dy = self.wannady
-                    self.resetimages(dx, dy)
-
-            frontx = self.x+CELL+dx*(CELL+1)
-            fronty = self.y+CELL+dy*(CELL+1)
-            clear = (bget((frontx+dy)//CELL, (fronty-dx)//CELL) == ' ' and
-                     bget((frontx-dy)//CELL, (fronty+dx)//CELL) == ' ')
-            if clear:
-                blocked = 0
+            if dx or dy:
+                frontx = self.x+CELL+dx*(CELL+1)
+                fronty = self.y+CELL+dy*(CELL+1)
+                clear = (bget((frontx+dy)//CELL, (fronty-dx)//CELL) == ' ' and
+                         bget((frontx-dy)//CELL, (fronty+dx)//CELL) == ' ')
+                if clear:
+                    blocked = 0
+                else:
+                    blocked = (was_clear or (self.x<=2*CELL and dx<0) or
+                               (self.x>=boards.bwidth-4*CELL and dx>0))
             else:
-                blocked = (was_clear or (self.x<=2*CELL and dx<0) or
-                           (self.x>=boards.bwidth-4*CELL and dx>0))
+                blocked = 1
             if blocked:
+                if turned:
+                    dx, dy = turned
+                    turned = None
+                    continue
                 self.lastmove = None
             else:
+                if turned:
+                    self.resetimages(dx, dy)
+                    turned = None
                 self.lastmove = dx, dy
                 self.step(2*dx, 2*dy)
                 self.vertical_warp()
                 was_clear = clear
             yield None
+            if self.wannadx != dx or self.wannady != dy:
+                if ((self.wannadx and not (self.y % CELL)) or
+                    (self.wannady and not (self.x % CELL))):
+                    turned = dx, dy
+                    dx = self.wannadx
+                    dy = self.wannady
 
 
 class Pac(PacSprite):
@@ -86,7 +96,7 @@ class Pac(PacSprite):
     def resetimages(self, dx, dy):
         self.ready = 1
         self.setimages(self.cyclic([('pac-lg', dx, dy),
-                                    'black',
+                                    'pac-black',
                                     ('pac-sm', dx, dy)], 5))
     
     def to_front(self):
@@ -471,6 +481,28 @@ class Pacman:
                     choices.append((count, x1,y1,x2,y2))
             count, x1,y1,x2,y2 = min(choices)
             rdig(x1,y1,x2,y2)
+            yield None
+        
+        # pattern transformation:
+        #    X.          ..
+        #    ...    -->  ...
+        #     .X          .X
+        progress = 1
+        while progress:
+            progress = 0
+            for y in range(1, boards.height-1):
+                for x in range(3, boards.width-3):
+                    if (' ' == bget(x, y)
+                            == bget(x+1, y)
+                            == bget(x-1, y)
+                            == bget(x, y+1)
+                            == bget(x, y-1)):
+                        if '#' == bget(x-1, y-1) == bget(x+1, y+1):
+                            curboard.killwall(x-1, y-1)
+                            progress = 1
+                        elif '#' == bget(x+1, y-1) == bget(x-1, y+1):
+                            curboard.killwall(x+1, y-1)
+                            progress = 1
             yield None
 
 
