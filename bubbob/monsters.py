@@ -123,7 +123,8 @@ class Monster(ActiveSprite):
         for s in BubPlayer.MonsterList:
             if (-6 <= s.x-self.x <= 6 and -6 <= s.y-self.y < 6 and
                 #s.dir == self.dir and s.vdir == self.vdir and
-                s.vx == self.vx and s.vy == self.vy and s.angry == self.angry):
+                s.vx == self.vx and s.vy == self.vy and
+                (not s.angry) == (not self.angry)):
                 return s is not self
         return 0
 
@@ -265,7 +266,7 @@ class Monster(ActiveSprite):
 
     def in_bubble(self, bubble):
         self.untouchable()
-        self.angry = 0
+        self.angry = []
         bubble.move(self.x, self.y)
         bubble.to_front()
         self.to_front()
@@ -283,7 +284,7 @@ class Monster(ActiveSprite):
                 bubble.setimages(bubble.bubble_red())
         if bubble.poplist is None:
             self.touchable = 1
-            self.angry = 1
+            self.angry = [self.genangry()]
             self.resetimages()
             self.gen.append(self.default_mode())
         else:
@@ -467,14 +468,14 @@ class Monster(ActiveSprite):
                 dy *= 9
                 distance = 1E10
                 while 1:
-                    self.angry = 0
+                    self.angry = []
                     self.step(dx, dy)
                     yield None
                     dist1 = (d.x-self.x)*(d.x-self.x)+(d.y-self.y)*(d.y-self.y)
                     if dist1 > distance:
                         break
                     distance = dist1
-        self.angry = 0
+        self.angry = []
         self.gen = [self.default_mode()]
         self.resetimages()
 

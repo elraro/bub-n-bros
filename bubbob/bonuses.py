@@ -747,7 +747,7 @@ class Carrot(RandomBonus):
         from monsters import Monster
         for s in images.ActiveSprites:
             if isinstance(s, Monster) and s.regular():
-                s.angry = 1
+                s.angry = [s.genangry()]
                 s.resetimages()
 
 class Egg(RandomBonus):
@@ -1019,11 +1019,10 @@ class AmphetamineSpeed(TemporaryBonus):
     nimage = Bonuses.tin
     points = 700
     def taken(self, dragon):
-        dragon.angry += 1
+        dragon.angry = dragon.angry + [dragon.genangry()]
         dragon.carrybonus(self, 633)
     def endaction(self, dragon):
-        if dragon.angry >= 1:
-            dragon.angry -= 1
+        dragon.angry = dragon.angry[1:]
 
 class Sugar1(Bonus):
     nimage = Bonuses.yellow_sugar
@@ -1129,8 +1128,7 @@ class Sheep(RandomBonus):
                     if p.points > 0:
                         ndelta[p] = dp - d1
             delta = ndelta
-            for s in slist:
-                s.action()
+            images.action(slist)
             slist = [s for s in slist if s.y < boards.bheight]
             yield 1
 
@@ -1187,7 +1185,7 @@ Classes = [c for c in globals().values()
            if type(c)==type(RandomBonus) and issubclass(c, RandomBonus)]
 Classes.remove(RandomBonus)
 Classes.remove(TemporaryBonus)
-Cheat = [Monsterer, Bubblizer] #[Book, Door, Bomb, Ham]
+Cheat = []
 #Classes = [Sheep]  # CHEAT
 
 AllOutcomes = ([(c,) for c in Classes if c is not Fruits] +

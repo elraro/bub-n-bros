@@ -12,7 +12,7 @@ SpritesByLoc = {}
 class ActiveSprite(gamesrv.Sprite):
     touchable = 0
     imgsetter = None
-    angry = 0
+    angry = []
     priority = 0
     
     def __init__(self, *args):
@@ -23,41 +23,7 @@ class ActiveSprite(gamesrv.Sprite):
             ActiveSprites.append(self)
         self.ranges = []
         self.gen = []
-    def action(self):
-        i = self.angry
-        genlist = self.gen[:]
-        while self.alive:
-            try:
-                while genlist:
-                    gen = genlist.pop(0)
-                    gen.next()
-                    if not self.alive:
-                        return
-            except StopIteration:
-                try:
-                    self.gen.remove(gen)
-                except ValueError:
-                    pass
-                continue
-            if not i:
-                # record position
-                if self.touchable:
-                    x = int(self.x) & -8
-                    y = int(self.y) & -8
-                    if self.touchable != (x, y):
-                        self.touchable = x, y
-                        for key in self.ranges:
-                            del key[self]
-                        del self.ranges[:]
-                        xrange = range(x>>5, (x+self.ico.w+38)>>5)
-                        for y in range(y>>4, (y+self.ico.h+22)>>4):
-                            for x in xrange:
-                                key = SpritesByLoc.setdefault((x,y), {})
-                                key[self] = 1
-                                self.ranges.append(key)
-                return
-            i = 0
-            genlist = self.gen[:]
+
     def kill(self):
         self.untouchable()
         del self.gen[:]
@@ -181,6 +147,26 @@ class ActiveSprite(gamesrv.Sprite):
     def touching(self, margin=0):
         return touching(self.x, self.y, self.ico.w, self.ico.h, margin)
 
+    def genangry(self):
+        # do one more step throught all generators of self.gen
+        while 1:
+            glist = self.gen[:]
+            try:
+                for g in glist:
+                    if self.alive:
+                        g.next()
+            except StopIteration:
+                try:
+                    self.gen.remove(g)
+                except ValueError:
+                    pass
+                for g in glist[glist.index(g)+1:]:
+                    if self.alive:
+                        try:
+                            g.next()
+                        except StopIteration:
+                            pass
+            yield None
 
 def touching(x1, y1, w1, h1, margin=0):
     touch = {}
@@ -194,6 +180,40 @@ def touching(x1, y1, w1, h1, margin=0):
             if x1+margin < s.x+s.ico.w and y1+margin < s.y+s.ico.h and
                s.x+margin < x1+w1 and s.y+margin < y1+h1]
 
+def action(sprlist, len=len):
+    # Main generator dispatch loop
+    for self in sprlist:
+        glist = self.gen + self.angry
+        try:
+            for g in glist:
+                if self.alive:
+                    g.next()
+        except StopIteration:
+            try:
+                self.gen.remove(g)
+            except ValueError:
+                pass
+            for g in glist[glist.index(g)+1:]:
+                if self.alive:
+                    try:
+                        g.next()
+                    except StopIteration:
+                        pass
+        if self.touchable and self.alive:
+            # record position
+            x = self.x & -8
+            y = self.y & -8
+            if self.touchable != (x, y):
+                self.touchable = x, y
+                for key in self.ranges:
+                    del key[self]
+                del self.ranges[:]
+                xrange = range(x>>5, (x+self.ico.w+38)>>5)
+                for y in range(y>>4, (y+self.ico.h+22)>>4):
+                    for x in xrange:
+                        key = SpritesByLoc.setdefault((x,y), {})
+                        key[self] = 1
+                        self.ranges.append(key)
 
 def sprget(n):
     filename, rect = sprmap[n]

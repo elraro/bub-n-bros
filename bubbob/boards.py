@@ -439,10 +439,10 @@ def force_singlegen():
 def normal_frame():
     from player import BubPlayer
     BubPlayer.FrameCounter += 1
-    # MAIN GENERATOR DISPATCH LOOP
-    for s in images.ActiveSprites[:]:
-        s.action()
-    # END
+
+    # main generator dispatch loop
+    images.action(images.ActiveSprites[:])
+    
     frametime = 10
     for p in BubPlayer.PlayerList:
         if p.isplaying():
@@ -488,7 +488,7 @@ def normal_play():
                              not s.angry)]
                 if mlist:
                     s = random.choice(mlist)
-                    s.angry = 1
+                    s.angry = [s.genangry()]
                     s.resetimages()
             if framecounter >= 6*BASE:
                 mlist = [s for s in images.ActiveSprites
