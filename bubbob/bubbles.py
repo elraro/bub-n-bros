@@ -1,5 +1,5 @@
 from __future__ import generators
-import random
+import random, math
 import gamesrv
 import images
 import boards
@@ -176,19 +176,24 @@ class CatchNote:
 class DragonBubble(Bubble):
     touchable = 0
 
-    def __init__(self, d, x, y, dir):
+    def __init__(self, d, x, y, dir, special_bubble=None, angle=0):
         self.d = d
         pn = d.bubber.pn
         imglist1 = GreenAndBlue.new_bubbles[pn]
         imglist2 = GreenAndBlue.normal_bubbles[pn]
+        if angle:
+            asin, acos = math.sin(angle), math.cos(angle)
+        else:
+            asin, acos = 0, 1
         Bubble.__init__(self, images.sprget(imglist1[0]), x + 12*dir, y)
         self.setimages(self.imgseq(imglist1[1:] + imglist2[2:3], 4))
-        self.gen.append(self.throw_bubble(dir*d.dcap['shootthrust']))
+        self.gen.append(self.throw_bubble(dir*d.dcap['shootthrust'],
+                                          special_bubble, (acos,asin)))
 
-    def throw_bubble(self, hspeed):
+    def throw_bubble(self, hspeed, special_bubble=None, (acos,asin)=(1,0)):
         from monsters import Monster
         nx = self.x
-        yc = (self.y+HALFCELL)//CELL
+        ny = self.y
         stop = 0
         withmonster = 0
         while abs(hspeed) >= 4.0:
@@ -198,18 +203,19 @@ class DragonBubble(Bubble):
                 random.choice(touched_monsters).in_bubble(self)
                 withmonster = 1
                 break
-            nx += hspeed
+            if asin:
+                (nx, ny), moebius = vertical_warp(nx + hspeed*acos, ny + hspeed*asin)
+                if moebius:
+                    acos = -acos
+            else:
+                nx += hspeed
             hspeed *= 0.965
             xc = int(nx-3.8)//CELL+1
+            yc = (self.y+HALFCELL)//CELL
             if bget(xc,yc) == '#' == bget(xc, yc+1):
                 stop += 1
-                if stop > 1:
-                    nx = self.x
-            #if nx < 0:
-            #    nx = 0
-            #elif nx > boards.bwidth-2*CELL:
-            #    nx = boards.bwidth-2*CELL
-            self.move(int(nx+0.5), self.y)
+            if stop <= 1:
+                self.move(int(nx+0.5), int(ny+0.5))
             yield None
 
         self.warp = withmonster
@@ -230,9 +236,8 @@ class DragonBubble(Bubble):
                     if bonus:
                         bonus.in_bubble(self)
                         withmonster = 1
-        shootbubbles = self.d.dcap['shootbubbles']
-        if shootbubbles:
-            cls = globals()[shootbubbles.pop()]
+        if special_bubble:
+            cls = globals()[special_bubble]
             if not withmonster:
                 b = cls(self.d.bubber.pn)
                 b.move(self.x, self.y)

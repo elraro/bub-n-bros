@@ -1125,6 +1125,14 @@ class Moebius(RandomBonus):
     def taken1(self, dragons):
         BubPlayer.Moebius = not BubPlayer.Moebius
 
+class Flower(RandomBonus):
+    "Flower.  Fire in all directions."
+    nimage = 'flower'
+    points = 800
+    def taken(self, dragon):
+        dragon.dcap['flower'] += 8
+        dragon.carrybonus(self)
+
 Classes = [c for c in globals().values()
            if type(c)==type(RandomBonus) and issubclass(c, RandomBonus)]
 Classes.remove(RandomBonus)

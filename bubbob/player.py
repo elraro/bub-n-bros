@@ -1,5 +1,5 @@
 from __future__ import generators
-import random
+import random, math
 import gamesrv
 import images
 import boards
@@ -41,6 +41,7 @@ class Dragon(ActiveSprite):
         'vslippy': 0.0,
         'lookforward': 1,
         'fly': 0,
+        'flower': 1,
         'carrying': (),
         }
     SAVE_CAP = ['hspeed', 'firerate', 'shootthrust']
@@ -246,7 +247,17 @@ class Dragon(ActiveSprite):
             if wannafire and not self.fire:
                 self.fire = 1
                 #if boards.curboard.wastingplay is None:
-                bubbles.DragonBubble(self, self.x + 4*self.dir, self.y, self.dir)
+                shootbubbles = self.dcap['shootbubbles']
+                special_bubbles = shootbubbles and shootbubbles.pop()
+                N = self.dcap['flower']
+                if N > 1:
+                    angles = [i*(2.0*math.pi/N) for i in range(N)]
+                    self.dcap['flower'] = N*2//3
+                else:
+                    angles = [0]
+                for angle in angles:
+                    bubbles.DragonBubble(self, self.x + 4*self.dir, self.y, self.dir,
+                                         special_bubbles, angle)
                 #else:
                 #    from monsters import DragonShot
                 #    DragonShot(self)

@@ -96,11 +96,13 @@ class Monster(ActiveSprite):
 
     def vblocked(self):
         if self.vdir < 0:
-            y0 = (self.y-1)//CELL
+            y0 = self.y//CELL
         else:
             y0 = (self.y+1)//CELL + 2
-        x0 = (self.x+HALFCELL) // CELL
-        return bget(x0,y0) == '#' or bget(x0+1,y0) == '#'
+        x0 = self.x // CELL
+        x1 = self.x // CELL + 1
+        x2 = (self.x+2*CELL-1) // CELL
+        return bget(x0,y0) == '#' or bget(x1,y0) == '#' or bget(x2,y0) == '#'
 
     def tryvstep(self):
         if self.vblocked():

@@ -190,6 +190,7 @@ extramap = {
     'shield-left':  ('extra1.ppm', (0, 0, 32, 32)),
     'shield-right': ('extra1.ppm', (0, 32, 32, 32)),
     'moebius':      ('extra1.ppm', (0, 64, 32, 32)),
+    'flower':       ('extra1.ppm', (0, 96, 32, 32)),
     'questionmark3':('extra2.ppm', (0, 0, 16, 16)),
     'questionmark1':('extra2.ppm', (0, 16, 16, 16)),
     'questionmark5':('extra2.ppm', (0, 32, 16, 16)),
