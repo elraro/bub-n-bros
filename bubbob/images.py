@@ -133,6 +133,15 @@ class ActiveSprite(gamesrv.Sprite):
                 yield None
         self.kill()
 
+    def straightline(self, dx, dy):
+        fx = self.x + 0.5
+        fy = self.y + 0.5
+        while 1:
+            fx += dx
+            fy += dy
+            self.move(int(fx), int(fy))
+            yield None
+
     def parabolic(self, dxy, warp=0, gravity=0.3):
         import boards
         from boards import CELL
@@ -268,6 +277,13 @@ extramap = {
     ('starbub','cyan'   ,2): ('extra5.ppm', (0,544, 32, 32)),
     'sheep-sm':     ('extra6.ppm', (0, 0, 32, 32)),
     'sheep-big':    ('extra6.ppm', (0, 32, 46, 50)),
+    ('emotic', 0): ('extra7.ppm', (0,  0, 8, 8)),
+    ('emotic', 1): ('extra7.ppm', (0,  8, 8, 8)),
+    ('emotic', 2): ('extra7.ppm', (0, 16, 8, 8)),
+    ('emotic', 3): ('extra7.ppm', (0, 24, 8, 8)),
+    ('emotic', 4): ('extra7.ppm', (0, 32, 8, 8)),
+    ('emotic', 5): ('extra7.ppm', (0, 40, 8, 8)),
+    ('emotic', 6): ('extra7.ppm', (0, 48, 8, 8)),
     }
 sprmap.update(extramap)
 

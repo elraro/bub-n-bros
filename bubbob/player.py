@@ -139,6 +139,7 @@ class Dragon(ActiveSprite):
         yfp = 0.0
         hfp = 0
         angryticks = 0
+        emoticks = 0
         while 1:
             self.poplist = [self]
             carrying = self.dcap['carrying']
@@ -291,6 +292,13 @@ class Dragon(ActiveSprite):
                 icons = self.bubber.icons
             self.seticon(icons[mode, self.dir])
 
+            if emoticks:
+                emoticks -= 1
+            elif (bubber.key_fire and bubber.key_jump and
+                bubber.key_left and bubber.key_right):
+                emoticks = 20
+                self.emotic(6)
+
             self.watermoveable = not wannajump
             yield None
             
@@ -334,16 +342,37 @@ class Dragon(ActiveSprite):
 
     def become_bubblingeyes(self, bubble):
         if self in BubPlayer.DragonList:
+            self.emotic(4)
             BubPlayer.DragonList.remove(self)
 
             import bubbles
             bubble.to_front()
             m = bubbles.BubblingEyes(self.bubber, self.dcap, bubble)
             self.bubber.dragons.append(m)
-            self.gen = [ActiveSprite.die(self, bubbles.Bubble.exploding_bubbles)]
+            self.gen = [self.killing()]
             return 1
         else:
             return 0
+
+    def emotic(self, strenght):
+        bottom_up = self.bottom_up()
+        if bottom_up:
+            sprget = images.sprget_vflip
+        else:
+            sprget = images.sprget
+        for i in range(7):
+            angle = math.pi/6 * i
+            dx, dy = -math.cos(angle), -math.sin(angle)
+            nx = random.randrange(6,12)*dx
+            ny = random.randrange(6,9)*dy - 12
+            if bottom_up:
+                dy = -dy
+                ny = -ny
+            e = ActiveSprite(sprget(('emotic', i)),
+                             int(self.x + 8 + nx),
+                             int(self.y + 8 + ny - self.up))
+            e.gen.append(e.straightline(4*dx, 3*dy))
+            e.gen.append(e.die([None], strenght))
 
 
 class BubPlayer(gamesrv.Player):
