@@ -294,6 +294,7 @@ extramap = {
     'questionmark4':('extra2.ppm', (0, 64, 16, 16)),
     'percent':      ('extra2.ppm', (0, 80, 16, 16)),
     'colon':        ('extra2.ppm', (0, 96, 16, 16)),
+    'gameoverbkgnd':('extra2.ppm', (0, 112, 16, 16)),
     ('eyes', 0,0):  ('extra3.ppm', (0, 0, 32, 32)),
     ('eyes', 0,-1): ('extra3.ppm', (0, 32, 32, 32)),
     ('eyes', -1,0): ('extra3.ppm', (0, 64, 32, 32)),

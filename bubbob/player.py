@@ -451,6 +451,7 @@ class BubPlayer(gamesrv.Player):
         self.pcap = {}
         self.dragons = []
         self.keepalive = None
+        self.stats = {'bubble': 0}
 
     def loadicons(self, icons, fn):
         for key, value in self.iconnames.items():

@@ -95,6 +95,8 @@ class Bubble(ActiveSprite):
                 bonuses.points(self.x, self.y-HALFCELL, author, bonus.points)
             for d in dragons:
                 d.become_bubblingeyes(self)
+                s_catch = author.bubber.stats.setdefault('catch', {})
+                s_catch[d.bubber] = s_catch.get(d.bubber, 0) + 1
 
     def pop(self, poplist=None):
         if self.touchable:
@@ -107,6 +109,7 @@ class Bubble(ActiveSprite):
                 points = self.popped(dragon)
                 if dragon:
                     dragon.bubber.givepoints(points)
+                    dragon.bubber.stats['bubble'] += 1
                 self.gen.append(self.poprec())
             return 1
         else:
@@ -227,10 +230,19 @@ class DragonBubble(Bubble):
             touched_monsters = [s for s in self.touching(9)
                                 if isinstance(s, Monster)]
             if touched_monsters:
-                in_bubble = random.choice(touched_monsters).in_bubble(self)
+                monster = random.choice(touched_monsters)
+                in_bubble = monster.in_bubble(self)
                 withmonster = self.withmonster = 1
                 if in_bubble is None:
                     self.warp = 1
+                    try:
+                        key = monster.mdef.jailed[0]
+                    except AttributeError:
+                        pass
+                    else:
+                        s_monster = self.d.bubber.stats.setdefault('monster',
+                                                                   {})
+                        s_monster[key] = s_monster.get(key, 0) + 1
                     break
             if asin:
                 (nx, ny), moebius = vertical_warp(nx + hspeed*acos, ny + hspeed*asin)

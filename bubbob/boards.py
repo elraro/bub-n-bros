@@ -368,7 +368,7 @@ def vertical_warp(nx, ny):
 
 
 MODULES = ['boards', 'bonuses', 'bubbles', 'images',
-           'mnstrmap', 'monsters', 'player',
+           'mnstrmap', 'monsters', 'player', 'ranking',
            'binboards', 'macbinary', 'boarddef',
            'ext1', 'ext2', 'ext3', 'ext4', 'ext5']
 
@@ -673,6 +673,27 @@ def normal_play():
                 curboard.set_musics()
     replace_boardgen(last_monster_killed())
 
+##def normal_play():
+##    # TESTING!!
+##    from player import BubPlayer
+##    for p in BubPlayer.PlayerList:
+##        if not p.icons:
+##            p.loadicons(p.icons, images.sprget)
+##    results = {BubPlayer.PlayerList[0]: 100,
+##               BubPlayer.PlayerList[1]: 200,
+##               BubPlayer.PlayerList[2]: 300,
+##               BubPlayer.PlayerList[3]: 400,
+##               BubPlayer.PlayerList[4]: 100,
+##               BubPlayer.PlayerList[5]: 200,
+##               BubPlayer.PlayerList[6]: 300,
+##               BubPlayer.PlayerList[7]: 400,
+##               BubPlayer.PlayerList[8]:1000,
+##               BubPlayer.PlayerList[9]:1000,
+##               }
+##    maximum = None
+##    for t in result_ranking(results, maximum):
+##        yield t
+
 def last_monster_killed(end_delay=390, music=None):
     from player import BubPlayer
     for t in exit_board(music=music):
@@ -768,29 +789,25 @@ def bonus_play():
 
 def game_over():
     yield force_singlegen()
-    from player import BubPlayer, scoreboard
+    from player import scoreboard
+    import ranking
     images.Snd.Extralife.play()
     gamesrv.set_musics([], [images.music_potion])
     scoreboard()
-    #maximum = 0
-    results = {}
-    for p in BubPlayer.PlayerList:
-        if p.points:
-            results[p] = p.points
-            #if p.points > maximum:
-            #    maximum = p.points
-    maximum = BubPlayer.LimitScore or None #maximum
-    for t in result_ranking(results, maximum, None):
+    for t in ranking.game_over():
         yield t
 
 def game_reset():
     import time
     from player import BubPlayer
-    for i in range(int(2.0/FRAME_TIME)):
+    t1 = time.time()
+    while 1:
         yield 0
         if BubPlayer.LimitTime and BubPlayer.LimitTime >= 1.0:
             # someone else ticking the clock, try again later
             return
+        if abs(time.time() - t1) > 2.0:
+            break
     # anyone playing ?
     if not gamesrv.game.End:
         return  # yes -> cancel game_reset()
@@ -927,138 +944,17 @@ def potion_fill(blist):
     #    yield normal_frame()
 
 def result_ranking(results, maximum=None, timeleft=200):
-    if maximum is None:
-        maximum = 0
-        for n in results.values():
-            maximum += n
-    maximum = maximum or 1
-    ranking = []
-    teamrank = [0, 0]
-    teamplayers = [[], []]
-    for p, n in results.items():
-        if p.team != -1:
-            teamrank[p.team] += n
-            teamplayers[p.team].append((n,p))
-        else:
-            ranking.append((n, random.random(), p))
-    teamplayers[0].sort()
-    teamplayers[0].reverse()
-    teamplayers[1].sort()
-    teamplayers[1].reverse()
-    if teamplayers[0] != []:
-        ranking.append((teamrank[0], random.random(), teamplayers[0]))
-    if teamplayers[1] != []:
-        ranking.append((teamrank[1], random.random(), teamplayers[1]))
-    ranking.sort()
-    ranking.reverse()
-    results = []
-    for n, dummy, p in ranking:
-        results.append((p, str(int(n*100.00001/maximum)) + '%'))
+    import ranking
+    results = ranking.ranking_picture(results, maximum, timeleft is not None)
     if curboard.bonuslevel and timeleft is not None:
         play_again = bonus_play()
     else:
         play_again = None
-    for t in display_ranking(results, timeleft, play_again):
+    for t in ranking.display(results, timeleft, play_again):
         yield t
     if gamesrv.game.End != 'gameover':
+        gamesrv.set_musics([], [])
         replace_boardgen(next_board(), 1)
-
-def display_ranking(ranking, timeleft, bgen=None):
-    from mnstrmap import Flood
-    from bonuses import Points
-    from mnstrmap import DigitsMisc
-    waves = []
-    if ranking:
-        cwidth = 10
-        cheight = 3*len(ranking)
-        x0 = ((width - cwidth) // 2) * CELL + HALFCELL
-        y0 = ((height - cheight) // 2) * CELL + HALFCELL
-        extras = curboard.sprites.setdefault('ranking', [])
-        wallicon = patget((curboard.num, 0, 0), images.KEYCOL)
-        fillicon = images.sprget(Flood.fill)
-        waveicons = [images.sprget(n) for n in Flood.waves]
-        for y in range(y0-CELL, y0+cheight*CELL+CELL, CELL):
-            w = gamesrv.Sprite(wallicon, x0-CELL, y)
-            extras.append(w)
-        for x in range(x0, x0+cwidth*CELL, CELL):
-            w = gamesrv.Sprite(wallicon, x, y0+cheight*CELL)
-            extras.append(w)
-            for y in range(y0, y0+cheight*CELL, CELL):
-                w = gamesrv.Sprite(fillicon, x, y)
-                extras.append(w)
-            w = gamesrv.Sprite(waveicons[-1], x, y0-CELL)
-            extras.append(w)
-            waves.append(w)
-        for y in range(y0-CELL, y0+cheight*CELL+CELL, CELL):
-            w = gamesrv.Sprite(wallicon, x0+cwidth*CELL, y)
-            extras.append(w)
-
-        map = {'%': 'percent'}
-        for digit in range(10):
-            map[str(digit)] = DigitsMisc.digits_white[digit]
-        y = y0 + HALFCELL
-        if timeleft is None:
-            nbpoints = 0
-        else:
-            nbpoints = ((len(ranking)+1)//2)*10000
-        for i in range(len(ranking)):
-            bubber, text = ranking[i]
-            text = [map[digit] for digit in text]
-            if i == 0:
-                icon = 10
-            elif i == len(ranking) - 1:
-                icon = 9
-            else:
-                icon = 0
-            x = x0 + 22
-            if nbpoints > 0:
-                if isinstance(bubber,list):
-                    for n, bub in bubber:
-                        bub.givepoints(nbpoints//len(bubber))
-                    if bubber != []:
-                        Points(x, y, bubber[0][1].pn, nbpoints)
-                else:
-                    bubber.givepoints(nbpoints)
-                    Points(x, y, bubber.pn, nbpoints)
-                nbpoints -= 10000
-            if isinstance(bubber,list):
-                w = gamesrv.Sprite(images.sprget(('hat',bubber[0][1].team)), x, y)
-            else:
-                w = gamesrv.Sprite(bubber.icons[icon, +1], x, y)
-            extras.append(w)
-            w0 = 0
-            for digit in text:
-                w0 += images.sprget(digit).w+1
-            x = x0 + (22 + 2*CELL + cwidth*CELL - w0) // 2
-            for digit in text:
-                icon = images.sprget(digit)
-                w = gamesrv.Sprite(icon, x, y + CELL - icon.h//2)
-                extras.append(w)
-                x += icon.w+1
-            y += 3*CELL
-    #if timeleft is not None and timeleft < 100.0:
-    #    timeleft = 100.0
-    while timeleft is None or timeleft > 0.0:
-        if waves:
-            ico = waveicons.pop(0)
-            waveicons.append(ico)
-            for w in waves:
-                w.seticon(ico)
-        if timeleft is None:
-            yield 2
-        else:
-            for i in range(2):
-                if bgen is None:
-                    t = normal_frame()
-                else:
-                    try:
-                        t = bgen.next()
-                    except StopIteration:
-                        timeleft = 0.0
-                        break
-                timeleft -= t
-                yield t
-    gamesrv.set_musics([], [])
 
 def extra_water_flood():
     from mnstrmap import Flood
