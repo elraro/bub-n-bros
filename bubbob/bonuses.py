@@ -453,10 +453,11 @@ class Potion(RandomBonus):
 
     def __init__(self, x, y):
         self.mode = random.choice(Potion.Potions)
+        # make extensions rare in the bonus level
+        for i in range(random.randrange(1,3)):
+            if self.mode[2] is None and boards.curboard.bonuslevel:
+                self.mode = random.choice(Potion.Potions)
         RandomBonus.__init__(self, x, y, *self.mode[:2])
-        if (self.mode[2] is None and boards.curboard.bonuslevel and
-            random.random() > 0.2):
-            self.kill()  # not too many extensions in bonus level
     def taken1(self, dragons):
         blist = self.mode[2]
         if blist is not None:
