@@ -475,38 +475,47 @@ class Client:
   def setup_dyncompress(self):
     def dyncompress():
       # See comments in pclient.Playfield.dynamic_decompress().
+      threads = []
+      for t in range(3):
+        co = zlib.compressobj(6)
+        threads.append((chr(0x88 + t) + chr(t), co))
       frame = 0
+      globalsync = 0
+
       while 1:
-        # global sync
-        threads = []
-        header = '\x88' + 2*chr(frame)
-        for t in range(0x80, 0x83):
-          co = zlib.compressobj(6)
-          yield header, co
-          header = None
-          threads.append((chr(t) + chr(frame), co))
-        yield None, None
-        frame = (frame + 1) & 0xFF
-        
-        for i in range(11):    # must have 11 & 3 == 3
-          # next packet
+        # write three normal packets, one on each thread
+        for t in range(3):
           head, co = threads.pop(0)
           yield head + chr(frame), co
-          if i & 3 != 3:
-            threads.append((chr(ord(head[0]) & 0x87) + chr(frame), co))
-          else:
-            # sync frame, restart compression at the current frame
-            co2 = zlib.compressobj(6)
-            co3 = zlib.compressobj(6)
-            yield None, co2
-            yield None, co3
-            # repeat frame with next thread
-            threads.append((chr(ord(head[0]) | 8) + chr(frame), co2))
-            head, co = threads.pop(0)
-            yield head + chr(frame), co
-            threads.append((chr(ord(head[0]) | 8) + chr(frame), co3))
+          threads.append((chr(ord(head[0]) & 0x87) + chr(frame), co))
           yield None, None
           frame = (frame + 1) & 0xFF
+
+        # sync frame, write two packets (on two threads)
+        # and restart compression at the current frame for these threads
+        head, co = threads.pop(0)
+        yield head + chr(frame), co
+        co1 = zlib.compressobj(6)
+        co2 = zlib.compressobj(6)
+        globalsync += 1
+        if globalsync == 4:
+          # next on this thread will be a global sync packet
+          nextframe = (frame + 2) & 0xFF
+          globalsync = 0
+        else:
+          # next of this thread will be a local sync packet
+          yield None, co1
+          nextframe = frame
+        threads.append((chr(ord(head[0]) | 8) + chr(nextframe), co1))
+
+        # 2nd packet of the current frame
+        head, co = threads.pop(0)
+        yield head + chr(frame), co
+        yield None, co2
+        threads.append((chr(ord(head[0]) | 8) + chr(frame), co2))
+        
+        yield None, None
+        frame = (frame + 1) & 0xFF
     
     self.dyncompress = dyncompress()
 

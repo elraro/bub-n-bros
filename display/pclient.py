@@ -170,6 +170,7 @@ class Playfield:
             if udp_over_tcp == 'auto':
                 self.udpsock_low = 0
         self.dyndecompress = [[None, None, None, None] for i in range(8)]
+        self.dynnorepeat = None
 
     def run(self, mode, udp_over_tcp='auto'):
         self.setup(mode, udp_over_tcp)
@@ -212,13 +213,10 @@ class Playfield:
                     while self.udpsock in iwtd:
                         udpdata = self.udpsock.recv(65535)
                         self.udpbytecounter += len(udpdata)
-                        # loose some packets
-                        import random
-                        if random.random() >= 0.10:
-                            if len(udpdata) > 3 and '\x80' <= udpdata[0] < '\x90':
-                                udpdata = self.dynamic_decompress(udpdata)
-                            if udpdata is not None:
-                                udpdata1 = udpdata
+                        if len(udpdata) > 3 and '\x80' <= udpdata[0] < '\x90':
+                            udpdata = self.dynamic_decompress(udpdata)
+                        if udpdata is not None:
+                            udpdata1 = udpdata
                         iwtd, owtd, ewtd = select(self.iwtd, [], [], 0)
                     if udpdata1 is not None:
                         self.update_sprites(udpdata1)
@@ -268,45 +266,29 @@ class Playfield:
         #print `udpdata[:3]`
 
         if udpdata[0] >= '\x88':
-            #print 'reset'
             # reset
-            if prevframe == thisframe:
-                # global sync point, valid for all threads
-                #print 'global sync'
-                for thread in self.dyndecompress:
-                    d = zlib.decompressobj().decompress
-                    try:
-                        framedata = d(udpdata[3:])
-                    except zlib.error:
-                        #print 'crash'
-                        return None
-                    thread[0] = d
-                    thread[1] = thisframe
-                    thread[2] = 0
-                    thread[3] = framedata
-                return framedata
-            
-            # sync point from a previous frame
-            # find all threads with the same prevframe
             d = zlib.decompressobj().decompress
-            threads = [t for t in self.dyndecompress if prevframe == t[1]]
-            if not threads:
-                return None   # lost
-            # find a thread with already-recompressed data
-            for t in threads:
-                if t[2]:
+            if prevframe != thisframe:  # if not global sync point
+                # sync point from a previous frame
+                # find all threads with the same prevframe
+                threads = [t for t in self.dyndecompress if prevframe == t[1]]
+                if not threads:
+                    return None   # lost
+                # find a thread with already-recompressed data
+                for t in threads:
+                    if t[2]:
+                        data = t[3]
+                        break
+                else:
+                    # recompress and cache the prevframe data
+                    t = threads[0]
                     data = t[3]
-                    break
-            else:
-                # recompress and cache the prevframe data
-                t = threads[0]
-                data = t[3]
-                co = zlib.compressobj(6)
-                data = co.compress(data) + co.flush(zlib.Z_SYNC_FLUSH)
-                t[2] = 1
-                t[3] = data
-            d(data)  # use it to initialize the state of the decompressobj
-            #print d
+                    co = zlib.compressobj(6)
+                    data = co.compress(data) + co.flush(zlib.Z_SYNC_FLUSH)
+                    t[2] = 1
+                    t[3] = data
+                d(data)  # use it to initialize the state of the decompressobj
+                #print d
             thread[0] = d
         elif prevframe != thread[1]:
             #print 'lost'
@@ -320,6 +302,9 @@ class Playfield:
             thread[1] = thisframe
             thread[2] = 0
             thread[3] = framedata
+            if thisframe == self.dynnorepeat:
+                return None
+            self.dynnorepeat = thisframe
             return framedata
         except zlib.error:
             #print 'crash'
