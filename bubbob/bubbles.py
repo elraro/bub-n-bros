@@ -625,13 +625,12 @@ class WaterBubble(BonusBubble):
         return 10
 
 class FiredLightning(ActiveSprite):
-    def __init__(self, x, y, dir):
+    def __init__(self, x, y, dir, poplist):
         ActiveSprite.__init__(self, images.sprget(Lightning.fired), x, y)
         self.dir = 13*dir
-        self.gen.append(self.moving())
-    def moving(self):
+        self.gen.append(self.moving(poplist))
+    def moving(self, poplist):
         from monsters import Monster
-        poplist = [None]
         while -2*CELL < self.x < boards.bwidth:
             for s in self.touching(2):
                 if isinstance(s, Monster):
@@ -649,7 +648,7 @@ class LightningBubble(BonusBubble):
         return boards.curboard.lightning
     def popped(self, dragon):
         if dragon:
-            FiredLightning(self.x, self.y, -dragon.dir)
+            FiredLightning(self.x, self.y, -dragon.dir, self.poplist)
         return 10
 
 class SpinningBall(ActiveSprite):
