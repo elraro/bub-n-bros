@@ -265,10 +265,13 @@ class BubblingEyes(ActiveSprite):
         self.bubber = bubber
         self.saved_caps = saved_caps
         self.gen = [self.playing_bubble(bubble)]
-        
+
+    def bottom_up(self):
+        return self.saved_caps['gravity'] < 0.0
+
     def playing_bubble(self, bubble):
         from player import Dragon
-        bottom_up = self.saved_caps['gravity'] < 0.0
+        bottom_up = self.bottom_up()
         if bottom_up:
             sprget = images.sprget_vflip
         else:
