@@ -75,7 +75,9 @@ class PageServer:
             return 0
         self.httpport = port = gamesrv.displaysockport(hs)
         self.indexurl = 'http://127.0.0.1:%d/%s/' % (port, self.seed)
-        print self.Game.FnDesc, 'server is ready at', self.indexurl
+        if self.Game:
+            print self.Game.FnDesc,
+        print 'server is ready at', self.indexurl
         return 1
 
     def getlocalservers(self):
@@ -244,6 +246,8 @@ class PageServer:
 ##        return self.mainpage(headers, query)
 
     def newloader(self, headers, **options):
+        if not self.Game:
+            raise HTTPRequestError, "Complete bub-n-bros installation needed"
         locals = {
             'levels': self.Game.FnListBoards(),
             'options': self.globaloptions,
@@ -562,7 +566,8 @@ def main(Game, save_url_to=None, quiet=0):
         print >> sys.stderr, "server aborted."
         sys.exit(1)
     if quiet:
-        Game.Quiet = 1
+        if Game:
+            Game.Quiet = 1
         import stdlog
         f = stdlog.LogFile()
         if f:
@@ -632,3 +637,12 @@ def launch(args):
                     # this point should never be reached
         # fall-back
         os.spawnv(os.P_NOWAITO, args[0], args)
+
+
+if __name__ == '__main__':
+    if (len(sys.argv) != 3 or sys.argv[1] != '--quiet' or
+        not sys.argv[2].startswith('--saveurlto=')):
+        print >> sys.stderr, "This script should only be launched by BubBob.py."
+        sys.exit(2)
+    main(None, sys.argv[2][len('--saveurlto='):], quiet=1)
+    gamesrv.mainloop()

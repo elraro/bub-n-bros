@@ -113,7 +113,16 @@ if running:
 )s
 <form name="n" action="new.html" method="get">
 <input type=hidden name="time" value="%(tim)s">
-<input type=submit value="%(running and 'Start another game' or 'Start a new game')s">
+%(
+if self.Game:
+    print '<input type=submit',
+    if running:
+        print 'value="Start another game">'
+    else:
+        print 'value="Start a new game">'
+else:
+    print 'You need the <a href="http://bub-n-bros.sourceforge.net/download.html">complete version</a> to start a new game.<br><font size=-1>With this version you can only connect to existing servers and <font color="#FF0000">only over fast links!</font></font>'
+)s
 </form>
         </td>
       </tr>

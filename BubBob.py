@@ -56,15 +56,24 @@ def look_for_local_server():
     return url
 
 def start_local_server():
+    MAINSCRIPT = os.path.join(LOCALDIR, 'bubbob', 'bb.py')
+    has_server = os.path.exists(MAINSCRIPT)
     if hasattr(os, 'fork') and hasattr(os, 'dup2'):
         if os.fork() == 0:
             # in the child process
-            sys.path.append(os.path.join(LOCALDIR, 'bubbob'))
-            import bb
+            if has_server:
+                sys.path.append(os.path.join(LOCALDIR, 'bubbob'))
+                import bb
+                bb.BubBobGame.Quiet = 1
+            else:
+                sys.path.append(os.path.join(LOCALDIR, 'http2'))
+                import httppages
             import gamesrv, stdlog
-            bb.BubBobGame.Quiet = 1
             logfile = stdlog.LogFile()
-            bb.start_metaserver(TAGFILENAME, 0)
+            if has_server:
+                bb.start_metaserver(TAGFILENAME, 0)
+            else:
+                httppages.main(None, TAGFILENAME, 0)
             if logfile:
                 print >> logfile
                 if logfile:
@@ -81,9 +90,10 @@ def start_local_server():
             gamesrv.mainloop()
             sys.exit(0)
     else:
-        MAINSCRIPT = os.path.abspath(os.path.join(LOCALDIR, 'bubbob', 'bb.py'))
-        args = [sys.executable, MAINSCRIPT,
-                '--saveurlto=%s' % TAGFILENAME, '--quiet']
+        if not has_server:
+            MAINSCRIPT = os.path.join(LOCALDIR, 'http2', 'httppages.py')
+        args = [sys.executable, MAINSCRIPT, '--quiet',
+                '--saveurlto=%s' % TAGFILENAME]
         os.spawnv(os.P_NOWAITO, args[0], args)
 
 
