@@ -328,9 +328,7 @@ class Dragon(ActiveSprite):
             mcls = getattr(monsters, clsname)
             mdef = getattr(mnstrmap, clsname)
             m = mcls(mdef, self.x, self.y, self.dir, in_list=self.bubber.dragons)
-            m.default_mode = m.playing_monster
-            m.bubber = self.bubber
-            m.gen = [m.becoming_monster(self.dcap)]
+            m.become_monster(self.bubber, self.dcap)
             self.gen = [self.killing()]
 
     def become_bubblingeyes(self, bubble):

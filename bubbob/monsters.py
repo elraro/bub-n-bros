@@ -341,8 +341,7 @@ class Monster(ActiveSprite):
                 blocked = 1
             yield None
 
-    def becoming_monster(self, saved_caps):
-        self.saved_caps = saved_caps
+    def becoming_monster(self):
         for i in range(5):
             ico = self.ico
             self.seticon(self.bubber.icons[11, self.dir])
@@ -352,8 +351,14 @@ class Monster(ActiveSprite):
             yield None
             yield None
         self.resetimages()
-        self.timeoutgen = self.back_to_dragon()
         self.gen.append(self.playing_monster())
+
+    def become_monster(self, bubber, saved_caps):
+        self.timeoutgen = self.back_to_dragon()
+        self.default_mode = self.playing_monster
+        self.bubber = bubber
+        self.saved_caps = saved_caps
+        self.gen = [self.becoming_monster()]
 
     def back_to_dragon(self):
         for t in range(259):
