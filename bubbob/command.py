@@ -1,6 +1,10 @@
 import os, sys
 
 levels, ext = os.path.splitext(os.path.basename(sys.argv[1]))
-sys.argv[1] = 'levels/%s.bin' % levels
+for ext in ['.py', '.bin']:
+    levelfile = 'levels/%s%s' % (levels, ext)
+    if os.path.exists(levelfile):
+        break
+sys.argv[1] = levelfile
 
 execfile('bb.py')

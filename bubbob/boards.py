@@ -348,6 +348,10 @@ def loadmodules(delete):
             levels = {}
             print 'Source level file:', levelfilename
             execfile(levelfilename, levels)
+            if 'Levels' in levels:
+                levels = levels['Levels']
+                if isinstance(levels, list):
+                    levels = dict(zip(range(len(levels)), levels))
         else:
             import binboards
             levels = binboards.load(levelfilename)
@@ -888,13 +892,11 @@ def single_blocks_falling(xylist):
 
 def register(dict):
     global width, height, bwidth, bheight, bheightmod
-    if hasattr(dict, '__dict__'):
-        dict = dict.__dict__
     items = dict.items()
     items.sort()
     for name, board in items:
         try:
-            if not issubclass(board, Board) or board is Board or board.__name__ == 'RandomLevel':
+            if not issubclass(board, Board) or board is Board:
                 continue
         except TypeError:
             continue
@@ -910,9 +912,9 @@ def register(dict):
             test = B(-1)
             assert test.width == width, "some boards have a different width"
             assert test.height == height, "some boards have a different height"
-    except:
-        print 'In level "%s":' % B.__name__
-        raise
+    except Exception, e:
+        print 'Caught "%s" in level "%s":' % (e, B.__name__)
+        raise e
     bwidth = width*CELL
     bheight = height*CELL
     bheightmod = (height+2)*CELL
