@@ -332,6 +332,11 @@ class PageServer:
                 if keyid in options:
                     value = options[keyid][0]
                     anyname = anyname or value
+                    teamid = 'team%d' % id
+                    if teamid in options:
+                        team = options[teamid][0]
+                        if len(team) == 1:
+                            value = '%s (%s)' % (value, team)
                     setattr(self.localoptions, keyid, value)
             if 'c' in options:
                 for id in range(7):

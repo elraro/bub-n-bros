@@ -9,11 +9,13 @@
 
 <tr>
 <td width="4%%"  rowspan=9 bgcolor="#000000">&nbsp;</td>
-<td width="32%%"           bgcolor="#000000">&nbsp;</td>
+<td width="34%%"           bgcolor="#000000" align="right">
+  <img src="hat1.png"><font color="#FFFFFF">Team</font><img src="hat2.png">
+</td>
 <td width="4%%"  rowspan=9 bgcolor="#000000">&nbsp;</td>
 <td width="20%%" rowspan=9>&nbsp;</td>
 <td width="4%%"  rowspan=9 bgcolor="#FFFFFF">&nbsp;</td>
-<td width="32%%"           bgcolor="#FFFFFF">&nbsp;</td>
+<td width="30%%"           bgcolor="#FFFFFF">&nbsp;</td>
 <td width="4%%"  rowspan=9 bgcolor="#FFFFFF">&nbsp;</td>
 </tr>
 
@@ -40,6 +42,20 @@ for id, img, bgcolor in [
         (5, 'bab.png', '#c04040'),
         (6, 'bib.png', '#c0c0c0')]:
     keyid = "player%d" % id
+    playername = getattr(options, keyid) or ''
+    playername = playername.strip()
+    for team in [1,2]:
+        if playername.endswith('(%d)' % team):
+            playername = playername[:-3].strip()
+            break
+    else:
+        team = 'off'
+    def nameval(value, team=team, teamid="team%d" % id):
+        if team == value:
+            s = 'checked '
+        else:
+            s = ''
+        return s + 'name="%s" value="%s"' % (teamid, value)
     print """
 <tr>
   <td bgcolor="#FFFFFF">
@@ -51,6 +67,11 @@ for id, img, bgcolor in [
         <td width=30>&nbsp;</td>
         <td><input type=text size=16 name="%s" value="%s"></td>
         <td width=30>&nbsp;</td>
+        <td>
+          <input type=radio %s>1
+          <input type=radio %s>no
+          <input type=radio %s>2
+        </td>
       </tr>
       </table>
     </td></tr>
@@ -58,7 +79,9 @@ for id, img, bgcolor in [
   </td>
 %s
 </tr>
-""" % (bgcolor, img, keyid, getattr(options, keyid) or '', buttons.get(id, ''))
+""" % (bgcolor, img, keyid, playername,
+       nameval(1), nameval('off'), nameval(2),
+       buttons.get(id, ''))
 )s
 
 <tr>
