@@ -988,11 +988,11 @@ def openpingsocket(only_port=PORTS.get('PING', None)):
       global game
       import hostchooser
       if game is not None:
-        args = game.FnDesc, game.address, game.FnExtraDesc()
+        args = game.FnDesc, ('', game.address[1]), game.FnExtraDesc()
       else:
         ts = findsocket('LISTEN')
         if ts:
-          address = HOSTNAME, displaysockport(ts)
+          address = '', displaysockport(ts)
         else:
           address = '', ''
         args = 'Not playing', address, ''

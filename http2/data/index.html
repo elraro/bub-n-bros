@@ -195,13 +195,11 @@ if servers is not None:
       <td>
 %(
 if running and not found:
-    print '<p><font size=-1>Note: your server does not appear in this list',
     import hostchooser, gamesrv
     if gamesrv.displaysockport(gamesrv.openpingsocket()) != hostchooser.UDP_PORT:
+        print '<p><font size=-1>Note: your server does not appear in this list'
         print 'because the UDP port %d is already in use (is another Bub &amp; Bob server running on this machine?).' % hostchooser.UDP_PORT
-    else:
-        print 'for an unknown reason.'
-    print 'Use the full server address <strong>%s:%s</strong></font></p>' % running[0]
+        print 'Use the full server address <strong>%s:%s</strong></font></p>' % running[0]
 )s
         <form name="L" action="index.html" method="get">
           <input type=hidden name="time" value="%(tim)s">

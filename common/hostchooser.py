@@ -119,7 +119,16 @@ def find_servers(hostlist=[('127.0.0.1', None), ('<broadcast>', None)],
                 hostrecv.append(time.time())
             data = data.split(':')
             if len(data) >= 4 and data[0] == PONG_MESSAGE:
-                hostname = data[2] or answer_from[0]
+                if data[2]:
+                    hostname = data[2]
+                else:
+                    hostname = answer_from[0]
+                    try:
+                        hostname = gethostbyaddr(hostname)[0]
+                        if hostname == 'localhost':
+                            from msgstruct import HOSTNAME as hostname
+                    except error:
+                        pass
                 try:
                     port = int(data[3])
                 except ValueError:
