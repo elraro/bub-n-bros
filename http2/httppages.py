@@ -358,7 +358,7 @@ class PageServer:
             if 's' in options:
                 return self.mainpage(headers)
         locals = {
-            'options': self.localoptions,
+            'options': self.localoptions.dict(),
             }
         return httpserver.load(os.path.join(LOCALDIR, 'data', 'name.html'),
                                'text/html', locals=locals)

@@ -562,6 +562,7 @@ public class pclient extends Applet {
         public static final byte CMSG_ENABLE_MUSIC = (byte) 'm';
         public static final byte CMSG_PING         = (byte) 'g';
         public static final byte CMSG_PONG         = (byte) 'G';
+        public static final byte CMSG_PLAYER_NAME  = (byte) 'n';
 
         public void connectionClosed() throws IOException {
             throw new IOException("connection closed");
@@ -594,11 +595,22 @@ public class pclient extends Applet {
             socketOutput.write(buffer, ofs, size);
         }
 
-        public byte[] codeMessage(int p, byte msgcode, int[] args) {
-            byte[] buffer = new byte[p + 2 + 5*args.length];
-            buffer[p++] = (byte) args.length;
+        public byte[] codeMessage(int p, byte msgcode, int[] args,
+                                  String lastarg) {
+            int bufsize = 1;
+            String mode = "";
             for (int i=0; i<args.length; i++) {
-                buffer[p++] = (byte) 'l';
+                mode = mode + "l";
+                bufsize = bufsize + 4;
+            }
+            if (lastarg != null) {
+                mode = mode + Integer.toString(lastarg.length()) + "s";
+                bufsize = bufsize + lastarg.length();
+            }
+            byte[] buffer = new byte[p + 1 + mode.length() + bufsize];
+            buffer[p++] = (byte) mode.length();
+            for (int i=0; i<mode.length(); i++) {
+                buffer[p++] = (byte) mode.charAt(i);
             }
             buffer[p++] = msgcode;
             for (int i=0; i<args.length; i++) {
@@ -612,11 +624,21 @@ public class pclient extends Applet {
                 n = value;
                 buffer[p++] = (byte)(((n&0x80) == 0) ? n&0x7F : n|0xFFFFFF80);
             }
+            if (lastarg != null) {
+                for (int i=0; i<lastarg.length(); i++) {
+                    buffer[p++] = (byte) lastarg.charAt(i);
+                }
+            }
             return buffer;
         }
 
         public void sendMessage(byte msgcode, int[] args) throws IOException {
-            byte[] buffer = codeMessage(0, msgcode, args);
+            sendMessageEx(msgcode, args, null);
+        }
+
+        public void sendMessageEx(byte msgcode, int[] args, String lastarg)
+            throws IOException {
+            byte[] buffer = codeMessage(0, msgcode, args, lastarg);
             sendData(buffer, 0, buffer.length);
         }
 
@@ -778,7 +800,7 @@ public class pclient extends Applet {
                         showStatus("routing UDP traffic over TCP (no UDP socket)");
                         client.start_udp_over_tcp();
                     }
-                    else if (udpkbytes * 1024.0 * 0.60 >= client.udpbytecounter) {
+                    else if (udpkbytes * 1024.0 * 0.60 > client.udpbytecounter) {
                         client.udpsock_low += 1;
                         if (client.udpsock_low >= 4) {
                             double inp =client.udpbytecounter/(udpkbytes*1024.0);
@@ -1055,6 +1077,15 @@ public class pclient extends Applet {
                     args[0] = keydefinition_pid;
                     socklistener.sendMessage(SocketListener.CMSG_ADD_PLAYER,
                                              args);
+                    String param = "player" +
+                        Integer.toString(keydefinition_pid);
+                    param = getParameter(param);
+                    if (param != null) {
+                        socklistener.sendMessageEx(
+				SocketListener.CMSG_PLAYER_NAME,
+                                args,
+                                param);
+                    }
                     args = new int[2];
                     args[0] = keydefinition_pid;
                     for (k=keys; k!=null; k=k.next) {
@@ -1066,7 +1097,7 @@ public class pclient extends Applet {
                         }
                         args[1] = k.keyid;
                         buffer = socklistener.codeMessage
-                            (1, SocketListener.CMSG_KEY, args);
+                            (1, SocketListener.CMSG_KEY, args, null);
                         buffer[0] = (byte) keydefinition_pid;
                         keycodes.put(new Integer(k.newkeycode), buffer);
                     }

@@ -42,7 +42,7 @@ for id, img, bgcolor in [
         (5, 'bab.png', '#c04040'),
         (6, 'bib.png', '#c0c0c0')]:
     keyid = "player%d" % id
-    playername = getattr(options, keyid) or ''
+    playername = options.get(keyid) or ''
     playername = playername.strip()
     for team in [1,2]:
         if playername.endswith('(%d)' % team):
