@@ -30,9 +30,9 @@ class MetaServer:
         pid = os.fork()
         if pid:
             print pid
-            sys.exit()
-
+            os._exit(0)
         # in the child process
+        os.setsid()
         logfile = stdlog.LogFile()
         if logfile:
             print >> logfile
@@ -46,7 +46,10 @@ class MetaServer:
             except OSError:
                 pass
             logfile.close()
-            print 'pid', os.getpid()
+        # record pid
+        f = open('pid', 'w')
+        print >> f, os.getpid()
+        f.close()
 
     def clientconnect(self):
         s, addr = self.parentsock.accept()
