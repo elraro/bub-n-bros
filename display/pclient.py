@@ -47,9 +47,11 @@ class Icon:
         if attr == 'pixmap':
             self.pixmap = self.playfield.getpixmap(self.bmpcode)
             if hasattr(self.playfield.dpy, 'getopticon'):
-                self.pixmap = self.playfield.dpy.getopticon(
+                ico = self.playfield.dpy.getopticon(
                     self.pixmap, self.originalrect, self.alpha)
-                self.rect = None # (0, 0) + rect[2:]
+                if ico is not None:
+                    self.pixmap = ico
+                    self.rect = None
             return self.pixmap
         elif attr in ('bmpcode', 'rect'):
             raise KeyError, attr
