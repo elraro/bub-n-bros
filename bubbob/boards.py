@@ -474,7 +474,8 @@ def wait_for_one_player():
             yield 10
             gamesrv.set_musics([], [images.music_game2], reset=0)
         
-        if not images.ActiveSprites or random.random() < 0.06:
+        if ((not images.ActiveSprites or random.random() < 0.05678) and
+            gamesrv.clients):
             # make sure the extension's images are loaded too
             # NB. this is also needed for import auto-detection
             import ext1; import ext2; import ext3; import ext4; import ext5
@@ -485,7 +486,7 @@ def wait_for_one_player():
                                     screenheight)
             s.gen = [welcomebubbling(s)]
             s.setimages(s.cyclic(nimages, speed=1))
-            if random.random() > 0.4:
+            if random.random() > 0.4321:
                 try:
                     key, (filename, (x, y, w, h)) = random.choice(
                         images.sprmap.items())
