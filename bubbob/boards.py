@@ -144,6 +144,12 @@ class Board(Copyable):
                     l.append(w)
                     self.walls_by_pos[y,x] = w
 
+        if not l:
+            # self.sprites['walls'] must not be empty, for putwall
+            wallicon = patget((self.num, 0, 0), images.KEYCOL)
+            w = gamesrv.Sprite(wallicon, 0, -wallicon.h)
+            l.append(w)
+
         if righticon is not None:
             for y in range(0, self.height, lefticon.h // CELL):
                 bl.append(gamesrv.Sprite(righticon, (self.width-2)*CELL, y*CELL + deltay))
@@ -205,8 +211,13 @@ class Board(Copyable):
         w = self.walls_by_pos[y,x]
         if kill:
             l = self.sprites['walls']
-            l.remove(w)
-            w.kill()
+            if len(l) > 1:
+                l.remove(w)
+                w.kill()
+            else:
+                # self.sprites['walls'] must never be empty
+                # or putwall will crash!
+                w.move(0, -bheight)
         del self.walls_by_pos[y,x]
         line = self.walls[y]
         self.walls[y] = line[:x] + ' ' + line[x+1:]
@@ -214,12 +225,16 @@ class Board(Copyable):
 
     def reorder_walls(self):
         walls_by_pos = self.walls_by_pos
-        l = self.sprites['walls']
-        items = walls_by_pos.items()
+        items = [(yx, w1.ico) for yx, w1 in walls_by_pos.items()]
+        if not items:
+            return   # otherwise self.sprites['walls'] would be emptied
         items.sort()
+        l = self.sprites['walls']
+        while len(l) > len(items):
+            l.pop().kill()
         assert len(items) == len(l)
-        for ((y,x), w1), w2 in zip(items, l):
-            w2.move(x*CELL, y*CELL)
+        for ((y,x), ico), w2 in zip(items, l):
+            w2.move(x*CELL, y*CELL, ico)
             walls_by_pos[y,x] = w2
 
     def leave(self, inplace=0):
