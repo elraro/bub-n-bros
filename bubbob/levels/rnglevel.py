@@ -21,7 +21,6 @@ def fish(mu):
         r = 1.
         for i in range(1,n+1):
             r *= i
-            pass
         return r
     scale = fact(0)/exp(-mu)
     dens = []
@@ -30,15 +29,12 @@ def fish(mu):
         dens.append(int(scale*exp(-mu)*pow(mu,x)/fact(x)+0.5))
         if x > mu and dens[-1] == 0:
             break
-        pass
     table = []
     x = 0
     for d in dens:
         for i in range(d):
             table.append(x)
-            pass
         x += 1
-        pass
     return choice(table)
 
 
@@ -50,15 +46,12 @@ class RandomLevel(boarddef.Level):
     # mess_prob : the probability that a cell turn into a wall
 
     def __init__(self,num):
-        try:
-            self.__class__.walls
+        if hasattr(self.__class__, 'walls'):
             #print 'Reusing previously generated level'
             #print self.__class__.walls
 	    self.walls = self.__class__.walls
             boarddef.Level.__init__(self,num)
             return
-        except AttributeError:
-            pass
 
         #print 'Generating a new level'
 
@@ -67,29 +60,20 @@ class RandomLevel(boarddef.Level):
         # map of the free cells
         self.fmap = [ [1 for x in range(self.WIDTH)] for y in range(self.HEIGHT) ]
 
-        try:
-            self.auto
-        except AttributeError:
-            pass
-        else:
+        if hasattr(self, 'auto'):
             self.generate()
             self.do_bonuses()
 
         for gw in self.genwalls:
             gw[0](self,*gw[1:])
 
-        try:
-            self.mlist
-        except AttributeError:
-            pass
-        else:
+        if hasattr(self, 'mlist'):
             self.do_monsters()
         
         self.do_walls()
 	self.walls = self.__class__.walls
         #print self.walls
         boarddef.Level.__init__(self,num)
-        pass
 
     def setw(self,x,y,c='#'):
         if x > self.WIDTH-1 or x < 0 or y > self.HEIGHT-1 or y < 0:
@@ -97,15 +81,12 @@ class RandomLevel(boarddef.Level):
         if self.fmap[y][x]:
             self.wmap[y][x] = c
             self.fmap[y][x] = 0
-            pass
-        pass
 
     def clrw(self,x,y):
         if x > self.WIDTH-1 or x < 0 or y > self.HEIGHT-1 or y < 0:
             return
         self.wmap[y][x] = ' '
         self.fmap[y][x] = 1
-        pass
 
     def mess(self, threshold):
         """Random fill of the board with walls.
@@ -116,10 +97,6 @@ class RandomLevel(boarddef.Level):
             for y in range(self.HEIGHT):
                 if random() < threshold:
                     self.setw(x,y)
-                    pass
-                pass
-            pass
-        pass
 
     def platforms(self, (nplat, space), (rng_holes, rng_width), full=1):
         """Place random platforms.
@@ -142,12 +119,10 @@ class RandomLevel(boarddef.Level):
                     if abs(old-y) <= space:
                         found = 1
                         break
-                    pass
                 if not found:
                     plat.append(y)
                     break
                 ntry -= 1
-                pass
             if not ntry:
                 continue  # ignore platform
             if full:
@@ -162,19 +137,13 @@ class RandomLevel(boarddef.Level):
 		    x -= w
 		else:
                     w = min(w,self.WIDTH-x)
-                pass
             for x in range(x,x+w):
                 self.setw(x,y)
-                pass
             for i in range(rng_holes()):
                 hx = randint(x,x+w)
                 hw = rng_width()
                 for h in range(hx-hw/2,hx+hw/2):
                     self.clrw(h,y)
-                    pass
-                pass
-            pass
-        pass
 
     def lines(self, rng_len, nlines, rng_angle=None):
         """Generate a set of lines in any direction. It takes three
@@ -195,23 +164,16 @@ class RandomLevel(boarddef.Level):
                 if dx < self.WIDTH and dy < self.HEIGHT and dx >= 0 and dy >= 0:
                     break
                 ntry -= 1
-                pass
             if ntry == 0:
                 break
             if abs(dx-sx) > abs(dy-sy):
                 for x in range(dx-sx+1):
                     y = (2*(dy-sy)*x/(dx-sx)+1)/2
                     self.setw(sx+x,sy+y)
-                    pass
-                pass
             else:
                 for y in range(dy-sy+1):
                     x = (2*(dx-sx)*y/(dy-sy)+1)/2
                     self.setw(sx+x,sy+y)
-                    pass
-                pass
-            pass
-        pass
 
     def rooms(self, rng_radius, rng_e, n_rooms):
         """Generate rooms. It takes the following arguments:
@@ -231,19 +193,13 @@ class RandomLevel(boarddef.Level):
             for x in range(left,right+1):
                 self.setw(x,top)
                 self.setw(x,bottom)
-                pass
             for y in range(top,bottom+1):
                 self.setw(left,y)
                 self.setw(right,y)
-                pass
             for x in range(left+1,right):
                 for y in range(top+1,bottom):
                     if x > 0 and x < self.WIDTH-1 and y > 0 and y < self.HEIGHT-1:
                         self.fmap[y][x] = 0
-                    pass
-                pass
-            pass
-        pass
 
     def holes(self, rng_radius, rng_e, n_holes, rng_rect):
         """Generate a set of holes in the level. It takes four args:
@@ -263,17 +219,12 @@ class RandomLevel(boarddef.Level):
                     if not rect and (((x-cx)/e)**2+((y-cy)*e)**2) > r**2:
                         continue
                     self.clrw(x,y)
-                    pass
-                pass
-            pass
-        pass
 
     def close(self):
         "Just close the level with floor and roof"
         for x in range(self.WIDTH):
             self.setw(x,0) 
             self.setw(x,self.HEIGHT)
-        pass
 
     def do_monsters(self):
         """Create monsters based on the requested settings.
@@ -296,11 +247,7 @@ class RandomLevel(boarddef.Level):
                         self.wmap[y][x] = current
                         break
                     ntry -= 1
-                    pass
                 current = chr(ord(current)+1)
-                pass
-            pass
-        pass
 
     def do_walls(self):
         "Build the actual walls map for the game."
@@ -309,18 +256,14 @@ class RandomLevel(boarddef.Level):
             self.__class__.walls += '##'
             for x in range(self.WIDTH):
                 self.__class__.walls += self.wmap[y][x]
-                pass
             self.__class__.walls += '##\n'
-            pass
         self.__class__.walls += '##'
         for x in range(self.WIDTH):
             if self.wmap[0][x] == '#' or self.wmap[self.HEIGHT-1][x] == '#':
                 self.__class__.walls += '#'
             else:
                 self.__class__.walls += ' '
-            pass
         self.__class__.walls += '##\n'
-        pass
 
     def do_bonuses(self):
         self.__class__.letter    = choice([0,1])
@@ -328,7 +271,6 @@ class RandomLevel(boarddef.Level):
         self.__class__.lightning = choice([0,1])
         self.__class__.water     = choice([0,1])
         self.__class__.top       = choice([0,1])
-        pass
 
     def generate(self):
         "Generate random level settings."
@@ -376,7 +318,6 @@ class RandomLevel(boarddef.Level):
                                   (nplat,space),   # number of platform and spacing
                                   (nholes,wholes), # number of holes and width
                                   full))           # full width platform
-            pass
         if gens & 1:
             # generate a mess generator
             print 'Using the mess generator'
@@ -386,12 +327,9 @@ class RandomLevel(boarddef.Level):
             else:
                 offset = 0.05
                 scale = 0.10
-                pass
             self.genwalls.append((RandomLevel.mess,offset+random()*scale))
-            pass
         if random() < 0.2:
             self.genwalls.append((RandomLevel.close,))
-        pass
 
 
 Levels = []
