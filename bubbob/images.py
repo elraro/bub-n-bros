@@ -91,9 +91,10 @@ class ActiveSprite(gamesrv.Sprite):
     def vertical_warp(self):
         import boards
         (nx, ny), moebius = boards.vertical_warp(self.x, self.y)
-        self.move(nx, ny)
-        if moebius:
-            self.moebius()
+        if ny != self.y:
+            self.move(nx, ny)
+            if moebius:
+                self.moebius()
         return moebius
 
     def moebius(self):

@@ -85,6 +85,32 @@ class Monster(ActiveSprite):
         y1 = (self.y + CELL - 1) // CELL + 1
         return bget(x0,y0) == '#' or bget(x0,y1) == '#'
 
+    def tryhstep(self):
+        if self.blocked():
+            self.dir = -self.dir
+            self.resetimages()
+            return 0
+        else:
+            self.step(self.vx*self.dir, 0)
+            return 1
+
+    def vblocked(self):
+        if self.vdir < 0:
+            y0 = (self.y-1)//CELL
+        else:
+            y0 = (self.y+1)//CELL + 2
+        x0 = (self.x+HALFCELL) // CELL
+        return bget(x0,y0) == '#' or bget(x0+1,y0) == '#'
+
+    def tryvstep(self):
+        if self.vblocked():
+            self.vdir = -self.vdir
+            return 0
+        else:
+            self.step(0, self.vy*self.vdir)
+            self.vertical_warp()
+            return 1
+
     def waiting(self, delay=20):
         for i in range(delay):
             yield None
@@ -112,11 +138,7 @@ class Monster(ActiveSprite):
                 self.move((x1//CELL) * CELL, self.y)
                 if self.special():
                     return
-            if self.blocked():
-                self.dir = -self.dir
-                self.resetimages()
-                continue
-            self.step(self.vx*self.dir, 0)
+            self.tryhstep()
         if self.seedragon():
             self.gen.append(self.hjumping())
         else:
@@ -295,44 +317,16 @@ class Monster(ActiveSprite):
         while 1:
             if self.overlapping():
                 yield None
-            ndir = self.dir
-            nx = self.x
-            ny = self.y + self.vy*self.vdir
-            if ny >= boards.bheight or ny < -2*CELL:
-                (nx, ny), moebius = boards.vertical_warp(nx, ny)
-                if moebius:
-                    ndir = -ndir
-            nx += self.vx*ndir
-            if ndir < 0:
-                x0 = nx // CELL
-            else:
-                x0 = (nx+self.ico.w-1) // CELL
-            for y in range(self.y // CELL, (self.y+self.ico.h-1) // CELL + 1):
-                if bget(x0, y) == '#':
-                    ndir = -ndir
-                    nx = self.x
-                    break
-            if self.vdir < 0:
-                y0 = ny // CELL
-            else:
-                y0 = (ny+self.ico.h-1) // CELL
-            for x in range(nx // CELL, (nx+self.ico.w-1) // CELL + 1):
-                if bget(x, y0) == '#':
-                    self.vdir = -self.vdir
-                    ny = self.y
-                    break
-            if nx == self.x and ny == self.y:
-                if blocked:
-                    # blocked! go up
-                    self.step(0, -abs(self.vdir))
-                    self.vertical_warp()
-                else:
-                    blocked = 1
-            else:
+            hstep = self.tryhstep()
+            vstep = self.tryvstep()
+            if hstep or vstep:
                 blocked = 0
-                self.move(nx, ny)
-                if ndir != self.dir and ny != self.y:
-                    self.moebius()
+            elif blocked:
+                # blocked! go up
+                self.step(0, -self.vy)
+                self.vertical_warp()
+            else:
+                blocked = 1
             yield None
 
     def becoming_monster(self, saved_caps):
@@ -372,39 +366,24 @@ class Monster(ActiveSprite):
                     self.dir = dx
                     self.resetimages()
                 if bubber.key_jump and bubber.key_jump > bubber.key_fire:
-                    dy = -1
+                    dy = self.vdir = -1
                 elif bubber.key_fire:
-                    dy = 1
+                    dy = self.vdir = 1
                 else:
                     dy = 0
-                saved_dxdy = dx, dy
-                blocked = 0
-                nx = (self.x // self.vx) * self.vx
-                ny = (self.y // self.vy) * self.vy
-                if (nx % CELL) == 0:
-                    if dx < 0:
-                        x0 = nx // CELL - 1
-                    else:
-                        x0 = (nx+self.ico.w) // CELL
-                    for y in range(self.y // CELL, (self.y+self.ico.h-1) // CELL + 1):
-                        if bget(x0, y) == '#':
-                            dx = 0
-                            blocked += 1
-                            break
-                if (ny % CELL) == 0:
-                    if dy < 0:
-                        y0 = ny // CELL - 1
-                    else:
-                        y0 = (ny+self.ico.h) // CELL
-                    for x in range(self.x // CELL, (self.x+self.ico.w-1) // CELL + 1):
-                        if bget(x, y0) == '#':
-                            dy = 0
-                            blocked += 1
-                            break
-                if blocked == 2 and bget(self.x//CELL+1, self.y//CELL+1) == '#':
-                    dx, dy = saved_dxdy
-                self.move(nx + dx*self.vx, ny + dy*self.vy)
-                self.vertical_warp()
+                hstep = dx and self.tryhstep()
+                vstep = dy and self.tryvstep()
+                if dx and dy and not (hstep or vstep):
+                    # blocked?
+                    self.dir = -self.dir
+                    self.vdir = -self.vdir
+                    blocked = self.blocked() and self.vblocked()
+                    self.dir = -self.dir
+                    self.vdir = -self.vdir
+                    if blocked:
+                        # completely blocked! accept move
+                        self.step(self.vx*dx, self.vy*dy)
+                        self.vertical_warp()
                 yield None
         elif not isinstance(self, Springy):
             # walking monster
@@ -417,14 +396,8 @@ class Monster(ActiveSprite):
                     self.dir = dx
                     self.resetimages()
                     imgsetter = self.imgsetter
-                if dx:
-                    x1 = self.x
-                    if dx > 0:
-                        x1 += self.vx
-                    if self.blocked():
-                        dx = 0
-                if dx:
-                    self.step(self.vx*dx, 0)
+                if dx and not self.blocked():
+                    self.step(self.vx*self.dir, 0)
                     self.setimages(imgsetter)
                 else:
                     self.setimages(None)
