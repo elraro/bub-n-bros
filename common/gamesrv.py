@@ -1052,8 +1052,8 @@ class Game:
       if broadcast_extras is not None:
         udpdata = ''.join(broadcast_extras.keys() + [udpdata])
         try:
-          broadcast_socket.sendto(udpdata,
-                                  ('255.255.255.255', broadcast_port))
+          broadcast_s.sendto(udpdata,
+                             ('255.255.255.255', broadcast_port))
           #print "Broadcast UDP data"
         except error:
           pass  # ignore failed broadcasts

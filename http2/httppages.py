@@ -76,19 +76,38 @@ class PageServer:
         print self.Game.FnDesc, 'server is ready at', self.indexurl
         return 1
 
+##    def launchbrowser(self):
+##        import webbrowser
+##        browser = webbrowser.get()
+##        name = getattr(browser, 'name', browser.__class__.__name__)
+##        print "Trying to display the above URL with '%s'..." % name
+##        if hasattr(os, 'fork'):
+##            if os.fork() == 0:
+##                browser.open(self.indexurl)
+##                raise SystemExit
+##        else:
+##            os.spawnv(os.P_NOWAITO, sys.executable,
+##                      [sys.executable, os.path.join(LOCALDIR, 'httppages.py'),
+##                       self.indexurl])
+
     def launchbrowser(self):
-        import webbrowser
-        browser = webbrowser.get()
-        name = getattr(browser, 'name', browser.__class__.__name__)
-        print "Trying to display the above URL with '%s'..." % name
-        if hasattr(os, 'fork'):
-            if os.fork() == 0:
-                browser.open(self.indexurl)
-                raise SystemExit
+        try:
+            import webbrowser
+            browser = webbrowser.get()
+            name = getattr(browser, 'name', browser.__class__.__name__)
+            print "Trying to display the above URL with '%s'..." % name
+            browser.open(self.indexurl)
+        except:
+            exc, val, tb = sys.exc_info()
+            print >> sys.stderr, "Failed to launch the web browser:"
+            print >> sys.stderr, "  %s: %s" % (exc.__name__, val)
+            print
+            print "Sorry, I guess you have to go to the following URL manually:"
         else:
-            os.spawnv(os.P_NOWAITO, sys.executable,
-                      [sys.executable, os.path.join(LOCALDIR, 'httppages.py'),
-                       self.indexurl])
+            print "Done running '%s'." % name
+            print "If the browser fails to open the page automatically,"
+            print "you will have to manually go to the following URL:"
+        print self.indexurl
 
     def getlocalservers(self):
         if self.localservers is None:
@@ -169,9 +188,12 @@ class PageServer:
         data = self.loadoptionfile()
         data['*'] = self.globaloptions.dict()
         data[self.localhost] = self.localoptions.dict()
-        f = open(self.filename, 'w')
-        print >> f, `data`
-        f.close()
+        try:
+            f = open(self.filename, 'w')
+            print >> f, `data`
+            f.close()
+        except IOError, e:
+            print >> sys.stderr, "! Cannot save config file: " + str(e)
 
     def startgame(self):
         options = self.globaloptions
@@ -472,8 +494,8 @@ def main(Game, webbrowser=1):
         srv.launchbrowser()
 
 
-if __name__ == '__main__':
-    # helper for launchbrowser() above
-    import webbrowser
-    browser = webbrowser.get()
-    browser.open(sys.argv[1])
+##if __name__ == '__main__':
+##    # helper for launchbrowser() above
+##    import webbrowser
+##    browser = webbrowser.get()
+##    browser.open(sys.argv[1])

@@ -136,7 +136,7 @@ def findmode(name, lst):
             if info.name.upper() == name.upper():
                 err = info.imperror()
                 if err:
-                    print >> sys.stderr, '%s: %s' % (info.name, err)
+                    raise KeyError, '%s: %s' % (info.name, err)
                 return info
         raise KeyError, '%s: no such driver' % name
 
