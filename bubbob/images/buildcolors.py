@@ -30,6 +30,7 @@ def inputfiles():
         os.path.join(ThisDir, os.pardir, 'ext1', 'image1-%d.ppm'): 1,
         os.path.join(ThisDir, os.pardir, 'ext3', 'image1-%d.ppm'): 1,
         os.path.join(ThisDir, os.pardir, 'ext4', 'image1-%d.ppm'): 1,
+        os.path.join(ThisDir, os.pardir, 'ext6', 'image1-%d.ppm'): 1,
         }
     d = {}
     execfile(os.path.join(ThisDir, os.pardir, 'sprmap.py'), d)
