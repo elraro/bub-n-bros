@@ -202,12 +202,22 @@ begingroupitem(1)
 <td>
   <table border=0><tr>
     <td>
-      <%(nameval("radio", "datachannel", "auto", default="auto", mangling=0))s>Auto-detect%(
+   <p>Network ports are automatically assigned, but you can optionally choose fixed
+      ones and let them in through your firewall. <font size=-1>Clients using the
+      "Internet games" meta-server can usually connect even through firewalls.
+      Moreover servers can re-route UDP traffic to clients behind firewalls over TCP.
+%(
 if java:
-    print ' <font size=-1>Java Applet always does Auto-detect</font>'
-)s</input><br>
-      <%(nameval("radio", "datachannel", "tcp", mangling=0))s>TCP traffic only, 2-4kb/s (for slow connections or behind proxies)</input><br>
-      <%(nameval("radio", "datachannel", "ucp", mangling=0))s>UDP traffic, 25-30kb/s (fast direct Internet connections, lower latency)</input>
+    print "These settings don't apply to the Java applet."
+)s    </font></p>
+
+   <p>TCP game server port: <%(nameval("text", "port_LISTEN", default="", mangling=0))s><br>
+      HTTP server port: <%(nameval("text", "port_HTTP", default="", mangling=0))s></p>
+
+   <p>Client incoming UDP port: <%(nameval("text", "port_CLIENT", default="", mangling=0))s><br>
+      <%(nameval("radio", "datachannel", "ucp", mangling=0))s>always UDP</input>
+      <%(nameval("radio", "datachannel", "tcp", mangling=0))s>no UDP, only TCP</input>
+      <%(nameval("radio", "datachannel", "auto", default="auto", mangling=0))s>Auto-detect</input></p>
     </td>
     <td width=12></td>
     <td align="center" valign="bottom">

@@ -177,6 +177,8 @@ def parse_cmdline(argv):
         print >> sys.stderr, '  -s#  --step #     advance board number by steps of # (default 1)'
         print >> sys.stderr, '  -l#  --lives #    limit the number of lives to #'
         print >> sys.stderr, '  -i   --infinite   restart the server at the end of the game'
+        print >> sys.stderr, '  --port LISTEN=#   set fixed tcp port for game server'
+        print >> sys.stderr, '  --port HTTP=#     set fixed tcp port for http server'
         print >> sys.stderr, '  -h   --help       display this text'
         #print >> sys.stderr, '  -rxxx record the game in file xxx'
         sys.exit(1)
@@ -190,7 +192,7 @@ def parse_cmdline(argv):
         opts, args = getopt(argv, 'mb:s:l:ih',
                             ['metaserver', 'start=', 'step=',
                              'lives=', 'infinite', 'help',
-                             'pipeurlto=', 'quiet'])
+                             'pipeurlto=', 'quiet', 'port='])
     except error, e:
         print >> sys.stderr, 'bb.py: %s' % str(e)
         print >> sys.stderr
@@ -221,6 +223,11 @@ def parse_cmdline(argv):
                 pass
         elif key == '--quiet':
             quiet = 1
+        elif key == '--port':
+            portname, portvalue = value.split('=')
+            portvalue = int(portvalue)
+            import msgstruct
+            msgstruct.PORTS[portname] = portvalue
         #elif key in ('-w', '--webbrowser'):
         #    webbrowser = value.startswith('y')
     if args:

@@ -150,8 +150,8 @@ def show((addr, (info, ping)), found=found):
         httpport = infolst.pop(2)
     else:
         httpport = 'off'
-    print '<a href="join.html?host=%s&port=%d&httpport=%s">' % (
-        addr[0], addr[1], httpport)
+    print '<a href="join.html?host=%s&port=%d&httpport=%s&time=%s">' % (
+        addr[0], addr[1], httpport, tim)
     host, port = addr
     #host = socket.gethostbyaddr(host)[0]
     if ping is not None:

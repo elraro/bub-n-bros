@@ -45,6 +45,7 @@ class PageServer:
         data = self.loadoptionfile()
         self.globaloptions = Options(data.get('*', {}))
         self.localoptions  = Options(data.get(self.localhost, {}))
+        self.reloadports()
         #self.inetserverlist = None
         #self.inetservers = {}
         #self.has_been_published = 0
@@ -163,7 +164,18 @@ class PageServer:
         except IOError, e:
             print >> sys.stderr, "! Cannot save config file: " + str(e)
 
+    def reloadports(self):
+        for key, value in self.localoptions.dict().items():
+            if key.startswith('port_'):
+                try:
+                    value = int(value)
+                except:
+                    continue
+                import msgstruct
+                msgstruct.PORTS[key[5:]] = value
+
     def startgame(self):
+        self.reloadports()
         options = self.globaloptions
         kwds = {}
         if options.beginboard is not None:
@@ -333,6 +345,9 @@ class PageServer:
             self.globaloptions.clear()
             self.saveoptions()
         elif options:
+            self.localoptions.port_CLIENT = None
+            self.localoptions.port_LISTEN = None
+            self.localoptions.port_HTTP = None
             for key, value in options.items():
                 setattr(self.localoptions, key, value[0])
             self.saveoptions()
@@ -431,6 +446,14 @@ class PageServer:
             raise HTTPRequestError, "No installed graphics or sounds drivers. See the settings page."
         options = self.localoptions
         result = ['--cfg='+self.filename]
+        for key, value in options.dict().items():
+            if key.startswith('port_'):
+                try:
+                    value = int(value)
+                except:
+                    continue
+                result.append('--port')
+                result.append('%s=%d' % (key[5:], value))
         if options.datachannel == 'tcp': result.append('--tcp')
         if options.datachannel == 'udp': result.append('--udp')
         if options.music       == 'no':  result.append('--music=no')

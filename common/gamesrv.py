@@ -947,7 +947,8 @@ def removesocket(role, socket=None):
   except KeyError:
     pass
 
-def opentcpsocket(port=PORTS.get('LISTEN', INADDR_ANY)):
+def opentcpsocket(port=None):
+  port = port or PORTS.get('LISTEN', INADDR_ANY)
   s = findsocket('LISTEN')
   if s is None:
     s = socket(AF_INET, SOCK_STREAM)
@@ -977,7 +978,8 @@ def opentcpsocket(port=PORTS.get('LISTEN', INADDR_ANY)):
     addsocket('LISTEN', s, tcpsocket_handler)
   return s
 
-def openpingsocket(only_port=PORTS.get('PING', None)):
+def openpingsocket(only_port=None):
+  only_port = only_port or PORTS.get('PING', None)
   s = findsocket('PING')
   if s is None:
     import hostchooser
@@ -1003,7 +1005,8 @@ def openpingsocket(only_port=PORTS.get('PING', None)):
   return s
 
 def openhttpsocket(ServerClass=None, HandlerClass=None,
-                   port=PORTS.get('HTTP', None)):
+                   port=None):
+  port = port or PORTS.get('HTTP', None)
   s = findsocket('HTTP')
   if s is None:
     if ServerClass is None:
