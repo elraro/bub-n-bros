@@ -1555,6 +1555,79 @@ class level28(boarddef.Level):
 >>                                <<
 """
 
+class level29(boarddef.Level):
+    letter    = 0
+    fire      = 0
+    lightning = 0
+    water     = 0
+    top       = 0
+
+    m = LMonky, RMonky
+    g = LGramy, RGramy
+    o = LOrcy,  ROrcy
+    n = LNasty, RNasty
+
+    walls = """
+##                                ##
+##                                ##
+##                                ##
+##                                ##
+##                                ##
+##                                ##
+##                                ##
+##                                ##
+##                                ##
+##                                ##
+##                                ##
+##                                ##
+#################  #################
+##                                ##
+##                                ##
+##                                ##
+##                                ##
+##                                ##
+##                                ##
+##                                ##
+##                                ##
+##                                ##
+##                                ##
+##                                ##
+##                                ##
+##    # m  g  o  nn  o  g  m #    ##
+##    ########################    ##
+##                                ##
+""" #    []      []      []    # """
+    
+    winds = """
+vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+>>                                <<
+>>                                <<
+>>                                <<
+>>                                <<
+>>                                <<
+>>                                <<
+>>                                <<
+>>                                <<
+>>xxxxxxxxxxxxxxx  xxxxxxxxxxxxxxx<<
+>>>>>>v>>>>v>>>>v<>v<<<<v<<<<v<<<<<<
+>>>>>>v>>>>v>>>>v<>v<<<<v<<<<v<<<<<<
+>>>>>>v>>>>v>>>>v<>v<<<<v<<<<v<<<<<<
+>>>>>>v>>>>v>>>>v<>v<<<<v<<<<v<<<<<<
+>>>>>>v>>>>v>>>>v<>v<<<<v<<<<v<<<<<<
+>>>>>>v>>>>v>>>>v<>v<<<<v<<<<v<<<<<<
+>>>>>>v>>>>v>>>>v<>v<<<<v<<<<v<<<<<<
+>>>>>>v>>>>v>>>>v<>v<<<<v<<<<v<<<<<<
+>>>>>>v>>>>v>>>>v<>v<<<<v<<<<v<<<<<<
+>>>>>>v>>>>v>>>>v<>v<<<<v<<<<v<<<<<<
+>>>>>>v>>>>v>>>>v<>v<<<<v<<<<v<<<<<<
+>>>>>>v>>>>v>>>>v<>v<<<<v<<<<v<<<<<<
+>>>>>>x>>>>v>>>>v<>v<<<<v<<<<x<<<<<<
+vvvvvvxxxxxxxxxxxxxxxxxxxxxxxxvvvvvv
+vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+"""
 
 class level29(boarddef.Level):
     letter    = 0

@@ -27,7 +27,8 @@ class BubBobGame(gamesrv.Game):
                  stepboard   = 1,
                  limitlives  = None,
                  extralife   = 50000,
-                 autoreset   = 0):
+                 autoreset   = 0,
+                 teammode    = 0):
         gamesrv.Game.__init__(self)
         self.game_reset_gen = None
         self.levelfile  = levelfile
@@ -36,6 +37,7 @@ class BubBobGame(gamesrv.Game):
         self.limitlives = limitlives
         self.extralife  = extralife
         self.autoreset  = autoreset
+        self.teammode   = teammode
         levelsname, ext = os.path.splitext(os.path.basename(levelfile))
         self.FnDesc     = BubBobGame.FnDesc + ' ' + levelsname
         self.reset()
@@ -145,9 +147,10 @@ def parse_cmdline(argv):
 ##        print >> sys.stderr, 'where:'
 ##        print >> sys.stderr, '  -w  --webbrowser=no  don''t automatically start web browser'
         print >> sys.stderr, 'or:'
-        print >> sys.stderr, '  python bb.py [level-file.bin] [-m] [-b#] [-s#] [-l#]'
+        print >> sys.stderr, '  python bb.py [level-file.bin] [-m] [-t] [-b#] [-s#] [-l#]'
         print >> sys.stderr, 'with options:'
         print >> sys.stderr, '  -m  --metaserver  register the server on the Metaserver so anyone can join'
+        print >> sys.stderr, '  -t  --team        use the team mode'
         print >> sys.stderr, '  -b#  --begin #    start at board number # (default 1)'
         print >> sys.stderr, '       --start #    synonym for --begin'
         print >> sys.stderr, '  -s#  --step #     advance board number by steps of # (default 1)'
@@ -163,8 +166,8 @@ def parse_cmdline(argv):
         from getopt import getopt
     from getopt import error
     try:
-        opts, args = getopt(argv, 'mb:s:l:ih',
-                            ['metaserver', 'start=', 'step=',
+        opts, args = getopt(argv, 'mtb:s:l:ih',
+                            ['metaserver', 'team', 'start=', 'step=',
                              'lives=', 'infinite', 'help',
                              'pipeurlto=', 'quiet'])
     except error, e:
@@ -180,6 +183,8 @@ def parse_cmdline(argv):
     for key, value in opts:
         if key in ('-m', '--metaserver'):
             metaserver = 1
+        elif key in ('-t', '--team'):
+            options['teammode'] = 1
         elif key in ('-b', '--start', '--begin'):
             options['beginboard'] = int(value)
         elif key in ('-s', '--step'):

@@ -56,6 +56,9 @@ class Dragon(ActiveSprite):
         self.gen.append(self.normal_movements())
         self.overlaysprite = None
         self.overlayyoffset = 4
+        self.hatsprite = None
+        self.hatangle = 1
+        self.isdying = 0
 
     def kill(self):
         try:
@@ -79,6 +82,7 @@ class Dragon(ActiveSprite):
             #    wasting[self.bubber] = len(wasting)
 
     def dying(self, can_loose_letter=1):
+        self.isdying = 1
         lst = [bonus for timeout, bonus in self.dcap['carrying']
                if hasattr(bonus, 'buildoutcome')]
                #if random.random() > 0.2]
@@ -255,8 +259,12 @@ class Dragon(ActiveSprite):
             if self.fire:
                 if self.fire <= 5:
                     mode = 3
+                    self.hatangle = 2
                 elif self.fire <= 10:
                     mode = 4
+                    self.hatangle = 3
+                else:
+                    self.hatangle = 1
                 self.fire += 1
                 if self.fire >= 64 // self.dcap['firerate']:
                     self.fire = 0
@@ -365,7 +373,6 @@ class Dragon(ActiveSprite):
         #    from monsters import DragonShot
         #    DragonShot(self)
 
-
 class BubPlayer(gamesrv.Player):
     # global state
     PlayerList = []
@@ -436,12 +443,25 @@ class BubPlayer(gamesrv.Player):
         self.pcap = {}
         self.dragons = []
         self.keepalive = None
+        self.team = -1
 
     def loadicons(self, icons, fn):
         for key, value in self.iconnames.items():
             icons[key] = fn(value)
 
     def setplayername(self, name):
+        import re
+        m = re.search('(.+)(\([12]\))',name)
+        self.team = -1
+        if m:
+            if m.group(2) == '(1)':
+                self.team = 0
+            elif m.group(2) == '(2)':
+                self.team = 1
+            name = m.group(1).strip()
+            print "New player in team", m.group(2), "with mame", m.group(1)
+        else:
+            print "The regexp didn't match:", name
         icons = [images.sprcharacterget(c) for c in name]
         self.nameicons = [ico for ico in icons if ico is not None][:16]
         self.nameicons.reverse()
@@ -670,6 +690,8 @@ def scoreboard(reset=0, inplace=0):
     lst = []
     bubblesshown = {}
     plist = []
+    teamslist = [[], []]
+    teamspoints = [0, 0]
     for p in BubPlayer.PlayerList:
         if p.isplaying():
             if p.lives != 0:
@@ -680,57 +702,109 @@ def scoreboard(reset=0, inplace=0):
             if p.keepalive < time.time():
                 p.reset()
                 continue
-        plist.append((p.points, p))
+        if p.team == -1:
+            plist.append((p.points, p, None))
+        else:
+            teamslist[p.team].append((p.points,p))
+            teamspoints[p.team] += p.points
+    teamslist[0].sort()
+    teamslist[1].sort()
+    plist.append((teamspoints[0], None, teamslist[0]))
+    plist.append((teamspoints[1], None, teamslist[1]))
     plist.sort()
     x0 = boards.bwidth
     y0 = boards.bheight
-    for score, p in plist:
-        if p.lives == 0:
-            ico = images.sprget(GreenAndBlue.gameover[p.pn][0])
-        elif p.icons:
-            if p.isplaying():
-                mode = 0
-            else:
-                mode = 11
-            ico = BubPlayer.OverridePlayerIcon or p.icons[mode, -1]
-        lst.append((x0+9*CELL-ico.w, y0-ico.h, ico))
-        #if boards.curboard.wastingplay is None:
-        for l in range(6):
-            name = bubbles.extend_name(l)
-            if name in p.letters:
-                x, y = x0+l*(CELL-1), y0-3*CELL
-                imglist = getattr(LetterBubbles, name)
-                ico = images.sprget(imglist[1])
-                if gamesrv.game.End in (0, 1):
-                    s = p.letters[name]
-                    if (isinstance(s, ActiveSprite) and
-                        BubPlayer.FrameCounter <= s.timeout):
-                        s.move(x, y)
-                        bubblesshown[s] = 1
-                        continue
-                    if s == 1:
-                        s = ActiveSprite(ico, x, y)
-                        s.setimages(s.cyclic([imglist[0], imglist[1],
-                                              imglist[2], imglist[1]]))
-                        s.timeout = BubPlayer.FrameCounter + 500
-                        p.letters[name] = s
-                        bubblesshown[s] = 1
-                        continue
-                lst.append((x, y, ico))
-##        else:
-##            ico = images.sprget(Bonuses.blue_sugar)
-##            lst.append((x0+12, y0-3*CELL-8, ico))
-##            xyiconumber(DigitsMisc.digits_white, x0-19, y0-3*CELL+5,
-##                        p.bonbons, lst)
-        xyiconumber(GreenAndBlue.digits[p.pn], x0+2, y0-18, score, lst)
-        if p.lives is not None and p.lives > 0:
-            xyiconumber(DigitsMisc.digits_white, x0+7*CELL, y0-18,
-                        p.lives, lst, width=2)
-        x = x0+13*HALFCELL
-        for ico in p.nameicons:
-            x -= 7
-            lst.append((x, y0-35, ico))
-        y0 -= 7*HALFCELL
+    for score, p, t in plist:
+        if p:
+            if p.lives == 0:
+                ico = images.sprget(GreenAndBlue.gameover[p.pn][0])
+            elif p.icons:
+                if p.isplaying():
+                    mode = 0
+                else:
+                    mode = 11
+                ico = BubPlayer.OverridePlayerIcon or p.icons[mode, -1]
+            lst.append((x0+9*CELL-ico.w, y0-ico.h, ico))
+            #if boards.curboard.wastingplay is None:
+            for l in range(6):
+                name = bubbles.extend_name(l)
+                if name in p.letters:
+                    x, y = x0+l*(CELL-1), y0-3*CELL
+                    imglist = getattr(LetterBubbles, name)
+                    ico = images.sprget(imglist[1])
+                    if gamesrv.game.End in (0, 1):
+                        s = p.letters[name]
+                        if (isinstance(s, ActiveSprite) and
+                            BubPlayer.FrameCounter <= s.timeout):
+                            s.move(x, y)
+                            bubblesshown[s] = 1
+                            continue
+                        if s == 1:
+                            s = ActiveSprite(ico, x, y)
+                            s.setimages(s.cyclic([imglist[0], imglist[1],
+                                                imglist[2], imglist[1]]))
+                            s.timeout = BubPlayer.FrameCounter + 500
+                            p.letters[name] = s
+                            bubblesshown[s] = 1
+                            continue
+                    lst.append((x, y, ico))
+    ##        else:
+    ##            ico = images.sprget(Bonuses.blue_sugar)
+    ##            lst.append((x0+12, y0-3*CELL-8, ico))
+    ##            xyiconumber(DigitsMisc.digits_white, x0-19, y0-3*CELL+5,
+    ##                        p.bonbons, lst)
+            xyiconumber(GreenAndBlue.digits[p.pn], x0+2, y0-18, score, lst)
+            if p.lives is not None and p.lives > 0:
+                xyiconumber(DigitsMisc.digits_white, x0+7*CELL, y0-18,
+                            p.lives, lst, width=2)
+            x = x0+13*HALFCELL
+            for ico in p.nameicons:
+                x -= 7
+                lst.append((x, y0-35, ico))
+            y0 -= 7*HALFCELL
+        else: # Team
+            for pscore, p in t:
+                if p.lives == 0:
+                    ico = images.sprget(GreenAndBlue.gameover[p.pn][0])
+                elif p.icons:
+                    if p.isplaying():
+                        mode = 0
+                    else:
+                        mode = 11
+                    ico = BubPlayer.OverridePlayerIcon or p.icons[mode, -1]
+                lst.append((x0+9*CELL-ico.w, y0-ico.h, ico))
+                for l in range(6):
+                    name = bubbles.extend_name(l)
+                    if name in p.letters:
+                        x, y = x0+l*(CELL-1), y0-2*CELL
+                        imglist = getattr(LetterBubbles, name)
+                        ico = images.sprget(imglist[1])
+                        if gamesrv.game.End in (0, 1):
+                            s = p.letters[name]
+                            if (isinstance(s, ActiveSprite) and
+                                BubPlayer.FrameCounter <= s.timeout):
+                                s.move(x, y)
+                                bubblesshown[s] = 1
+                                continue
+                            if s == 1:
+                                s = ActiveSprite(ico, x, y)
+                                s.setimages(s.cyclic([imglist[0], imglist[1],
+                                                    imglist[2], imglist[1]]))
+                                s.timeout = BubPlayer.FrameCounter + 500
+                                p.letters[name] = s
+                                bubblesshown[s] = 1
+                                continue
+                        lst.append((x, y, ico))
+                x = x0+13*HALFCELL
+                for ico in p.nameicons:
+                    x -= 7
+                    lst.append((x, y0-19, ico))
+                y0 -= 4*HALFCELL
+            if t != []:
+                xyiconumber(GreenAndBlue.digits[t[-1][1].pn], x0+2, y0-18, score, lst)
+                ico = images.sprget(('hat', p.team, -1, 1))
+                lst.append((x0+9*CELL-ico.w, y0-ico.h+16, ico))
+                y0 -= 5*HALFCELL
     for p in BubPlayer.PlayerList:
         for name, s in p.letters.items():
             if isinstance(s, ActiveSprite) and s not in bubblesshown:

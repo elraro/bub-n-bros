@@ -508,6 +508,18 @@ def normal_frame():
             p.zarkon()
             for d in p.dragons:
                 d.to_front()
+                if not (p.team == -1 or getattr(d,'isdying',0)):
+                    try:
+                        ico = images.sprget(('hat', p.team, d.dir, d.hatangle))
+                    except AttributeError:
+                        ico = images.sprget(('hat', p.team))
+                    y = d.y - 16
+                    if d.hatsprite is None or not d.hatsprite.alive:
+                        d.hatsprite = images.ActiveSprite(ico, d.x, y)
+                    else:
+                        d.hatsprite.to_front()
+                        d.hatsprite.move(d.x, y, ico)
+                    d.hatsprite.gen = [d.hatsprite.die([None])]
                 d.prefix(p.pn)
     if not (BubPlayer.FrameCounter & 31):
         gamesrv.compactsprites()

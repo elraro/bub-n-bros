@@ -340,8 +340,24 @@ extramap = {
     ('emotic', 5): ('extra7.ppm', (0, 40, 8, 8)),
     ('emotic', 6): ('extra7.ppm', (0, 48, 8, 8)),
     }
+hatmap = {
+    ('hat', 0, -1,1):('hat2.ppm',(  0, 0, 32, 48)),
+    ('hat', 0, -1,2):('hat2.ppm',( 32, 0, 32, 48)),
+    ('hat', 0, -1,3):('hat2.ppm',( 64, 0, 32, 48)),
+    ('hat', 0,  1,3):('hat2.ppm',( 96, 0, 32, 48)),
+    ('hat', 0,  1,2):('hat2.ppm',(128, 0, 32, 48)),
+    ('hat', 0,  1,1):('hat2.ppm',(160, 0, 32, 48)),
+    ('hat', 1, -1,1):('hat1.ppm',(  0, 0, 32, 48)),
+    ('hat', 1, -1,2):('hat1.ppm',( 32, 0, 32, 48)),
+    ('hat', 1, -1,3):('hat1.ppm',( 64, 0, 32, 48)),
+    ('hat', 1,  1,3):('hat1.ppm',( 96, 0, 32, 48)),
+    ('hat', 1,  1,2):('hat1.ppm',(128, 0, 32, 48)),
+    ('hat', 1,  1,1):('hat1.ppm',(160, 0, 32, 48)),
+    ('hat', 0)      :('hat5.ppm',( 32, 0, 32, 48)),
+    ('hat', 1)      :('hat5.ppm',(  0, 0, 32, 48)),
+    }
 sprmap = {}
-for n, (filename, rect) in original_sprmap.items() + extramap.items():
+for n, (filename, rect) in original_sprmap.items() + extramap.items() + hatmap.items():
     sprmap[n] = os.path.join('images', filename), rect
 del n, filename, rect
 
