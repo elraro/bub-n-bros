@@ -852,8 +852,22 @@ def result_ranking(results, maximum=None, timeleft=200):
             maximum += n
     maximum = maximum or 1
     ranking = []
+    teamrank = [0, 0]
+    teamplayers = [[], []]
     for p, n in results.items():
-        ranking.append((n, random.random(), p))
+        if p.team != -1:
+            teamrank[p.team] += n
+            teamplayers[p.team].append((n,p))
+        else:
+            ranking.append((n, random.random(), p))
+    teamplayers[0].sort()
+    teamplayers[0].reverse()
+    teamplayers[1].sort()
+    teamplayers[1].reverse()
+    if teamplayers[0] != []:
+        ranking.append((teamrank[0], random.random(), teamplayers[0]))
+    if teamplayers[1] != []:
+        ranking.append((teamrank[1], random.random(), teamplayers[1]))
     ranking.sort()
     ranking.reverse()
     results = []
@@ -917,10 +931,19 @@ def display_ranking(ranking, timeleft, bgen=None):
                 icon = 0
             x = x0 + 22
             if nbpoints > 0:
-                bubber.givepoints(nbpoints)
-                Points(x, y, bubber.pn, nbpoints)
+                if isinstance(bubber,list):
+                    for n, bub in bubber:
+                        bub.givepoints(nbpoints//len(bubber))
+                    if bubber != []:
+                        Points(x, y, bubber[0][1].pn, nbpoints)
+                else:
+                    bubber.givepoints(nbpoints)
+                    Points(x, y, bubber.pn, nbpoints)
                 nbpoints -= 10000
-            w = gamesrv.Sprite(bubber.icons[icon, +1], x, y)
+            if isinstance(bubber,list):
+                w = gamesrv.Sprite(images.sprget(('hat',bubber[0][1].team)), x, y)
+            else:
+                w = gamesrv.Sprite(bubber.icons[icon, +1], x, y)
             extras.append(w)
             w0 = 0
             for digit in text:
