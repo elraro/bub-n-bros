@@ -76,7 +76,7 @@ class Dragon(ActiveSprite):
             #if wasting is not None:
             #    wasting[self.bubber] = len(wasting)
 
-    def dying(self):
+    def dying(self, can_loose_letter=1):
         lst = [bonus for timeout, bonus in self.dcap['carrying']
                if hasattr(bonus, 'buildoutcome')]
                #if random.random() > 0.2]
@@ -87,7 +87,7 @@ class Dragon(ActiveSprite):
                 self.bubber.givepoints(-bonus.points)
                 BonusMaker(self.x, self.y, [bonus.nimage],
                            outcome=bonus.buildoutcome())
-        elif self.bubber.letters and random.random() > 0.59:
+        elif self.bubber.letters and random.random() > 0.59 and can_loose_letter:
             # loose a letter
             lst = range(6)
             random.shuffle(lst)
@@ -249,22 +249,7 @@ class Dragon(ActiveSprite):
                     self.vertical_warp()
 
             if wannafire and not self.fire:
-                self.fire = 1
-                #if boards.curboard.wastingplay is None:
-                shootbubbles = self.dcap['shootbubbles']
-                special_bubbles = shootbubbles and shootbubbles.pop()
-                N = self.dcap['flower']
-                if N > 1:
-                    angles = [i*(2.0*math.pi/N) for i in range(N)]
-                    self.dcap['flower'] = N*2//3
-                else:
-                    angles = [0]
-                for angle in angles:
-                    bubbles.DragonBubble(self, self.x + 4*self.dir, self.y, self.dir,
-                                         special_bubbles, angle)
-                #else:
-                #    from monsters import DragonShot
-                #    DragonShot(self)
+                self.firenow()
             if self.fire:
                 if self.fire <= 5:
                     mode = 3
@@ -344,6 +329,24 @@ class Dragon(ActiveSprite):
             return 1
         else:
             return 0
+
+    def firenow(self):
+        self.fire = 1
+        #if boards.curboard.wastingplay is None:
+        shootbubbles = self.dcap['shootbubbles']
+        special_bubbles = shootbubbles and shootbubbles.pop()
+        N = self.dcap['flower']
+        if N > 1:
+            angles = [i*(2.0*math.pi/N) for i in range(N)]
+            self.dcap['flower'] = N*2//3
+        else:
+            angles = [0]
+        for angle in angles:
+            bubbles.DragonBubble(self, self.x + 4*self.dir, self.y, self.dir,
+                                 special_bubbles, angle)
+        #else:
+        #    from monsters import DragonShot
+        #    DragonShot(self)
 
 
 class BubPlayer(gamesrv.Player):

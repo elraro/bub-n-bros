@@ -11,7 +11,7 @@ LocalDir = os.path.abspath(os.path.dirname(__file__) or os.curdir)
 
 
 localmap = {
-    'ark-paddle':  ('image1-%d.ppm', (0, 0, 96, 32)),
+    'ark-paddle':  ('image1-%d.ppm', (0, 0, 80, 32)),
     }
 
 music = gamesrv.getmusic(os.path.join(LocalDir, 'music.wav'))

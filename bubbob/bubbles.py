@@ -153,6 +153,15 @@ class Bubble(ActiveSprite):
                     dx, dy = bubble_wind[w]
                 elif self.default_windless:
                     dx, dy = self.default_windless
+            
+                if dx == dy == 0:
+                    # this is the same as the whole loop but runs faster
+                    while len(self.obstacle) != 1:
+                        del self.obstacle[:]
+                        yield None
+                        timeout -= 2
+                        if not timeout:
+                            self.setimages(self.bubble_red())
 
     def bubble_red(self, speed=5):
         for n in self.imgseq(Bubble.white_bubbles, repeat=3):
@@ -165,6 +174,15 @@ class Bubble(ActiveSprite):
                              speed=2, repeat=10):
             yield n
         self.pop()
+
+    def startnormalbubble(self, dx=0, dy=-1, timeout=800):
+        self.touchable = 1
+        self.gen.append(self.normal_movements(dx=dx, dy=dy, timeout=timeout))
+        imglist = GreenAndBlue.normal_bubbles[self.d.bubber.pn]
+        self.setimages(self.cyclic([imglist[1],
+                                    imglist[2],
+                                    imglist[1],
+                                    imglist[0]]))
 
 
 class CatchNote:
@@ -245,14 +263,7 @@ class DragonBubble(Bubble):
                 b.can_catch_dragons(self.d)
                 self.kill()
                 return
-        self.touchable = 1
-        self.gen.append(self.normal_movements(
-                                timeout=self.d.dcap['bubbledelay'] or 800))
-        imglist = GreenAndBlue.normal_bubbles[self.d.bubber.pn]
-        self.setimages(self.cyclic([imglist[1],
-                                    imglist[2],
-                                    imglist[1],
-                                    imglist[0]]))
+        self.startnormalbubble(timeout=self.d.dcap['bubbledelay'] or 800)
         if not withmonster:
             self.can_catch_dragons(self.d)
 
@@ -370,22 +381,24 @@ class BonusBubble(Bubble):
     max = None
     timeout = None
 
-    def __init__(self, pn, nimages=None):
+    def __init__(self, pn, nimages=None, top=None):
         if nimages is None:
             nimages = self.nimages[pn]
         b = boards.curboard
-        if b.top == 0:
+        if top is None:
+            top = b.top
+        if top == 0:
             testline = b.walls[-1]
             x, y = self.findhole(testline), boards.bheight
             dx, dy = 0, -1
-        elif b.top == 1:
+        elif top == 1:
             testline = b.walls[0]
             x, y = self.findhole(testline), -2*CELL
             dx, dy = 0, 1
-        elif b.top == 2:
+        elif top == 2:
             x, y = -2*CELL, random.randint(2*CELL, boards.bheight-4*CELL)
             dx, dy = 1, 0
-        else:  # b.top == 3:
+        else:  # top == 3:
             x, y = (boards.bwidth - CELL,
                     random.randint(2*CELL, boards.bheight-4*CELL))
             dx, dy = -1, 0
@@ -446,9 +459,10 @@ class FireFlame(ActiveSprite):
                 FireFlame(x0+dir, y0, self.poplist, [dir], countdown-1)
         for i in range(17):
             yield None
-            for s in self.touching(0):
-                if isinstance(s, Monster):
-                    s.argh(self.poplist)
+            if self.poplist:
+                for s in self.touching(0):
+                    if isinstance(s, Monster):
+                        s.argh(self.poplist)
             yield None
         self.kill()
 
@@ -704,13 +718,13 @@ def newbubble(): #force=0):
             return
     sendbubble(cls)
 
-def sendbubble(cls, *args):
+def sendbubble(cls, *args, **kw):
     from player import BubPlayer
     players = [p for p in BubPlayer.PlayerList if p.isplaying()]
     if not players:
         return
     pn = random.choice(players).pn
-    cls(pn, *args)
+    cls(pn, *args, **kw)
 
 def newbonusbubble():
     boards.curboard.top = random.choice([0,0,0, 1,1,1, 2,2, 3,3])
