@@ -507,10 +507,22 @@ class Client:
     pass
 
   def log(self, message):
+    global LOGFILE
     if LOGFILE:
-      f = open(LOGFILE, 'a')
-      print >> f, ctime(), self.addr, message
-      f.close()
+      try:
+        f = open(LOGFILE, 'a')
+      except IOError:
+        import tempfile
+        name = os.path.join(tempfile.gettempdir(), os.path.basename(LOGFILE))
+        if name == LOGFILE:
+          LOGFILE = None
+        else:
+          print 'Logging to', name
+          LOGFILE = name
+          self.log(message)
+      else:
+        print >> f, ctime(), self.addr, message
+        f.close()
 
 ##  def def_file(self, filename, md5sum):
 ##    fnp = []
