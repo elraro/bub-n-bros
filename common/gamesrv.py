@@ -325,22 +325,22 @@ class Client:
         buffer = ''.join(self.msgl)
         if buffer:
           self.send_buffer(buffer)
-      if self.udpsocket is not None:
-        if self.sounds:
-          if broadcast_extras is None or self not in broadcast_clients:
-            udpdata = ''.join(self.sounds.keys() + [udpdata])
+      broadcasting = broadcast_extras is not None and self in broadcast_clients
+      if self.sounds:
+        if broadcasting:
+          broadcast_extras.update(self.sounds)
+        else:
+          udpdata = ''.join(self.sounds.keys() + [udpdata])
+        for key, value in self.sounds.items():
+          if value:
+            self.sounds[key] = value-1
           else:
-            broadcast_extras.update(self.sounds)
-          for key, value in self.sounds.items():
-            if value:
-              self.sounds[key] = value-1
-            else:
-              del self.sounds[key]
-        if broadcast_extras is None or self not in broadcast_clients:
-          try:
-            self.udpsockcounter += self.udpsocket.send(udpdata)
-          except error:
-            pass  # ignore UDP send errors (buffer full, etc.)
+            del self.sounds[key]
+      if self.udpsocket is not None and not broadcasting:
+        try:
+          self.udpsockcounter += self.udpsocket.send(udpdata)
+        except error:
+          pass  # ignore UDP send errors (buffer full, etc.)
       if self.has_music > 1 and NOW >= self.musicstreamer:
         self.musicstreamer += 0.99
         self.sendmusicdata()
