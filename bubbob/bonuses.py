@@ -1197,7 +1197,7 @@ Classes = [c for c in globals().values()
            if type(c)==type(RandomBonus) and issubclass(c, RandomBonus)]
 Classes.remove(RandomBonus)
 Classes.remove(TemporaryBonus)
-Cheat = []
+Cheat = [Monsterer]
 #Classes = [Cocktail, Butterfly]  # CHEAT
 
 AllOutcomes = ([(c,) for c in Classes if c is not Fruits] +

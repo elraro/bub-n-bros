@@ -193,7 +193,12 @@ class Monster(ActiveSprite):
                 ny = (ny//16+1)*16
             elif (ny & 15) < 3:
                 ny = (ny//16)*16
-            self.move(self.x, ny)
+            nx = self.x
+            if nx < 32:
+                nx += 1
+            elif nx > boards.bwidth - 64:
+                nx -= 1
+            self.move(nx, ny)
             if self.y >= boards.bheight:
                 self.vertical_warp()
         if hasattr(self, 'bubber'):
@@ -324,9 +329,14 @@ class Monster(ActiveSprite):
             if hstep or vstep:
                 blocked = 0
             elif blocked:
-                # blocked! go up
-                self.step(0, -self.vy)
-                self.vertical_warp()
+                # blocked! go up or back to the play area
+                if self.x < 32:
+                    self.step(self.vy, 0)
+                elif self.x > boards.bwidth - 64:
+                    self.step(-self.vy, 0)
+                else:
+                    self.step(0, -self.vy)
+                    self.vertical_warp()
             else:
                 blocked = 1
             yield None
@@ -383,9 +393,15 @@ class Monster(ActiveSprite):
                     self.dir = -self.dir
                     self.vdir = -self.vdir
                     if blocked:
-                        # completely blocked! accept move
-                        self.step(self.vx*dx, self.vy*dy)
-                        self.vertical_warp()
+                        # completely blocked! accept move or force back to
+                        # play area
+                        if self.x < 32:
+                            self.step(self.vy, 0)
+                        elif self.x > boards.bwidth - 64:
+                            self.step(-self.vy, 0)
+                        else:
+                            self.step(self.vx*dx, self.vy*dy)
+                            self.vertical_warp()
                 yield None
         elif not isinstance(self, Springy):
             # walking monster

@@ -239,7 +239,12 @@ class Dragon(ActiveSprite):
                     ny = self.y+(1,-1)[bottom_up]
                 else:
                     ny = (self.y+(4,-1)[bottom_up]) & ~3
-                self.move(self.x, ny)
+                nx = self.x
+                if nx < 32:
+                    nx += 2
+                elif nx > boards.bwidth - 64:
+                    nx -= 2
+                self.move(nx, ny)
                 if ny >= boards.bheight or ny < -2*CELL:
                     self.vertical_warp()
 
