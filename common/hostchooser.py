@@ -70,7 +70,7 @@ def pick(hostlist, delay=1):
                     result = (hostname, port)
                     print "* Picking %r at" % data[1], result
                     return result
-            print >> sys.stderr, "got an unexpected answer from", answer_from
+            print >> sys.stderr, "got an unexpected answer", data, "from", answer_from
     print >> sys.stderr, "no server found."
     raise SystemExit
 
