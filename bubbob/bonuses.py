@@ -256,12 +256,14 @@ class RandomBonus(Bonus):
 
 
 class Shoe(RandomBonus):
+    "Fast Runner. Cumulative increase of horizontal speed."
     nimage = Bonuses.shoe
     def taken(self, dragon):
         dragon.dcap['hspeed'] += 1
         dragon.carrybonus(self)
 
 class Coffee(RandomBonus):
+    "Caffeine. Cumulative increase of the horizontal speed and fire rate."
     nimage = Bonuses.coffee
     def taken(self, dragon):
         dragon.dcap['hspeed'] += 0.5
@@ -269,12 +271,14 @@ class Coffee(RandomBonus):
         dragon.carrybonus(self)
 
 class Butterfly(RandomBonus):
+    "Lunar Gravity. Allows you to jump twice as high as before."
     nimage = Bonuses.butterfly
     def taken(self, dragon):
         dragon.dcap['gravity'] *= 0.5
         dragon.carrybonus(self)
 
 class Cocktail(RandomBonus):
+    "Short Lived Bubbles. Makes your bubbles explode more quickly."
     nimage = Bonuses.cocktail
     points = 2000
     def taken(self, dragon):
@@ -282,6 +286,7 @@ class Cocktail(RandomBonus):
         dragon.carrybonus(self)
 
 class Extend(RandomBonus):
+    "E X T E N D. Gives you your missing letters and clear the level. "
     nimage = Bonuses.extend
     points = 0
     def taken(self, dragon):
@@ -294,12 +299,14 @@ class Extend(RandomBonus):
                 dragon.bubber.giveletter(l, promize=0)
 
 class HeartPoison(RandomBonus):
+    "Heart Poison. Freeze all free monsters."
     nimage = Bonuses.heart_poison
     def taken1(self, dragons):
         import monsters
         monsters.freeze_em_all()
 
 class VioletNecklace(RandomBonus):
+    "Monster Duplicator. Double the number of free monsters."
     points = 650
     nimage = Bonuses.violet_necklace
     def taken1(self, dragons):
@@ -371,6 +378,7 @@ def starexplosion(x, y, multiplyer, killmonsters=0, outcomes=[]):
                         b.gen.append(b.killmonsters(poplist))
 
 class Book(RandomBonus):
+    "Magic Bomb. Makes a magical explosion."
     points = 2000
     nimage = Bonuses.book
     def taken1(self, dragons):
@@ -394,18 +402,21 @@ class Potion(RandomBonus):
         boards.replace_boardgen(boards.potion_fill(blist))
 
 class Hamburger(RandomBonus):
+    "Fire Bubbles. Makes you fire napalm bubbles."
     nimage = Bonuses.hamburger
     def taken(self, dragon):
         dragon.dcap['shootbubbles'] = ['FireBubble'] * 10
         dragon.carrybonus(self)
 
 class Beer(RandomBonus):
+    "Water Bubbles. Your bubbles will now be filled with water."
     nimage = Bonuses.beer
     def taken(self, dragon):
         dragon.dcap['shootbubbles'] = ['WaterBubble'] * 10
         dragon.carrybonus(self)
 
 class FrenchFries(RandomBonus):
+    "Lightning Bubbles."
     nimage = Bonuses.french_fries
     def taken(self, dragon):
         dragon.dcap['shootbubbles'] = ['LightningBubble'] * 10
@@ -419,12 +430,14 @@ class Door(RandomBonus):
                       outcomes = [(MonsterBonus, -1)] * 10)
 
 class SoftIce1(RandomBonus):
+    "Long Fire. Increase the range of your bubble throw out."
     nimage = Bonuses.softice1
     def taken(self, dragon):
         dragon.dcap['shootthrust'] *= 1.5
         dragon.carrybonus(self)
 
 class SoftIce2(RandomBonus):
+    "Short Fire. Shorten the range of your bubble throw out."
     nimage = Bonuses.softice2
     points = 300
     def taken(self, dragon):
@@ -432,6 +445,7 @@ class SoftIce2(RandomBonus):
         dragon.carrybonus(self)
 
 class CustardPie(RandomBonus):
+    "High Speed Fire. Increase your fire rate."
     nimage = Bonuses.custard_pie
     points = 700
     def taken(self, dragon):
@@ -447,40 +461,47 @@ class TemporaryBonus(RandomBonus):
             dragon.dcap[self.capname] -= 1
 
 class Mushroom(TemporaryBonus):
+    "Bouncy Bouncy. Makes you jump continuously."
     nimage = Bonuses.mushroom
     points = 900
     capname = 'pinball'
     captime = 625
 
 class Rape(TemporaryBonus):
+    "Auto Fire. Makes you fire continuously."
     nimage = Bonuses.rape
     points = 800
     capname = 'autofire'
     captime = 675
 
 class Insect(RandomBonus):
+    "Crush World."
     nimage = Bonuses.insect
     def taken1(self, dragons):
         boards.extra_boardgen(boards.extra_walls_falling())
 
 class Ring(TemporaryBonus):
+    "The One Ring."
     nimage = Bonuses.ring
     points = 4000
     capname = 'ring'
     captime = 700
 
 class GreenPepper(TemporaryBonus):
+    "Hot Pepper. Run! Run! That burns."
     nimage = Bonuses.green_pepper
     capname = 'hotstuff'
     captime = 100
 
 class Lollipop(RandomBonus):
+    "Yo Man! Makes you walk backward."
     nimage = Bonuses.lollipop
     def taken(self, dragon):
         dragon.dcap['left2right'] = -dragon.dcap['left2right']
         dragon.carrybonus(self)
 
 class Chickpea(RandomBonus):
+    "Basilik. Allows you to touch the monsters."
     nimage = Bonuses.chickpea
     points = 800
     def taken(self, dragon):
@@ -505,6 +526,7 @@ class IceCream(RandomBonus):
                 IceCream(x, y, nextgen)
 
 class Grenade(RandomBonus):
+    "Barbecue."
     nimage = Bonuses.grenade
     points = 550
     def taken1(self, dragons):
@@ -516,6 +538,7 @@ class Grenade(RandomBonus):
                     FireFlame(x, y, poplist)
 
 class Conch(RandomBonus):
+    "Sea Shell. Let's bring the sea here!"
     nimage = Bonuses.conch
     points = 650
     def taken1(self, dragons):
@@ -627,6 +650,7 @@ Fruits5 = Fruits
 Fruits6 = Fruits
 
 class BlueNecklace(RandomBonus):
+    "Self Duplicator. Mirror yourself."
     points = 1000
     nimage = Bonuses.blue_necklace
     def taken(self, dragon):
@@ -642,6 +666,7 @@ class BlueNecklace(RandomBonus):
         d1.carrybonus(self, 250)
 
 class Monsterer1(RandomBonus):
+    "Monsterificator. Let's play on the other side!"
     points = 800
     nimage = Bonuses.red_crux
     mlist = ['Nasty', 'Monky', 'Springy', 'Orcy']
@@ -650,11 +675,13 @@ class Monsterer1(RandomBonus):
         dragon.become_monster(mcls)
 
 class Monsterer2(Monsterer1):
+    "Monsterificator. Let's play on the other side!"
     points = 850
     nimage = Bonuses.blue_crux
     mlist = ['Ghosty', 'Flappy', 'Gramy', 'Blitzy']
 
 class Bubblizer(RandomBonus):
+    "Bubblizer."
     points = 750
     nimage = Bonuses.gold_crux
     def taken(self, dragon):
@@ -666,6 +693,7 @@ class Bubblizer(RandomBonus):
             b.kill()
 
 class Carrot(RandomBonus):
+    "Angry Monster. Turns all free monsters angry."
     nimage = Bonuses.carrot
     points = 950
     def taken1(self, dragons):
@@ -676,6 +704,7 @@ class Carrot(RandomBonus):
                 s.resetimages()
 
 class Egg(RandomBonus):
+    "Teleporter. Exchange yourself with somebody else."
     nimage = Bonuses.egg
     def taken1(self, dragons):
         dragons = [d for d in dragons if d in d.bubber.dragons]
@@ -707,6 +736,7 @@ class Egg(RandomBonus):
             d1.dcap['shield'] = 50
 
 class Bomb(RandomBonus):
+    "Baaoouuuummmm! Explode that wall!"
     nimage = Bonuses.bomb
     def taken1(self, dragons):
         RADIUS = 3.9 * CELL
@@ -730,6 +760,7 @@ class Bomb(RandomBonus):
         starexplosion(self.x, self.y, 2)
 
 class Ham(RandomBonus):
+    "Protein. Let's build something!"
     nimage = Bonuses.ham
     def taken1(self, dragons):
         RADIUS = 3.9 * CELL
@@ -753,6 +784,7 @@ class Ham(RandomBonus):
         boards.extra_boardgen(boards.single_blocks_falling(xylist))
 
 class Chestnut(RandomBonus):
+    "Relativity. Speed up or slow down the game."
     nimage = Bonuses.chestnut
     sound = None
     def taken1(self, dragons):
@@ -773,6 +805,7 @@ else:
     gamesrv.Sprite.inst_build = standard_build
     
     class Clock(RandomBonus):
+        "Time Machine. Let's do it again!"
         touchable = 0
         points = 0
         nimage = Bonuses.clock
@@ -911,12 +944,14 @@ class MultiStones(RandomBonus):
             return -1     # don't go away
 
 class Slippy(TemporaryBonus):
+    "Greased Feet. Do you want some ice skating?"
     nimage = Bonuses.orange_thing
     points = 900
     capname = 'slippy'
     captime = 606
 
 class Aubergine(RandomBonus):
+    "Mirror. The left hand is the one with the thumb on the right, right?"
     nimage = Bonuses.aubergine
     def taken(self, dragon):
         dragon.dcap['lookforward'] = -dragon.dcap['lookforward']
