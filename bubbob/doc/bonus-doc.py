@@ -2,16 +2,21 @@
 
 import os, sys, string, struct
 os.chdir(os.pardir)
-sys.path.append(os.path.abspath(os.path.join(os.pardir, 'common')))
 sys.path.append(os.getcwd())
+sys.path.append(os.path.abspath(os.path.join(os.pardir, 'common')))
 
 from sprmap import  sprmap
 import bonuses, images
 
-def create_image(name,source):
+try:
+    import psyco; psyco.full()
+except ImportError:
+    pass
+
+def create_image(name,source,extralines=0):
     if len(sys.argv) == 2 and sys.argv[1] == '-i':
         return
-    #print name, source
+    print name, source
     src = open('images/'+source[0],'r')
     assert src.readline().strip() == 'P6'
     line = src.readline()
@@ -25,16 +30,23 @@ def create_image(name,source):
     src.close()
     img = os.popen("convert PPM:- doc/images/"+name+'.png','w')
     print >> img, 'P6'
-    print >> img, source[1][2], source[1][3]
+    print >> img, source[1][2], source[1][3]+extralines
     print >> img, c
     cx = source[1][0]+source[1][2]//2
-    cy = source[1][1]+source[1][3]*7//8
+    cy = source[1][1]+source[1][3]*6//7
     for y in range(source[1][1],source[1][1]+source[1][3]):
         for x in range(source[1][0],source[1][0]+source[1][2]):
             rgb = data[y*3*w+3*x:y*3*w+3*x+3]
             if rgb == '\x01\x01\x01':
                 d = (x-cx)*(x-cx)+(y-cy)*(y-cy)*6
-                rgb = chr(min(255, d))*3
+                if d > 255: d = 255
+                rgb = chr(d)*3
+            img.write(rgb)
+    for y in range(y+1, y+1+extralines):
+        for x in range(source[1][0],source[1][0]+source[1][2]):
+            d = (x-cx)*(x-cx)+(y-cy)*(y-cy)*6
+            if d > 255: d = 255
+            rgb = chr(d)*3
             img.write(rgb)
     img.close()
     

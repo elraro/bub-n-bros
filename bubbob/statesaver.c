@@ -218,7 +218,6 @@ static PyTypeObject keytype = {
 
 /* global state */
 static PyObject* ss_memo;
-static int ss_valid;
 static struct key_block* ss_block;
 static int ss_next_in_block;
 
@@ -232,7 +231,7 @@ static PyObject* copyrec(PyObject* o)
   PyObject* key;
   KeyObject* fkey;
 
-  if (o == Py_None || o->ob_type == &PyInt_Type)
+  if (o == Py_None || o->ob_type == &PyInt_Type || o->ob_type == &PyString_Type)
     {
       Py_INCREF(o);
       return o;
@@ -240,7 +239,7 @@ static PyObject* copyrec(PyObject* o)
   if (ss_next_in_block < 0)
     {
       struct key_block* b = (struct key_block*) malloc(sizeof(struct key_block));
-      if (!b) goto fail1;
+      if (!b) { PyErr_NoMemory(); goto fail1; }
       b->next = ss_block;
       ss_block = b;
       ss_next_in_block = KEYS_BY_BLOCK - 1;
@@ -257,7 +256,7 @@ static PyObject* copyrec(PyObject* o)
       return n;
     }
   ss_next_in_block--;
-  Py_INCREF(o);
+  Py_INCREF(o);    /* reference stored in 'fkey->o' */
   t = o->ob_type;
   if (t == &PyTuple_Type)
     {
@@ -360,19 +359,18 @@ static PyObject* copyrec(PyObject* o)
       return n;
     }
   ss_next_in_block++;
-  return o;
+  return o;     /* reference no longer stored in 'fkey->o' */
 
  unmodified:
-  if (PyDict_SetItem(ss_memo, key, o)) goto fail;
+  PyDict_SetItem(ss_memo, key, o);
   Py_INCREF(o);
   return o;
 
  fail1:
-  Py_INCREF(o);
   n = NULL;
  fail:
+  Py_INCREF(o);
   Py_XDECREF(n);
-  ss_valid = 0;
   return o;
 }
 
@@ -383,7 +381,6 @@ static PyObject* sscopy(PyObject* self, PyObject* o)
   if (!ss_memo)
     return NULL;
 
-  ss_valid = 1;
   ss_block = NULL;
   ss_next_in_block = -1;
   n = copyrec(o);
@@ -398,7 +395,7 @@ static PyObject* sscopy(PyObject* self, PyObject* o)
       free(b);
       ss_next_in_block = -1;
     }
-  if (!ss_valid)
+  if (PyErr_Occurred())
     {
       Py_DECREF(n);
       n = NULL;
