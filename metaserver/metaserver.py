@@ -187,7 +187,7 @@ def makehosthtml(srv, bottommsg, join):
     try:
         fullhostname = gethostbyaddr(hostname)[0]
     except:
-        pass
+        fullhostname = hostname
     url = None
     if join:
         url = "http://%s/join.html?host=%s&port=%s&httpport=%s&m=%s" % (
