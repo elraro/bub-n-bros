@@ -5,12 +5,15 @@ from socket import *
 from select import select
 import cStringIO, struct, zlib
 import time
+sys.path.insert(0, os.pardir)
 from common.msgstruct import *
 from common import hostchooser
 import modes
 from modes import KeyPressed, KeyReleased
 
 #import psyco; psyco.full()
+
+SOURCEDIR = os.pardir
 
 
 def loadpixmap(dpy, data, colorkey=None):
@@ -35,20 +38,23 @@ def loadpixmap(dpy, data, colorkey=None):
     return dpy.pixmap(w, h, data, colorkey)
 
 class Icon:
-    def __init__(self, bitmap, (x, y, w, h)):
+    def __init__(self, bitmap, (x, y, w, h), alpha):
         self.rect = x, y, w, h
         self.size = w, h
         self.bitmap = bitmap
+        self.alpha = alpha
 
 
 class Playback:
     gameident = 'Playback'
     
-    def __init__(self, filename, mode='shm'):
+    def __init__(self, filename, mode=('x', 'off', {})):
         f = gzip.open(filename, 'rb')
         self.screenmode = mode
         self.width = None
-        self.bitmaps = {}
+        self.deffiles = {}
+        self.defbitmaps = {}
+        self.deficons = {}
         self.icons = {}
         self.frames = []
         inbuf = ''
@@ -61,6 +67,7 @@ class Playback:
                     break
                 inbuf += data
             else:
+                #print values[0],
                 fn = Playback.MESSAGES.get(values[0], self.msg_unknown)
                 fn(self, *values[1:])
         print '%d frames in file.' % len(self.frames)
@@ -71,12 +78,19 @@ class Playback:
                                   self.width, self.height, self.gameident)
         self.dpy.clear()   # backcolor is ignored
         self.sprites = []
-        for bmpcode, (data, colorkey) in self.bitmaps.items():
-            data = zlib.decompress(data)
-            self.bitmaps[bmpcode] = loadpixmap(self.dpy, data, colorkey)
-        for icocode, (bmpcode, rect) in self.icons.items():
-            self.icons[icocode] = Icon(self.bitmaps[bmpcode], rect)
+        self.buildicons()
         self.go(0)
+
+    def buildicons(self):
+        bitmaps = {}
+        for bmpcode, (data, colorkey) in self.defbitmaps.items():
+            if isinstance(data, str):
+                data = zlib.decompress(data)
+            else:
+                data = self.deffiles[data]
+            bitmaps[bmpcode] = loadpixmap(self.dpy, data, colorkey)
+        for icocode, (bmpcode, rect, alpha) in self.deficons.items():
+            self.icons[icocode] = Icon(bitmaps[bmpcode], rect, alpha)
 
     def go(self, n):
         self.n = n
@@ -108,38 +122,82 @@ class Playback:
                     eraser(*eraseargs)
                 break
             base += 6
-        getter = self.dpy.getppm
-        setter = self.dpy.putppm
-        #print "%d sprites redrawn" % (len(udpdata)/6-j)
-        for j in range(base, len(udpdata)-5, 6):
-            info = udpdata[j:j+6]
-            x, y, icocode = unpack("!hhh", info[:6])
-            try:
-                ico = self.icons[icocode]
-                sprites.append((info, (x, y, getter((x, y) + ico.size))))
-                setter(x, y, ico.bitmap, ico.rect)
-            except KeyError:
-                #print "bad ico code", icocode
-                pass  # ignore sprites with bad ico (probably not defined yet)
+        try:
+            overlayer = self.dpy.overlayppm
+        except AttributeError:
+            getter = self.dpy.getppm
+            setter = self.dpy.putppm
+            #print "%d sprites redrawn" % (len(udpdata)/6-j)
+            for j in range(base, len(udpdata)-5, 6):
+                info = udpdata[j:j+6]
+                x, y, icocode = unpack("!hhh", info[:6])
+                try:
+                    ico = self.icons[icocode]
+                    sprites.append((info, (x, y, getter((x, y) + ico.size))))
+                    setter(x, y, ico.bitmap, ico.rect)
+                except KeyError:
+                    #print "bad ico code", icocode
+                    pass  # ignore sprites with bad ico (probably not defined yet)
+        else:
+            for j in range(base, len(udpdata)-5, 6):
+                info = udpdata[j:j+6]
+                x, y, icocode = unpack("!hhh", info[:6])
+                try:
+                    ico = self.icons[icocode]
+                    overlay = overlayer(x, y, ico.bitmap, ico.rect, ico.alpha)
+                    sprites.append((info, overlay))
+                except KeyError:
+                    #print "bad ico code", icocode
+                    pass  # ignore sprites with bad ico (probably not defined yet)
 
     def msg_unknown(self, *rest):
         pass
 
+    def msg_patch_file(self, fileid, position, data, lendata=None, *rest):
+        try:
+            s = self.deffiles[fileid]
+        except KeyError:
+            s = ''
+        if len(s) < position:
+            s += '\x00' * (position-len(s))
+        s = s[:position] + data + s[position+len(s):]
+        self.deffiles[fileid] = s
+
+    def msg_zpatch_file(self, fileid, position, data, *rest):
+        data1 = zlib.decompress(data)
+        self.msg_patch_file(fileid, position, data1, len(data), *rest)
+
+    def msg_md5_file(self, fileid, filename, position, length, checksum, *rest):
+        fn = os.path.join(SOURCEDIR, filename)
+        f = open(fn, 'rb')
+        f.seek(position)
+        data = f.read(length)
+        f.close()
+        assert len(data) == length
+        self.msg_patch_file(fileid, position, data)
+
     def msg_def_playfield(self, width, height, *rest):
         self.width, self.height = width, height
 
-    def msg_def_icon(self, bmpcode, icocode, x, y, w, h, *rest):
-        self.icons[icocode] = bmpcode, (x, y, w, h)
+    def msg_def_icon(self, bmpcode, icocode, x, y, w, h, alpha=255, *rest):
+        self.deficons[icocode] = bmpcode, (x, y, w, h), alpha
 
     def msg_def_bitmap(self, bmpcode, data, colorkey=None, *rest):
-        self.bitmaps[bmpcode] = data, colorkey
+        self.defbitmaps[bmpcode] = data, colorkey
 
     def msg_recorded(self, data):
         self.frames.append(data)
 
     MESSAGES = {
+        MSG_PATCH_FILE   : msg_patch_file,
+        MSG_ZPATCH_FILE  : msg_zpatch_file,
+        MSG_MD5_FILE     : msg_md5_file,
         MSG_DEF_PLAYFIELD: msg_def_playfield,
         MSG_DEF_ICON     : msg_def_icon,
         MSG_DEF_BITMAP   : msg_def_bitmap,
         MSG_RECORDED     : msg_recorded,
         }
+
+
+if __name__ == '__main__' and len(sys.argv) > 1:
+    p = Playback(sys.argv[1])
