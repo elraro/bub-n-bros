@@ -520,6 +520,7 @@ def main(Game, pipe_url_to=None, quiet=0):
 
 def launch(args):
     # platform-specific hacks
+    print 'Running client with arguments', ' '.join(args)
     if sys.platform == 'darwin':   # must start as a UI process
         import tempfile
         cmdname = tempfile.mktemp('_BubBob.command')
@@ -533,31 +534,30 @@ def launch(args):
         print >> f, "execfile(%r)" % args[0]
         f.close()
         os.chmod(cmdname, 0700)
-        args = ['/usr/bin/open', cmdname]
+        os.system('/usr/bin/open ' + cmdname)
     else:
         args.insert(0, sys.executable)
-    print '*', ' '.join(args)
-    # try to close the open fds first
-    if hasattr(os, 'fork'):
-        try:
-            from resource import getrlimit, RLIMIT_NOFILE, error
-        except ImportError:
-            pass
-        else:
+        # try to close the open fds first
+        if hasattr(os, 'fork'):
             try:
-                soft, hard = getrlimit(RLIMIT_NOFILE)
-            except error:
+                from resource import getrlimit, RLIMIT_NOFILE, error
+            except ImportError:
                 pass
             else:
-                if os.fork():
-                    return # in parent -- done, continue
-                # in child
-                for fd in range(3, hard):
-                    try:
-                        os.close(fd)
-                    except OSError:
-                        pass
-                os.execv(args[0], args)
-                # this point should never be reached
-    # fall-back
-    os.spawnv(os.P_NOWAITO, args[0], args)
+                try:
+                    soft, hard = getrlimit(RLIMIT_NOFILE)
+                except error:
+                    pass
+                else:
+                    if os.fork():
+                        return # in parent -- done, continue
+                    # in child
+                    for fd in range(3, min(16384, hard)):
+                        try:
+                            os.close(fd)
+                        except OSError:
+                            pass
+                    os.execv(args[0], args)
+                    # this point should never be reached
+        # fall-back
+        os.spawnv(os.P_NOWAITO, args[0], args)
