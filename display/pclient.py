@@ -140,8 +140,11 @@ class Playfield:
         if mode[-1].has_key('udp_over_tcp'):
             udp_over_tcp = mode[-1]['udp_over_tcp']
         self.trackcfgmtime = None
-        self.trackcfgfile = os.path.join(DataChunk.SOURCEDIR,
-                                         'http2', 'config.txt')
+        if mode[-1].has_key('cfgfile'):
+            self.trackcfgfile = mode[-1]['cfgfile']
+        else:
+            self.trackcfgfile = os.path.join(DataChunk.SOURCEDIR,
+                                             'http2', 'config.txt')
         self.udpsock = None
         self.udpsock_low = None
         self.udpsock2 = None
