@@ -107,6 +107,7 @@ class Pac(PacSprite):
         from bubbles import Bubble
         self.play(images.Snd.Pop)
         self.bubble.gen = [self.bubble.die(Bubble.exploding_bubbles)]
+        self.pacman.latestposition[self.bubber] = self.x, self.y
         try:
             self.bubber.dragons.remove(self)
         except ValueError:
@@ -249,19 +250,20 @@ class Pacman:
 
         tc = boards.TimeCounter(limittime)
         self.dots = []
-        self.joined = {}
+        self.builddelay = {}
+        self.latestposition = {}
         self.pacs = []
-        finish = 0
+        #finish = 0
         for t in self.frame():
             t = boards.normal_frame()
             self.build_pacs()
             yield t
-            if len(self.pacs) == 0:
-                finish += 1
-                if finish == 20:
-                    break
-            else:
-                finish = 0
+            #if len(self.pacs) == 0:
+            #    finish += 1
+            #    if finish == 20:
+            #        break
+            #else:
+            #    finish = 0
             tc.update(t)
             if tc.time == 0.0:
                 break
@@ -336,13 +338,17 @@ class Pacman:
         from player import BubPlayer
         for p in BubPlayer.PlayerList:
             dragons = [d for d in p.dragons if not isinstance(d, Pac)]
-            if (dragons and len(p.dragons) == len(dragons) and
-                p not in self.joined):
-                dragon = random.choice(dragons)
-                pac = Pac(self, p, dragon.x, dragon.y, dragon.dcap)
-                p.dragons.append(pac)
-                p.emotic(dragon, 4)
-                self.joined[p] = 1
+            if dragons and len(p.dragons) == len(dragons):
+                if self.builddelay.get(p):
+                    self.builddelay[p] -= 1
+                else:
+                    self.builddelay[p] = 109
+                    dragon = random.choice(dragons)
+                    if p in self.latestposition:
+                        dragon.move(*self.latestposition[p])
+                    pac = Pac(self, p, dragon.x, dragon.y, dragon.dcap)
+                    p.dragons.append(pac)
+                    p.emotic(dragon, 4)
             for d in dragons:
                 d.kill()
 

@@ -168,7 +168,8 @@ class Paddle(ActiveSprite):
                     s.touched(self)
 
     def score(self, hits):
-        self.arkanoid.bricks[self.bubber] += hits
+        bricks = self.arkanoid.bricks
+        bricks[self.bubber] = bricks.get(self.bubber, 0) + hits
         self.bubber.givepoints(125*(2**hits))
 
 
@@ -269,22 +270,23 @@ class Arkanoid:
 
         tc = boards.TimeCounter(limittime)
         self.ready = 0
+        self.builddelay = {}
         self.bricks = {}
         self.nbbricks = 0
         self.order = []
         self.paddles = []
-        finish = 0
+        #finish = 0
         for t in self.frame():
             self.order_paddles()
             t = boards.normal_frame()
             self.build_paddles()
             yield t
-            if len(self.paddles) == 0:
-                finish += 1
-                if finish == 20:
-                    break
-            else:
-                finish = 0
+            #if len(self.paddles) == 0:
+            #    finish += 1
+            #    if finish == 20:
+            #        break
+            #else:
+            #    finish = 0
             tc.update(t)
             if tc.time == 0.0:
                 break
@@ -338,14 +340,16 @@ class Arkanoid:
         from player import BubPlayer
         for p in BubPlayer.PlayerList:
             dragons = [d for d in p.dragons if not isinstance(d, PaddleEyes)]
-            if (dragons and len(p.dragons) == len(dragons) and
-                p not in self.bricks):
-                dragon = random.choice(dragons)
-                self.bricks[p] = 0
-                paddle = Paddle(self, p, dragon.x, dragon.y)
-                eyes = PaddleEyes(p, dragon.dcap, paddle)
-                p.dragons.append(eyes)
-                p.emotic(dragon, 4)
+            if dragons and len(p.dragons) == len(dragons):
+                if self.builddelay.get(p):
+                    self.builddelay[p] -= 1
+                else:
+                    self.builddelay[p] = 53
+                    dragon = random.choice(dragons)
+                    paddle = Paddle(self, p, dragon.x, dragon.y)
+                    eyes = PaddleEyes(p, dragon.dcap, paddle)
+                    p.dragons.append(eyes)
+                    p.emotic(dragon, 4)
             for d in dragons:
                 d.kill()
 

@@ -115,7 +115,8 @@ class Shot(bubbles.Bubble):
                 self.move(alien.x, alien.y)
                 self.pop([ship])
                 alien.kill()
-                ship.galaga.scores[ship.bubber] += 1
+                scores = ship.galaga.scores
+                scores[ship.bubber] = scores.get(ship.bubber, 0) + 1
                 return
             yield None
 
@@ -164,9 +165,9 @@ class Alien(monsters.Monster):
         ymax = boards.bheight - self.ico.h
         cont = 1
         if relative:
-            shoot_prob = 0.008
+            shoot_prob = 0.0085
         else:
-            shoot_prob = 0.020
+            shoot_prob = 0.021
         while cont:
             if self.angry:
                 self.kill()   # never getting out of a bubble
@@ -195,6 +196,8 @@ class Alien(monsters.Monster):
                 if self.y > ymax and relative.ships:
                     for ship in relative.ships[:]:
                         ship.kill()
+                        relative.builddelay[ship.bubber] = 9999
+                    relative.gameover = 1
                     #x0 = self.x//CELL + 1
                     #if x0 < 2: x0 = 0
                     #if x0 >= boards.width-2: x0 = boards.width-3
@@ -216,6 +219,7 @@ class Alien(monsters.Monster):
 
 
 class Galaga:
+    gameover = 0
     
     def bgen(self):
         for t in boards.exit_board(0, repeatmusic=[music]):
@@ -224,19 +228,20 @@ class Galaga:
             yield t
 
         self.ships = []
+        self.builddelay = {}
         self.scores = {}
         self.nbmonsters = 0
-        finish = 0
+        #finish = 0
         for t in self.frame():
             t = boards.normal_frame()
             self.build_ships()
             yield t
-            if len(self.ships) == 0:
-                finish += 1
-                if finish == 50:
-                    break
-            else:
-                finish = 0
+            #if len(self.ships) == 0:
+            #    finish += 1
+            #    if finish == 50:
+            #        break
+            #else:
+            #    finish = 0
 
         for t in boards.result_ranking(self.scores, self.nbmonsters):
             self.build_ships()
@@ -269,7 +274,7 @@ class Galaga:
         nextsquad = 0
         relativey = 0
         squadtime = 0
-        while 1:
+        while not self.gameover:
             yield None
             #if random.random() < 0.015:
             #    bubbles.sendbubble(bubbles.PlainBubble, top=0)
@@ -324,14 +329,16 @@ class Galaga:
     def build_ships(self):
         for p in BubPlayer.PlayerList:
             dragons = [d for d in p.dragons if not isinstance(d, Ship)]
-            if (dragons and len(p.dragons) == len(dragons) and
-                p not in self.scores):
-                dragon = random.choice(dragons)
-                self.scores[p] = 0
-                ship = Ship(self, p, dragon.x, dragon.y)
-                ship.dcap = dragon.dcap
-                p.dragons.append(ship)
-                p.emotic(dragon, 4)
+            if dragons and len(p.dragons) == len(dragons):
+                if self.builddelay.get(p):
+                    self.builddelay[p] -= 1
+                else:
+                    self.builddelay[p] = 75
+                    dragon = random.choice(dragons)
+                    ship = Ship(self, p, dragon.x, dragon.y)
+                    ship.dcap = dragon.dcap
+                    p.dragons.append(ship)
+                    p.emotic(dragon, 4)
             for d in dragons:
                 d.kill()
 
