@@ -126,7 +126,7 @@ class Board:
             return
         # add players
         from player import BubPlayer, scoreboard
-        scoreboard(1)
+        scoreboard(1, inplace=inplace)
         playing = []
         plist = BubPlayer.PlayerList[:]
         random.shuffle(plist)

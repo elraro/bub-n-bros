@@ -26,7 +26,7 @@ class Dragon(ActiveSprite):
         'infinite_shield': 1,
         'shield': 50,
         'gravity': 0.21,
-        'bubbledelay': 800,
+        'bubbledelay': 0,
         'shootbubbles': (),
         'pinball': 0,
         'autofire': 0,
@@ -139,7 +139,8 @@ class Dragon(ActiveSprite):
             carrying = self.dcap['carrying']
             while carrying and carrying[0][0] < BubPlayer.FrameCounter:
                 timeout, bonus = carrying.pop(0)
-                bonus.endaction(self)
+                if bonus.endaction:
+                    bonus.endaction(self)
                 del bonus
 
             bubber = self.bubber
@@ -617,9 +618,13 @@ def xyiconumber(digits, x, y, pts, lst, width=7):
             break
     return lst[-1][0]
 
-def scoreboard(reset=0):
+def scoreboard(reset=0, inplace=0):
     if reset:
         for p in BubPlayer.PlayerList:
+            if inplace:
+                for s in p.letters.values():
+                    if isinstance(s, ActiveSprite):
+                        s.kill()
             if len(p.letters) == 6:
                 p.letters.clear()
             for key in p.letters:

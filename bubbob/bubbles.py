@@ -247,7 +247,7 @@ class DragonBubble(Bubble):
                 return
         self.touchable = 1
         self.gen.append(self.normal_movements(
-                                timeout=self.d.dcap['bubbledelay']))
+                                timeout=self.d.dcap['bubbledelay'] or 800))
         imglist = GreenAndBlue.normal_bubbles[self.d.bubber.pn]
         self.setimages(self.cyclic([imglist[1],
                                     imglist[2],

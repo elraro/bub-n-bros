@@ -28,6 +28,7 @@ class Bonus(ActiveSprite):
     points = 750
     timeout = 250
     sound = 'Fruit'
+    endaction = None
 
     def __init__(self, x, y, nimage=None, points=None, falling=1):
         if nimage is not None:
@@ -89,9 +90,6 @@ class Bonus(ActiveSprite):
                 self.taken(d)
 
     def taken(self, dragon):
-        pass
-
-    def endaction(self, dragon):
         pass
 
     def in_bubble(self, bubble):
@@ -276,6 +274,25 @@ class MonsterBonus(Bonus):
 class RandomBonus(Bonus):
     timeout = 500
 
+class TemporaryBonus(RandomBonus):
+    captime = 0
+    bonusleveldivider = 2
+    def taken(self, dragon):
+        dragon.dcap[self.capname] += 1
+        self.carried(dragon)
+    def carried(self, dragon):
+        captime = self.captime
+        if boards.curboard.bonuslevel:
+            captime = (captime or 999) // self.bonusleveldivider
+        if captime:
+            dragon.carrybonus(self, captime)
+        else:
+            dragon.carrybonus(self)
+            self.endaction = None
+    def endaction(self, dragon):
+        if dragon.dcap[self.capname] >= 1:
+            dragon.dcap[self.capname] -= 1
+
 
 class ShoeSpeed(RandomBonus):
     "Fast Runner. Cumulative increase of horizontal speed."
@@ -292,20 +309,20 @@ class CoffeeSpeed(RandomBonus):
         dragon.dcap['firerate'] += 1
         dragon.carrybonus(self)
 
-class Butterfly(RandomBonus):
+class Butterfly(TemporaryBonus):
     "Lunar Gravity. Allows you to jump twice as high as before."
     nimage = Bonuses.butterfly
     def taken(self, dragon):
         dragon.dcap['gravity'] *= 0.5
-        dragon.carrybonus(self)
+        self.carried(dragon)
+    def endaction(self, dragon):
+        dragon.dcap['gravity'] *= 2.0
 
-class Cocktail(RandomBonus):
+class Cocktail(TemporaryBonus):
     "Short Lived Bubbles. Makes your bubbles explode more quickly."
     nimage = Bonuses.cocktail
     points = 2000
-    def taken(self, dragon):
-        dragon.dcap['bubbledelay'] = 1
-        dragon.carrybonus(self)
+    capname = 'bubbledelay'
 
 class Extend(RandomBonus):
     "E X T E N D. Gives you your missing letters and clear the level. "
@@ -483,14 +500,6 @@ class HighSpeedFire(RandomBonus):
         dragon.dcap['firerate'] += 1.5
         dragon.carrybonus(self)
 
-class TemporaryBonus(RandomBonus):
-    def taken(self, dragon):
-        dragon.dcap[self.capname] += 1
-        dragon.carrybonus(self, self.captime)
-    def endaction(self, dragon):
-        if dragon.dcap[self.capname] >= 1:
-            dragon.dcap[self.capname] -= 1
-
 class Mushroom(TemporaryBonus):
     "Bouncy Bouncy. Makes you jump continuously."
     nimage = Bonuses.mushroom
@@ -517,10 +526,7 @@ class Ring(TemporaryBonus):
     points = 4000
     capname = 'ring'
     captime = 700
-    def __init__(self, x, y):
-        TemporaryBonus.__init__(self, x, y)
-        if boards.curboard.bonuslevel:
-            self.kill()
+    bonusleveldivider = 5
 
 class GreenPepper(TemporaryBonus):
     "Hot Pepper. Run! Run! That burns."
@@ -528,12 +534,14 @@ class GreenPepper(TemporaryBonus):
     capname = 'hotstuff'
     captime = 100
 
-class Lollipop(RandomBonus):
+class Lollipop(TemporaryBonus):
     "Yo Man! Makes you walk backward."
     nimage = Bonuses.lollipop
     def taken(self, dragon):
         dragon.dcap['left2right'] = -dragon.dcap['left2right']
-        dragon.carrybonus(self)
+        self.carried(dragon)
+    def endaction(self, dragon):
+        dragon.dcap['left2right'] = -dragon.dcap['left2right']
 
 class Chickpea(RandomBonus):
     "Basilik. Allows you to touch the monsters."
@@ -1000,12 +1008,14 @@ class Slippy(TemporaryBonus):
     capname = 'slippy'
     captime = 606
 
-class Aubergine(RandomBonus):
+class Aubergine(TemporaryBonus):
     "Mirror. The left hand is the one with the thumb on the right, right?"
     nimage = Bonuses.aubergine
     def taken(self, dragon):
         dragon.dcap['lookforward'] = -dragon.dcap['lookforward']
-        dragon.carrybonus(self)
+        self.carried(dragon)
+    def endaction(self, dragon):
+        dragon.dcap['lookforward'] = -dragon.dcap['lookforward']
 
 class WhiteCarrot(TemporaryBonus):
     "Fly. Become a great flying dragon!"
@@ -1140,7 +1150,7 @@ class Flower(RandomBonus):
         dragon.dcap['flower'] += 12
         dragon.carrybonus(self)
 
-class Flower2(RandomBonus):
+class Flower2(TemporaryBonus):
     "Bottom-up Flower.  Turn you upside-down."
     nimage = 'flower2'
     points = 1000
@@ -1162,7 +1172,9 @@ class Flower2(RandomBonus):
         self.kill()
     def taken(self, dragon):
         dragon.dcap['gravity'] *= -1.0
-        dragon.carrybonus(self)
+        self.carried(dragon)
+    def endaction(self, dragon):
+        dragon.dcap['gravity'] *= -1.0
 
 if 'Moebius' in EXTRA_BONUSES:
     class Moebius(RandomBonus):
@@ -1186,7 +1198,7 @@ Classes = [c for c in globals().values()
 Classes.remove(RandomBonus)
 Classes.remove(TemporaryBonus)
 Cheat = []
-Classes = [Sheep]  # CHEAT
+#Classes = [Cocktail, Butterfly]  # CHEAT
 
 AllOutcomes = ([(c,) for c in Classes if c is not Fruits] +
                2 * [(MonsterBonus, lvl)
