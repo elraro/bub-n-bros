@@ -107,7 +107,8 @@ class ActiveSprite(gamesrv.Sprite):
 
     def die(self, nimages, speed=1):
         for n in nimages:
-            self.seticon(sprget(n))
+            if n is not None:
+                self.seticon(sprget(n))
             for i in range(speed):
                 yield None
         self.kill()

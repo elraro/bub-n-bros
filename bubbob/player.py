@@ -132,6 +132,7 @@ class Dragon(ActiveSprite):
     def normal_movements(self):
         yfp = 0.0
         hfp = 0
+        angryticks = 0
         while 1:
             self.poplist = [self]
             carrying = self.dcap['carrying']
@@ -272,6 +273,14 @@ class Dragon(ActiveSprite):
 
             self.watermoveable = not wannajump
             yield None
+            
+            if self.angry:
+                if angryticks == 0:
+                    s = ActiveSprite(self.bubber.icons[11, self.dir],
+                                     self.x, self.y)
+                    s.gen.append(s.die([None], speed=10))
+                    angryticks = 6
+                angryticks -= 1
 
     def watermove(self, x, y):
         # for WaterCell.flooding()
