@@ -99,9 +99,8 @@ class BrickEyes(BubblingEyes):
         return 1
 
     def onground(self):
-        for b, (px, py) in zip(self.bricks, self.brick_positions()):
-            if (py < 0 or  # not completely on-screen yet
-                b.gen):    # brick still moving
+        for b in self.bricks:
+            if b.gen:    # brick still moving
                 return 0
         for px, py in self.brick_positions():
             if bget(px//CELL, py//CELL+1) >= '#':
@@ -150,11 +149,14 @@ class BrickEyes(BubblingEyes):
 
     def stopping(self):
         self.move(self.x, -self.ico.h)
-        positions = [(py//CELL, px//CELL) for px, py in self.brick_positions()]
+        positions = [(py//CELL, px//CELL) for px, py in self.brick_positions()
+                     if py >= 0]
         positions.sort()
         positions = [(px, py) for py, px in positions]
         for b in self.bricks:
             b.stop(self.tetris)
+            if b.ty < 0:
+                b.remove()
         self.bricks = []
         staticbricks = self.tetris.staticbricks
         pts = 500
