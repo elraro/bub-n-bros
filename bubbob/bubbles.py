@@ -313,7 +313,7 @@ class BubblingEyes(ActiveSprite):
                     normalbub = bubble.imgsetter
                     bubble.setimages(redblinker)
             else:
-                red = 0
+                #red = 0
                 if bubble.imgsetter is redblinker:
                     bubble.setimages(normalbub)
             key = ('eyes', dx, dy)
