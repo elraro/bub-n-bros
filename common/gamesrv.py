@@ -42,6 +42,8 @@ class DataChunk:
     for c in clients:
       if c.initialized == 2:
         self.defall(c)
+    if recording and game:
+      self.defall(recording)
 
   def read(self, slice=None):
     f = open(self.filename, "rb")
@@ -821,7 +823,7 @@ music_by_id = {}
 currentmusics = [0]
 sprites = ['']
 sprites_by_n = {}
-#recording = None
+recording = None
 game = None
 serversockets = {}
 socketsbyrole = {}
@@ -830,8 +832,8 @@ socketports   = {}
 def framemsgappend(msg):
   for c in clients:
     c.msgl.append(msg)
-  #if recording:
-  #  recording[0].write(msg)
+  if recording:
+    recording.write(msg)
 
 ##def sndframemsgappend(msg):
 ##  for c in clients:
@@ -892,21 +894,6 @@ def newbitmap(data, colorkey=None):
   bmp = MemoryBitmap(len(bitmaps), data, colorkey)
   bitmaps[bmp] = bmp
   return bmp
-
-
-#def RecordFile(filename, sampling=1.0 / 10):
-#  import gzip, atexit
-#  global recording
-#  f = gzip.open(filename, 'wb')
-#  atexit.register(f.close)
-#  recording = [f, sampling, time() + sampling]
-#
-#def recordudpdata(now, udpdata):
-#  recfile, recsampling, recnext = recording
-#  while now >= recnext:
-#    recnext += recsampling
-#  recording[2] = recnext
-#  recfile.write(message(MSG_RECORDED, udpdata))
 
 
 def addsocket(role, socket, handler=None, port=None):
@@ -1072,6 +1059,9 @@ class Game:
     self.broadcast_port = socketports.get(bs)
     self.broadcast_next = None
     self.nextframe = time()
+    if recording:
+      for b in bitmaps.values():
+        b.defall(recording)
     clearsprites()
     game = self
 
@@ -1096,8 +1086,9 @@ class Game:
     if clients:
       for c in clients:
         c.opengame(self)
-    #else:
-    #  framemsgappend(self.deffieldmsg())   # for recording
+    if recording:
+      recording.start()
+      recording.write(self.deffieldmsg())
 
   def trigger_broadcast(self):
     assert self.broadcast_s is not None
@@ -1123,8 +1114,6 @@ class Game:
       self.nextframe += self.FnFrame()
       self.sendudpdata()
       NOW = time()
-      #if recording and NOW >= recording[2]:
-      #  recordudpdata(NOW, udpdata)
       delay = self.nextframe - NOW
       if delay<0.0:
         self.nextframe = NOW
@@ -1152,6 +1141,8 @@ class Game:
       broadcast_extras = None
     for c in clients[:]:
       c.emit(udpdata, broadcast_extras)
+    if recording:
+      recording.udpdata(udpdata)
     if broadcast_extras is not None:
       udpdata = ''.join(broadcast_extras.keys() + [udpdata])
       try:
@@ -1278,3 +1269,42 @@ def mainloop():
 
 def closeeverything():
   serversockets.clear()
+
+# ____________________________________________________________
+
+try:
+  from localmsg import recordfilename
+except ImportError:
+  pass
+else:
+
+  class RecordFile:
+    proto = 2
+    has_sound = 0
+
+    def __init__(self, filename, sampling=1/7.77):
+      self.filename = filename
+      self.f = None
+      self.sampling = sampling
+      self.msgl = []
+      self.write = self.msgl.append
+
+    def start(self):
+      if not self.f:
+        import gzip, atexit
+        self.f = gzip.open(self.filename, 'wb')
+        atexit.register(self.f.close)
+        self.recnext = time() + self.sampling
+
+    def udpdata(self, udpdata):
+      if self.f:
+        now = time()
+        if now >= self.recnext:
+          while now >= self.recnext:
+            self.recnext += self.sampling
+          self.write(message(MSG_RECORDED, udpdata))
+          self.f.write(''.join(self.msgl))
+          del self.msgl[:]
+  
+  recording = RecordFile(recordfilename)
+  del recordfilename
