@@ -900,7 +900,53 @@ else:
         return new.instance(self.__class__)
     boards.Copyable.inst_build = standard_build
     gamesrv.Sprite.inst_build = standard_build
-    
+
+    def copygamestate():
+        # makes a copy of the game state.
+        ps = []
+        for p1 in BubPlayer.PlayerList:
+            #if p1.isplaying():
+            d = p1.__dict__.copy()
+            for key in BubPlayer.TRANSIENT_DATA:
+                if key in d:
+                    del d[key]
+            ps.append(d)
+            #else:
+            #    ps.append(None)
+        topstate = (
+            [g for g in boards.BoardGen if not g.gi_running],
+            boards.curboard,
+            images.ActiveSprites,
+            images.SpritesByLoc,
+            BubPlayer.__dict__,
+            gamesrv.sprites,
+            gamesrv.sprites_by_n,
+            ps,
+            images.Snd.__dict__,
+            )
+        #import pdb; pdb.set_trace()
+        return statesaver.copy(topstate)
+
+    def restoregamestate(savedstate):
+        (boards.BoardGen,
+         boards.curboard,
+         images.ActiveSprites,
+         images.SpritesByLoc,
+         BubPlayer.__dict__,
+         gamesrv.sprites,
+         gamesrv.sprites_by_n,
+         ps,
+         images.Snd.__dict__,
+         ) = savedstate
+
+        for p, d in zip(BubPlayer.PlayerList, ps):
+            #if d is None:
+            #    p.reset()
+            #else:
+            p.__dict__.update(d)
+            if not p.isplaying():
+                p.zarkoff()
+
     class Clock(RandomBonus):
         "Time Machine. Let's do it again!"
         touchable = 0
@@ -939,30 +985,7 @@ else:
 
         def state_saver(self):
             # called from BoardGen
-            ps = []
-            for p1 in BubPlayer.PlayerList:
-                #if p1.isplaying():
-                d = p1.__dict__.copy()
-                for key in BubPlayer.TRANSIENT_DATA:
-                    if key in d:
-                        del d[key]
-                ps.append(d)
-                #else:
-                #    ps.append(None)
-            topstate = (
-                [g for g in boards.BoardGen if not g.gi_running],
-                boards.curboard,
-                images.ActiveSprites,
-                images.SpritesByLoc,
-                BubPlayer.__dict__,
-                gamesrv.sprites,
-                gamesrv.sprites_by_n,
-                ps,
-                images.Snd.__dict__,
-                )
-            #import pdb; pdb.set_trace()
-            self.savedstate = topstate = statesaver.copy(topstate)
-
+            self.savedstate = copygamestate()
             while self.alive:
                 gamesrv.sprites[0] = ''
                 data = ''.join(gamesrv.sprites)
@@ -1002,25 +1025,7 @@ else:
                     delay *= 0.9
                 yield delay
             yield 15.0
-
-            (boards.BoardGen,
-             boards.curboard,
-             images.ActiveSprites,
-             images.SpritesByLoc,
-             BubPlayer.__dict__,
-             gamesrv.sprites,
-             gamesrv.sprites_by_n,
-             ps,
-             images.Snd.__dict__,
-             ) = savedstate
-
-            for p, d in zip(BubPlayer.PlayerList, ps):
-                #if d is None:
-                #    p.reset()
-                #else:
-                p.__dict__.update(d)
-                if not p.isplaying():
-                    p.zarkoff()
+            restoregamestate(savedstate)
             scoreboard()
             yield 2.5
 
