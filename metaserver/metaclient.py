@@ -52,8 +52,10 @@ class MetaClientSrv(MessageSocket):
 
     def send_traceback(self):
         if not self.closed:
-            import traceback, cStringIO
+            import traceback, cStringIO, sys
             f = cStringIO.StringIO()
+            print >> f, sys.version
+            print >> f, (sys.platform, sys.executable, sys.argv)
             traceback.print_exc(file = f)
             self.s.sendall(message(MMSG_TRACEBACK, f.getvalue()))
 
