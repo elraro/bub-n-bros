@@ -269,11 +269,12 @@ class BonusMaker(Parabolic2):
 
 class MonsterBonus(Bonus):
 
-    def __init__(self, x, y, multiple):
+    def __init__(self, x, y, multiple, forceimg=0):
         self.level = multiple
         if multiple >= len(Bonuses.monster_bonuses):
             multiple = len(Bonuses.monster_bonuses) - 1
-        Bonus.__init__(self, x, y, *Bonuses.monster_bonuses[multiple])
+        img, pts = Bonuses.monster_bonuses[multiple]
+        Bonus.__init__(self, x, y, forceimg or img, pts)
 
     def buildoutcome(self):
         return (MonsterBonus, self.level)
@@ -288,7 +289,6 @@ class RandomBonus(Bonus):
 class TemporaryBonus(RandomBonus):
     captime = 0
     bonusleveldivider = 2
-    consttime = 0
     def taken(self, dragon):
         dragon.dcap[self.capname] += self.multiply
         self.carried(dragon)
@@ -297,21 +297,19 @@ class TemporaryBonus(RandomBonus):
         if boards.curboard.bonuslevel:
             captime = (captime or 999) // self.bonusleveldivider
         if captime:
-            if not self.consttime:
-                captime *= self.multiply
             dragon.carrybonus(self, captime)
         else:
             dragon.carrybonus(self)
             self.endaction = None
     def endaction(self, dragon):
-        for i in range(self.multiply):
-            if dragon.dcap[self.capname] >= 1:
-                dragon.dcap[self.capname] -= 1
+        dragon.dcap[self.capname] = max(0,
+            dragon.dcap[self.capname] - self.multiply)
 
 
 class ShoeSpeed(RandomBonus):
     "Fast Runner. Cumulative increase of horizontal speed."
     nimage = Bonuses.shoe
+    bigbonus = {'multiply': 3}
     def taken(self, dragon):
         dragon.dcap['hspeed'] += 1
         dragon.carrybonus(self)
@@ -319,6 +317,7 @@ class ShoeSpeed(RandomBonus):
 class CoffeeSpeed(RandomBonus):
     "Caffeine. Cumulative increase of the horizontal speed and fire rate."
     nimage = Bonuses.coffee
+    bigbonus = {'multiply': 3}
     def taken(self, dragon):
         dragon.dcap['hspeed'] += 0.5
         dragon.dcap['firerate'] += 1
@@ -327,6 +326,7 @@ class CoffeeSpeed(RandomBonus):
 class Butterfly(TemporaryBonus):
     "Lunar Gravity. Allows you to jump twice as high as before."
     nimage = Bonuses.butterfly
+    bigbonus = {'multiply': 2}
     def taken(self, dragon):
         dragon.dcap['gravity'] *= 0.5
         self.carried(dragon)
@@ -343,12 +343,20 @@ class Extend(RandomBonus):
     "E X T E N D. Gives you your missing letters and clear the level. "
     nimage = Bonuses.extend
     points = 0
+    big = 0
+    bigbonus = {'big': 1}
     def taken(self, dragon):
         from bubbles import extend_name
         names = [extend_name(l) for l in range(6)]
         missing = [name for name in names if name not in dragon.bubber.letters]
-        for i in range(self.multiply):
-            points(dragon.x + dragon.ico.w//2, dragon.y, dragon, 10000 * len(missing))
+        x = dragon.x + dragon.ico.w//2
+        y = dragon.y
+        if self.big:
+            pts = [10000*i for i in range(6-len(missing), 6) if i]
+        else:
+            pts = [10000*len(missing)]
+        for pts in pts:
+            points(x, y, dragon, pts)
         for l in range(6):
             if extend_name(l) in missing:
                 dragon.bubber.giveletter(l, promize=0)
@@ -356,19 +364,30 @@ class Extend(RandomBonus):
 class HeartPoison(RandomBonus):
     "Heart Poison. Freeze all free monsters."
     nimage = Bonuses.heart_poison
+    big = 0
+    bigbonus = {'big': 1}
     def taken1(self, dragons):
         import monsters
         monsters.freeze_em_all()
+        if self.big:
+            def heart_pause(dragon, gen):
+                for i in range(222):
+                    yield None
+                dragon.gen = gen
+            for d in BubPlayer.DragonList:
+                if d not in dragons:
+                    d.gen = [heart_pause(d, d.gen)]
 
 class VioletNecklace(RandomBonus):
     "Monster Duplicator. Double the number of free monsters."
     points = 650
     nimage = Bonuses.violet_necklace
+    bigbonus = {'multiply': 3}
     def taken1(self, dragons):
         for s in BubPlayer.MonsterList[:]:
             if s.regular():
                 for i in range(self.multiply):
-                    s.__class__(s.mdef, s.x, s.y, -s.dir)
+                    s.__class__(s.mdef, s.x, s.y, -s.dir * (-1)**i)
 
 class WandBonus(RandomBonus):
     "Wand/Chest. Turn the bubble into bonuses at the end of the level."
@@ -409,6 +428,7 @@ class WandBonus(RandomBonus):
         x = random.randrange(0, boards.bwidth-ico.w)
         mb = Megabonus(x, -ico.h, nico, npoints)
         mb.outcome = (Bonus,) + self.mode[2:4]
+        mb.outcome_image = self.mode[2]
 WandBonus1 = WandBonus  # increase probability
 
 class Megabonus(Bonus):
@@ -419,12 +439,12 @@ class Megabonus(Bonus):
     
     def faller(self):
         self.fullpoints = self.points
-        self.bubbles_pos = list(self.bubbles_position())
         self.bubbles = {}
-        self.gen.append(self.animate_bubbles())
         for t in range(71):
             yield None
         self.ready_to_go()
+        self.bubbles_pos = list(self.bubbles_position())
+        self.gen.append(self.animate_bubbles())
         y0 = self.y - HALFCELL
         ymax = boards.bheight - CELL - self.ico.h
         self.touchable = 1
@@ -470,7 +490,7 @@ class Megabonus(Bonus):
                 else:
                     break
             positions.append((nx, ny))
-        print time.time()-start
+        #print time.time()-start
         return positions
 ##        nx = 5
 ##        ny = 6
@@ -525,13 +545,10 @@ class Megabonus(Bonus):
         elif self.coverwithbonus:
             self.coverwithbonus -= 1
             outcome = self.outcome
+            outcome_image = self.outcome_image
             class MegabonusBubble(Bubble):
                 def popped(self, dragon):
-                    if len(outcome) == 1:
-                        nimage = outcome[0].nimage
-                    else:
-                        nimage = outcome[1]
-                    BonusMaker(self.x, self.y, [nimage], outcome=outcome)
+                    BonusMaker(self.x, self.y, [outcome_image], outcome=outcome)
                     return 10
         else:
             MegabonusBubble = Bubble
@@ -629,47 +646,59 @@ class Cactus(RandomBonus):
     points = 600
     nimage = 'cactus'
     extra_cheat_arg = None
+    bigbonus = {'multiply': 3}
+    
     def taken1(self, dragons):
-        ico = images.sprget(self.nimage)   # temporarily
-        for i in range(self.multiply):
-            mb = Cactusbonus(0, -ico.h, self.nimage, 10000)
-            while 1:
-                if self.extra_cheat_arg:
-                    mb.outcome = (globals()[self.extra_cheat_arg],)
-                    break
-                mb.outcome = random.choice(AllOutcomes)
-                if (len(mb.outcome) == 1 and
-                    hasattr(mb.outcome[0], 'nimage') and
-                    mb.outcome[0].__init__ == RandomBonus.__init__):
-                    break
-            mb.gen.append(mb.prepare_image())
-        gamesrv.set_musics([], [])
-        boards.curboard.set_musics(prefix=[images.music_modern])
+        count = 0
+        while count < self.multiply:
+            if self.extra_cheat_arg:
+                cls = globals()[self.extra_cheat_arg]
+                self.extra_cheat_arg = None
+            else:
+                cls = random.choice(Classes)
+            if makecactusbonus(cls):
+                count += 1
+        cactusbonussound()
+
+def makecactusbonus(cls, *args):
+    bonus = cls(-3*CELL, 0, *args)
+    if not bonus.alive or getattr(bonus, 'bigbonus', None) is None:
+        return None
+    bonus.__dict__.update(bonus.bigbonus)
+    bonus.untouchable()
+    bonus.gen = []
+    mb = Cactusbonus(0, -3*CELL, 'cactus', bonus.points and 10000) # temp image
+    mb.outcome = (cls,) + args
+    mb.outcome_image = bonus.nimage
+    mb.bonus = bonus
+    mb.gen.append(mb.prepare_image())
+    return mb
+
+def cactusbonussound():
+    gamesrv.set_musics([], [])
+    boards.curboard.set_musics(prefix=[images.music_modern])
 
 class Cactusbonus(Megabonus):
     coverwithbonus = 5
 
     def prepare_image(self):
-        cls, = self.outcome
-        while images.sprget_big3_lazy(cls.nimage) is None:
+        while images.computebiggericon(self.bonus.ico) is None:
             yield None
 
     def ready_to_go(self):
-        cls, = self.outcome
-        ico = images.sprget_big3(cls.nimage)
+        ico = images.biggericon(self.bonus.ico)
         x = random.randrange(0, boards.bwidth-ico.w)
         self.move(x, -ico.h, ico)
 
     def taken1(self, dragons):
         d1 = list(dragons)
         Megabonus.taken1(self, dragons)
-        cls, = self.outcome
-        x = self.x + self.ico.w//2 - CELL
-        y = self.y + self.ico.h//2 - CELL
-        b = cls(x, y)
-        b.multiply = 3
-        b.taken1(d1)
-        b.kill()
+        if self.bonus.alive:
+            x = self.x + self.ico.w//2 - CELL
+            y = self.y + self.ico.h//2 - CELL
+            self.bonus.move(x, y)
+            self.bonus.taken1(d1)
+            self.bonus.kill()
 
 def starexplosion(x, y, multiplyer, killmonsters=0, outcomes=[]):
     outcomes = list(outcomes)
@@ -690,6 +719,7 @@ class Book(RandomBonus):
     "Magic Bomb. Makes a magical explosion killing touched monsters."
     points = 2000
     nimage = Bonuses.book
+    bigbonus = {'multiply': 4}
     def taken1(self, dragons):
         starexplosion(self.x, self.y, self.multiply, killmonsters=1)
 
@@ -711,6 +741,7 @@ class Potion(RandomBonus):
                        os.path.isdir(os.path.join(LocalDir, s))]
     random.shuffle(Extensions)
     extra_cheat_arg = None
+    big = 0
 
     def __init__(self, x, y):
         p_normal = 3
@@ -731,13 +762,15 @@ class Potion(RandomBonus):
                 p = p_normal
             choices += [mode] * p
         self.mode = random.choice(choices)
+        if self.mode[2] is not None:
+            self.bigbonus = {'big': 1}
         RandomBonus.__init__(self, x, y, *self.mode[:2])
     def taken1(self, dragons):
         blist = self.mode[2]
         if blist is not None:
             if random.random() < 0.6:
                 blist = [random.choice(blist)]
-            boards.replace_boardgen(boards.potion_fill(blist))
+            boards.replace_boardgen(boards.potion_fill(blist, self.big))
         elif Potion.Extensions:
             ext = Potion.Extensions.pop()
             ext = __import__(ext, globals(), locals(), ['run'])
@@ -748,13 +781,10 @@ class FireBubble(RandomBonus):
     "Fire Bubbles. Makes you fire napalm bubbles."
     nimage = Bonuses.hamburger
     bubkind = 'FireBubble'
+    bubcount = 10
+    bigbonus = {'bubcount': 30}
     def taken(self, dragon):
-        lst = dragon.dcap['shootbubbles']
-        if lst:
-            existing = lst.count(self.bubkind)
-        else:
-            existing = 0
-        dragon.dcap['shootbubbles'] = [self.bubkind] * (existing + 10)
+        dragon.dcap['shootbubbles'] = [self.bubkind] * self.bubcount
         dragon.carrybonus(self)
 
 class WaterBubble(FireBubble):
@@ -762,7 +792,7 @@ class WaterBubble(FireBubble):
     nimage = Bonuses.beer
     bubkind = 'WaterBubble'
 
-class LightningBubble(RandomBonus):
+class LightningBubble(FireBubble):
     "Lightning Bubbles."
     nimage = Bonuses.french_fries
     bubkind = 'LightningBubble'
@@ -771,13 +801,16 @@ class Door(RandomBonus):
     "Magic Door. Let bonuses come in!"
     points = 1000
     nimage = Bonuses.door
+    bigbonus = {'multiply': 3}
     def taken1(self, dragons):
-        starexplosion(self.x, self.y, 2 * self.multiply,
-                      outcomes = [(MonsterBonus, -1)] * 10 * self.multiply)
+        for img in [0, Diamonds.blue, Diamonds.violet][:self.multiply]:
+            starexplosion(self.x, self.y, 2,
+                          outcomes = [(MonsterBonus, -1, img)] * 10)
 
 class LongFire(RandomBonus):
     "Long Fire. Increase the range of your bubble throw out."
     nimage = Bonuses.softice1
+    bigbonus = {'multiply': 3}
     def taken(self, dragon):
         dragon.dcap['shootthrust'] *= 1.5
         dragon.carrybonus(self)
@@ -786,6 +819,7 @@ class ShortFire(RandomBonus):
     "Short Fire. Shorten the range of your bubble throw out."
     nimage = Bonuses.softice2
     points = 300
+    bigbonus = {'multiply': 3}
     def taken(self, dragon):
         dragon.dcap['shootthrust'] /= 1.5
         dragon.carrybonus(self)
@@ -794,6 +828,7 @@ class HighSpeedFire(RandomBonus):
     "High Speed Fire. Increase your fire rate."
     nimage = Bonuses.custard_pie
     points = 700
+    bigbonus = {'multiply': 3}
     def taken(self, dragon):
         dragon.dcap['firerate'] += 1.5
         dragon.carrybonus(self)
@@ -804,6 +839,7 @@ class Mushroom(TemporaryBonus):
     points = 900
     capname = 'pinball'
     captime = 625
+    bigbonus = {'captime': captime*2}
 
 class AutoFire(TemporaryBonus):
     "Auto Fire. Makes you fire continuously."
@@ -811,12 +847,15 @@ class AutoFire(TemporaryBonus):
     points = 800
     capname = 'autofire'
     captime = 675
+    bigbonus = {'captime': captime*2}
 
 class Insect(RandomBonus):
     "Crush World."
     nimage = Bonuses.insect
+    big = 0
+    bigbonus = {'big': 1}
     def taken1(self, dragons):
-        boards.extra_boardgen(boards.extra_walls_falling())
+        boards.extra_boardgen(boards.extra_walls_falling(self.big))
 
 class Ring(TemporaryBonus):
     "The One Ring."
@@ -825,16 +864,19 @@ class Ring(TemporaryBonus):
     capname = 'ring'
     captime = 700
     bonusleveldivider = 5
+    bigbonus = {'captime': captime*2}
 
 class GreenPepper(TemporaryBonus):
     "Hot Pepper. Run! Run! That burns."
     nimage = Bonuses.green_pepper
     capname = 'hotstuff'
     captime = 100
+    bigbonus = {'captime': captime*2}
 
 class Lollipop(TemporaryBonus):
     "Yo Man! Makes you walk backward."
     nimage = Bonuses.lollipop
+    bigbonus = {'multiply': 3}
     def taken(self, dragon):
         dragon.dcap['left2right'] = -dragon.dcap['left2right']
         self.carried(dragon)
@@ -847,6 +889,7 @@ class Chickpea(TemporaryBonus):
     points = 800
     capname = 'overlayglasses'
     captime = 230
+    bigbonus = {'multiply': 2, 'captime': 240 + captime}
     def taken(self, dragon):
         TemporaryBonus.taken(self, dragon)
         dragon.dcap['shield'] += 250
@@ -859,6 +902,8 @@ class IceCream(RandomBonus):
                  (Bonuses.icecream5,  500),
                  (Bonuses.icecream4,  1000),
                  (Bonuses.icecream3,  2000)]
+    big = 0
+    bigbonus = {'big': 1}
     def __init__(self, x, y, generation=0):
         self.generation = generation
         RandomBonus.__init__(self, x, y, *self.IceCreams[generation])
@@ -866,15 +911,21 @@ class IceCream(RandomBonus):
         nextgen = self.generation + 1
         if nextgen < len(self.IceCreams):
             for i in range(2):
-                x, y = chooseground(200)
-                if x is None:
-                    return
-                IceCream(x, y, nextgen)
+                if self.big:
+                    makecactusbonus(IceCream, nextgen)
+                else:
+                    x, y = chooseground(200)
+                    if x is None:
+                        return
+                    IceCream(x, y, nextgen)
+            if self.big:
+                cactusbonussound()
 
 class Grenade(RandomBonus):
     "Barbecue."
     nimage = Bonuses.grenade
     points = 550
+    bigbonus = {'multiply': 5}
     def taken1(self, dragons):
         from bubbles import FireFlame
         poplist = [None]
@@ -922,6 +973,7 @@ class Umbrella(RandomBonus):
     Umbrellas = [(Bonuses.brown_umbrella,  900,  fire_rain,  10, 60),
                  (Bonuses.grey_umbrella,   950,  water_rain, 5,  60),
                  (Bonuses.violet_umbrella, 1000, ball_rain,  9, 120)]
+    bigbonus = {'multiply': 3.1416}
     def __init__(self, x, y):
         self.mode = random.choice(Umbrella.Umbrellas)
         RandomBonus.__init__(self, x, y, *self.mode[:2])
@@ -930,6 +982,8 @@ class Umbrella(RandomBonus):
             boards.extra_boardgen(self.raining())
     def raining(self):
         builder, drops, timemax = self.mode[2:]
+        timemax = int(timemax * math.sqrt(self.multiply))
+        drops = int(drops * self.multiply)
         times = [random.randrange(0, timemax) for i in range(drops)]
         poplist = [None]
         for t in range(timemax):
@@ -1005,20 +1059,33 @@ class BlueNecklace(RandomBonus):
     "Self Duplicator. Mirror yourself."
     points = 1000
     nimage = Bonuses.blue_necklace
+    big = 0
+    bigbonus = {'big': 1}
     def taken(self, dragon):
         if len(dragon.bubber.dragons) >= 7:
             # avoid burning the server with two much dragons
             return
+        if self.big:
+            from bubbles import Bubble
+            ico = images.sprget(GreenAndBlue.normal_bubbles[dragon.bubber.pn][0])
+            for sign in [-1, 1, -1]:
+                d = self.makecopy(dragon, sign)
+                b = Bubble(ico, d.x, d.y)
+                d.become_bubblingeyes(b)
+        else:
+            d1 = random.choice([dragon, self.makecopy(dragon)])
+            d1.carrybonus(self, 250)
+
+    def makecopy(self, dragon, sign=-1):
         from player import Dragon
         d = Dragon(dragon.bubber, dragon.x, dragon.y, -dragon.dir, dragon.dcap)
-        dragon.dcap['left2right'] = -dragon.dcap['left2right']
+        d.dcap['left2right'] = sign * d.dcap['left2right']
         d.up = dragon.up
         s = (dragon.dcap['shield'] + 12) & ~3
         dragon.dcap['shield'] = s+2
         d.dcap['shield'] = s
         dragon.bubber.dragons.append(d)
-        d1 = random.choice((d, dragon))
-        d1.carrybonus(self, 250)
+        return d
 
 class Monsterer(RandomBonus):
     "Monsterificator. Let's play on the other side!"
@@ -1027,12 +1094,14 @@ class Monsterer(RandomBonus):
     mlist = [['Nasty',  'Monky',  'Springy', 'Orcy'],
              ['Ghosty', 'Flappy', 'Gramy',   'Blitzy']
              ]
+    big = 0
+    bigbonus = {'big': 1}
     def __init__(self, x, y):
         self.mode = random.choice([0,1])
         RandomBonus.__init__(self, x, y, *self.Sizes[self.mode])
     def taken(self, dragon):
         mcls = random.choice(self.mlist[self.mode])
-        dragon.become_monster(mcls)
+        dragon.become_monster(mcls, self.big)
 
 Monsterer1 = Monsterer # increase probability
 
@@ -1052,11 +1121,12 @@ class Carrot(RandomBonus):
     "Angry Monster. Turns all free monsters angry."
     nimage = Bonuses.carrot
     points = 950
+    bigbonus = {'multiply': 2}
     def taken1(self, dragons):
         from monsters import Monster
         for s in images.ActiveSprites:
             if isinstance(s, Monster) and s.regular():
-                s.angry = [s.genangry()]
+                s.angry = [s.genangry()] * self.multiply
                 s.resetimages()
 
 class Egg(RandomBonus):
@@ -1100,6 +1170,7 @@ class Egg(RandomBonus):
 class Bomb(RandomBonus):
     "Baaoouuuummmm! Explode that wall!"
     nimage = Bonuses.bomb
+    bigbonus = {'multiply': 3.8}
     def taken1(self, dragons):
         RADIUS = 3.9 * CELL * math.sqrt(self.multiply)
         Radius2 = RADIUS * RADIUS
@@ -1128,6 +1199,7 @@ class Bomb(RandomBonus):
 class Ham(RandomBonus):
     "Protein. Let's build something!"
     nimage = Bonuses.ham
+    bigbonus = {'multiply': 3.4}
     def taken1(self, dragons):
         RADIUS = 3.9 * CELL * math.sqrt(self.multiply)
         Radius2 = RADIUS * RADIUS
@@ -1157,11 +1229,13 @@ class Chestnut(RandomBonus):
     "Relativity. Speed up or slow down the game."
     nimage = Bonuses.chestnut
     sound = None
+    dilatation = [0.5, 2.0]
+    bigbonus = {'dilatation': [1/3.0, 3.0]}
     def taken1(self, dragons):
         m = self.multiply
         if m > 2:
             m = 2
-        boards.set_frametime(random.choice((0.5**m, 2.0**m)))
+        boards.set_frametime(random.choice(self.dilatation))
         BubPlayer.MultiplyerReset = BubPlayer.FrameCounter + 500
         self.play(images.Snd.Fruit)
 
@@ -1330,10 +1404,12 @@ class Slippy(TemporaryBonus):
     points = 900
     capname = 'slippy'
     captime = 606
+    bigbonus = {'captime': captime*2}
 
 class Aubergine(TemporaryBonus):
     "Mirror. The left hand is the one with the thumb on the right, right?"
     nimage = Bonuses.aubergine
+    bigbonus = {'multiply': 3}
     def taken(self, dragon):
         dragon.dcap['lookforward'] = -dragon.dcap['lookforward']
         self.carried(dragon)
@@ -1346,12 +1422,13 @@ class WhiteCarrot(TemporaryBonus):
     points = 650
     capname = 'fly'
     captime = 650
-    consttime = 1
+    bigbonus = {'multiply': 2}
 
 class AmphetamineSpeed(TemporaryBonus):
     "Amphetamine Dose. Increase of your general speed!"
     nimage = Bonuses.tin
     points = 700
+    bigbonus = {'multiply': 3}
     def taken(self, dragon):
         dragon.angry = dragon.angry + [dragon.genangry()]
         dragon.carrybonus(self, 633)
@@ -1379,6 +1456,7 @@ class Pear(RandomBonus):
     "Pear. Will explode into sugars for your pockets but watch out or you'll lose them!"
     points = 1000
     nimage = Bonuses.green_thing
+    bigbonus = {'multiply': 3}
     def taken1(self, dragons):
         starexplosion(self.x, self.y, 3 * self.multiply,
                       outcomes = [random.choice([(Sugar1,), (Sugar2,)])
@@ -1478,6 +1556,7 @@ class Flower(RandomBonus):
     "Flower.  Fire in all directions."
     nimage = 'flower'
     points = 800
+    bigbonus = {'multiply': 3}
     def taken(self, dragon):
         dragon.dcap['flower'] += 12
         dragon.carrybonus(self)
@@ -1521,6 +1600,8 @@ if 'StarBubble' in EXTRA_BONUSES:
         "Star Bubbles. Makes you fire bonus bubbles."
         nimage = 'moebius'
         bubkind = 'StarBubble'
+        bubcount = 3
+        bigbonus = {'bubcount': 10}
 
 
 Classes = [c for c in globals().values()

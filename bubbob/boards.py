@@ -915,7 +915,7 @@ def exit_board(delay=8, music=None, repeatmusic=[]):
     if BubPlayer.MegaBonus:
         BubPlayer.MegaBonus()
 
-def potion_fill(blist):
+def potion_fill(blist, big=0):
     from player import BubPlayer
     from bonuses import Bonus
     #timeleft = 1680.0
@@ -924,11 +924,11 @@ def potion_fill(blist):
         yield t
     notes = all_notes = []
     y = 1
-    while y < 11 or (y < height-2 and len(all_notes) < 10):
+    while y < 11 or (y < height-2 and (len(all_notes) < 10 or big)):
         for x in range(2, width-3, 2):
             if ' ' == bget(x,y) == bget(x+1,y) == bget(x,y+1) == bget(x+1,y+1):
                 b = Bonus(x*CELL, y*CELL, falling=0, *blist[((x+y)//2)%len(blist)])
-                b.timeout = 444
+                b.timeout = (444,666)[big]
                 all_notes.append(b)
         for i in range(2):
             t = normal_frame()
@@ -1016,7 +1016,7 @@ def extra_water_flood():
         s.kill()
     del curboard.sprites['flood']
 
-def extra_walls_falling():
+def extra_walls_falling(big=0):
     walls_by_pos = curboard.walls_by_pos
     moves = 1
     while moves and not curboard.cleaning_gen_state:
@@ -1033,7 +1033,7 @@ def extra_walls_falling():
                     curboard.putwall(x, y+1, w)
                     moves = 1
         curboard.reorder_walls()
-        for y in range(height):
+        for y in range((height, 1)[big]):
             yield 0
 
 def single_blocks_falling(xylist):

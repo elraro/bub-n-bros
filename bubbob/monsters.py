@@ -345,7 +345,11 @@ class Monster(ActiveSprite):
                 blocked = 1
             yield None
 
-    def becoming_monster(self):
+    def becoming_monster(self, big=0):
+        if big:
+            self.is_ghost = 1
+            self.seticon(images.sprget(self.imgrange()[0]))
+            images.Snd.Hell.play()
         for i in range(5):
             ico = self.ico
             self.seticon(self.bubber.icons[11, self.dir])
@@ -354,15 +358,15 @@ class Monster(ActiveSprite):
             self.seticon(ico)
             yield None
             yield None
-        self.resetimages()
+        self.resetimages(is_ghost=big)
         self.gen.append(self.playing_monster())
 
-    def become_monster(self, bubber, saved_caps):
+    def become_monster(self, bubber, saved_caps, big=0):
         self.timeoutgen = self.back_to_dragon()
         self.default_mode = self.playing_monster
         self.bubber = bubber
         self.dcap = saved_caps
-        self.gen = [self.becoming_monster()]
+        self.gen = [self.becoming_monster(big)]
 
     def back_to_dragon(self):
         for t in range(259):
@@ -381,6 +385,25 @@ class Monster(ActiveSprite):
         if self.timeoutgen not in self.gen:
             self.gen.append(self.timeoutgen)
         bubber = self.bubber
+        while self.is_ghost:
+            # ghost
+            self.angry = []
+            key, dx, dy = max([(bubber.key_left, -1, 0),
+                               (bubber.key_right, 1, 0),
+                               (bubber.key_jump, 0, -1),
+                               (bubber.key_fire, 0, 1)])
+            if key:
+                if dx and self.dir != dx:
+                    self.dir = dx
+                    self.resetimages(is_ghost=1)
+                nx = self.x + 10*dx
+                ny = self.y + 9*dy
+                if nx < 0: nx = 0
+                if nx > boards.bwidth-2*CELL: nx = boards.bwidth-2*CELL
+                if ny < -CELL: ny = -CELL
+                if ny > boards.bheight-CELL: ny = boards.bheight-CELL
+                self.move(nx, ny)
+            yield None
         if self.vy:
             # flying monster
             while 1:

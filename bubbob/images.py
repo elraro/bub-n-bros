@@ -286,17 +286,12 @@ def makebkgndpattern(bitmap, (x,y,w,h), darker={}):
     h = int(CELL*vscale)
     return nbitmap, (x,y,w,h)
 
-def sprget_big3_lazy(n, bigger={}):
+def computebiggericon(ico, bigger={}):
     try:
-        result, computing = bigger[n]
+        result, computing = bigger[ico]
     except KeyError:
         import pixmap
-        filename, rect = sprmap[n]
-        bitmap = gamesrv.getbitmap(filename, KEYCOL)
-        data = bitmap.read()
-        data = pixmap.decodepixmap(data)
-        data = pixmap.cropimage(data, rect)
-        bigger[n] = None, pixmap.imagezoomer(*data)
+        bigger[ico] = None, pixmap.imagezoomer(*ico.getimage())
         return None
     if computing is not None:
         result = computing.next()
@@ -306,13 +301,13 @@ def sprget_big3_lazy(n, bigger={}):
         w, h, data = result
         data = pixmap.encodepixmap(w, h, data)
         result = gamesrv.newbitmap(data, KEYCOL).geticon(0, 0, w, h)
-        bigger[n] = result, None
+        bigger[ico] = result, None
     return result
 
-def sprget_big3(n):
+def biggericon(ico):
     result = None
     while result is None:
-        result = sprget_big3_lazy(n)
+        result = computebiggericon(ico)
     return result
 
 extramap = {
