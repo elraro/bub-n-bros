@@ -210,8 +210,8 @@ class Monster(ActiveSprite):
     def moebius(self):
         self.dir = -self.dir
         self.resetimages()
-        if hasattr(self, 'saved_caps'):
-            self.saved_caps['left2right'] *= -1
+        if hasattr(self, 'dcap'):
+            self.dcap['left2right'] *= -1
 
     def hjumping(self):
         y0 = self.y
@@ -244,7 +244,7 @@ class Monster(ActiveSprite):
                 self.vertical_warp()
             yield None
         if bubber:
-            dx = bubber.wannago(self.saved_caps)
+            dx = bubber.wannago(self.dcap)
             if dx:
                 self.dir = dx
                 self.resetimages()
@@ -358,7 +358,7 @@ class Monster(ActiveSprite):
         self.timeoutgen = self.back_to_dragon()
         self.default_mode = self.playing_monster
         self.bubber = bubber
-        self.saved_caps = saved_caps
+        self.dcap = saved_caps
         self.gen = [self.becoming_monster()]
 
     def back_to_dragon(self):
@@ -369,7 +369,7 @@ class Monster(ActiveSprite):
                 yield None
                 yield None
         from player import Dragon
-        d = Dragon(self.bubber, self.x, self.y, self.dir, self.saved_caps)
+        d = Dragon(self.bubber, self.x, self.y, self.dir, self.dcap)
         d.dcap['shield'] = 50
         self.bubber.dragons.append(d)
         self.kill()
@@ -381,7 +381,7 @@ class Monster(ActiveSprite):
         if self.vy:
             # flying monster
             while 1:
-                dx = bubber.wannago(self.saved_caps)
+                dx = bubber.wannago(self.dcap)
                 if dx and dx != self.dir:
                     self.dir = dx
                     self.resetimages()
@@ -417,7 +417,7 @@ class Monster(ActiveSprite):
             while onground(self.x, self.y):
                 wannafire = bubber.key_fire
                 wannajump = bubber.key_jump
-                dx = bubber.wannago(self.saved_caps)
+                dx = bubber.wannago(self.dcap)
                 if dx and dx != self.dir:
                     self.dir = dx
                     self.resetimages()
@@ -447,7 +447,7 @@ class Monster(ActiveSprite):
                 return
             walker = self.walking()
             while 1:
-                dx = bubber.wannago(self.saved_caps)
+                dx = bubber.wannago(self.dcap)
                 if dx and dx != self.dir:
                     self.dir = dx
                     self.resetimages()

@@ -508,7 +508,8 @@ def normal_frame():
             p.zarkon()
             for d in p.dragons:
                 d.to_front()
-                if not (p.team == -1 or getattr(d,'isdying',0)):
+                if not (p.team == -1 or getattr(d,'isdying',0) or
+                        hasattr(d,'no_hat')):
                     try:
                         ico = images.sprget(('hat', p.team, d.dir, d.hatangle))
                     except AttributeError:

@@ -109,10 +109,10 @@ class BrickEyes(BubblingEyes):
 
     def step_control(self):
         while 1:
-            while not self.bubber.wannago(self.saved_caps):
+            while not self.bubber.wannago(self.dcap):
                 yield None
             pos = self.save_position()
-            self.tx += self.bubber.wannago(self.saved_caps)
+            self.tx += self.bubber.wannago(self.dcap)
             if self.moved(pos):
                 for i in range(4):
                     yield None

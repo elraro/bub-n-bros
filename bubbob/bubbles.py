@@ -274,11 +274,11 @@ class BubblingEyes(ActiveSprite):
         ico = images.sprget(('eyes', 0, 0))
         ActiveSprite.__init__(self, ico, bubble.x, bubble.y)
         self.bubber = bubber
-        self.saved_caps = saved_caps
+        self.dcap = saved_caps
         self.gen = [self.playing_bubble(bubble)]
 
     def bottom_up(self):
-        return self.saved_caps['gravity'] < 0.0
+        return self.dcap['gravity'] < 0.0
 
     def playing_bubble(self, bubble):
         from player import Dragon
@@ -295,7 +295,7 @@ class BubblingEyes(ActiveSprite):
         ndir = random.choice([-1, 1])
         prev_dx_dy = None
         while not hasattr(bubble, 'poplist'):
-            dx = bubber.wannago(self.saved_caps)
+            dx = bubber.wannago(self.dcap)
             if dx:
                 ndir = dx
             if bubber.key_jump:
@@ -305,7 +305,7 @@ class BubblingEyes(ActiveSprite):
             if bubber.key_fire:
                 red += 1
                 if red > 20:
-                    d = Dragon(bubber, self.x, self.y, ndir, self.saved_caps)
+                    d = Dragon(bubber, self.x, self.y, ndir, self.dcap)
                     bubble.pop([d])
                     d.kill()
                     break
@@ -339,7 +339,7 @@ class BubblingEyes(ActiveSprite):
             bubble.move(nx, ny)
             self.move(nx+dx, ny+dy, sprget(key))
             if moebius:
-                self.saved_caps['left2right'] *= -1
+                self.dcap['left2right'] *= -1
             if dx == dy == 0:
                 bubble.default_windless = prev_dx_dy
             else:
@@ -364,7 +364,7 @@ class BubblingEyes(ActiveSprite):
             ndir = -1
         else:
             ndir = 1
-        d = Dragon(bubber, self.x, self.y, ndir, self.saved_caps)
+        d = Dragon(bubber, self.x, self.y, ndir, self.dcap)
         d.dcap['shield'] = 50
         bubber.dragons.append(d)
         self.kill()

@@ -70,6 +70,10 @@ class Dragon(ActiveSprite):
         except ValueError:
             pass
         ActiveSprite.kill(self)
+        if self.hatsprite is not None:
+            if self.hatsprite.alive:
+                self.hatsprite.kill()
+            self.hatsprite = None
 
     def die(self):
         if (self in BubPlayer.DragonList and not self.dcap['shield']
@@ -84,8 +88,10 @@ class Dragon(ActiveSprite):
     def dying(self, can_loose_letter=1):
         self.isdying = 1
         if self.hatsprite is not None:
-            dxy = [3*self.dir, -7]
-            self.hatsprite.gen = [self.hatsprite.parabolic(dxy)]
+            if self.hatsprite.alive:
+                dxy = [3*self.dir, -7]
+                self.hatsprite.gen = [self.hatsprite.parabolic(dxy)]
+            self.hatsprite = None
         lst = [bonus for timeout, bonus in self.dcap['carrying']
                if hasattr(bonus, 'buildoutcome')]
                #if random.random() > 0.2]
@@ -506,7 +512,7 @@ class BubPlayer(gamesrv.Player):
                            len(rightplayers) + random.random())
 
     def savecaps(self):
-        dragons = [d for d in self.dragons if isinstance(d, Dragon)]
+        dragons = self.dragons
         if dragons:
             for key in Dragon.SAVE_CAP:
                 self.pcap[key] = max([d.dcap[key] for d in dragons])

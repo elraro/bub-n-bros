@@ -70,8 +70,9 @@ class PacSprite(ActiveSprite):
 
 
 class Pac(PacSprite):
+    no_hat = 1
 
-    def __init__(self, pacman, bubber, x, y):
+    def __init__(self, pacman, bubber, x, y, dcap):
         ico = GreenAndBlue.normal_bubbles[bubber.pn][1]
         PacSprite.__init__(self, images.sprget(('eyes', 0, 0)), x, y)
         self.bubble = ActiveSprite(images.sprget(ico), x, y)
@@ -80,6 +81,7 @@ class Pac(PacSprite):
         self.ready = 0
         self.gen.append(self.playing())
         self.pacman.pacs.append(self)
+        self.dcap = dcap
 
     def resetimages(self, dx, dy):
         self.ready = 1
@@ -327,7 +329,7 @@ class Pacman:
             if (dragons and len(p.dragons) == len(dragons) and
                 p not in self.joined):
                 dragon = random.choice(dragons)
-                pac = Pac(self, p, dragon.x, dragon.y)
+                pac = Pac(self, p, dragon.x, dragon.y, dragon.dcap)
                 p.dragons.append(pac)
                 p.emotic(dragon, 4)
                 self.joined[p] = 1

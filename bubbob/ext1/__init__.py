@@ -50,7 +50,7 @@ class PaddleEyes(BubblingEyes):
         vx = 0.0
         fx = paddle.x
         while paddle.alive:
-            wannago = bubber.wannago(self.saved_caps)
+            wannago = bubber.wannago(self.dcap)
             if paddle.timeleft is None:
                 keydy = 0
             else:
