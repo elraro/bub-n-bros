@@ -78,11 +78,11 @@ class Monster(ActiveSprite):
 
     def blocked(self):
         if self.dir < 0:
-            x0 = (self.x-1)/CELL
+            x0 = (self.x-1)//CELL
         else:
-            x0 = (self.x+1)/CELL + 2
-        y0 = self.y / CELL + 1
-        y1 = (self.y + CELL - 1) / CELL + 1
+            x0 = (self.x+1)//CELL + 2
+        y0 = self.y // CELL + 1
+        y1 = (self.y + CELL - 1) // CELL + 1
         return bget(x0,y0) == '#' or bget(x0,y1) == '#'
 
     def waiting(self, delay=20):
@@ -109,7 +109,7 @@ class Monster(ActiveSprite):
             if self.dir > 0:
                 x1 += self.vx
             if (x1 % CELL) < self.vx and random.random() < self.special_prob:
-                self.move((x1/CELL) * CELL, self.y)
+                self.move((x1//CELL) * CELL, self.y)
                 if self.special():
                     return
             if self.blocked():
@@ -166,9 +166,9 @@ class Monster(ActiveSprite):
             yield None
             ny = self.y + 3
             if (ny % CELL) > CELL-2:
-                ny = (ny/CELL+1)*CELL
+                ny = (ny//CELL+1)*CELL
             elif (ny % CELL) < 3:
-                ny = (ny/CELL)*CELL
+                ny = (ny//CELL)*CELL
             if ny >= boards.bheight:
                 ny -= boards.bheightmod
             self.move(self.x, ny)
@@ -301,20 +301,20 @@ class Monster(ActiveSprite):
             elif ny < -2*CELL:
                 ny += boards.bheightmod
             if self.dir < 0:
-                x0 = nx / CELL
+                x0 = nx // CELL
             else:
-                x0 = (nx+self.ico.w-1) / CELL
-            for y in range(self.y / CELL, (self.y+self.ico.h-1) / CELL + 1):
+                x0 = (nx+self.ico.w-1) // CELL
+            for y in range(self.y // CELL, (self.y+self.ico.h-1) // CELL + 1):
                 if bget(x0, y) == '#':
                     self.dir = -self.dir
                     nx = self.x
                     self.resetimages()
                     break
             if self.vdir < 0:
-                y0 = ny / CELL
+                y0 = ny // CELL
             else:
-                y0 = (ny+self.ico.h-1) / CELL
-            for x in range(nx / CELL, (nx+self.ico.w-1) / CELL + 1):
+                y0 = (ny+self.ico.h-1) // CELL
+            for x in range(nx // CELL, (nx+self.ico.w-1) // CELL + 1):
                 if bget(x, y0) == '#':
                     self.vdir = -self.vdir
                     ny = self.y
@@ -381,33 +381,33 @@ class Monster(ActiveSprite):
                     dy = 0
                 saved_dxdy = dx, dy
                 blocked = 0
-                nx = (self.x / self.vx) * self.vx
-                ny = (self.y / self.vy) * self.vy
+                nx = (self.x // self.vx) * self.vx
+                ny = (self.y // self.vy) * self.vy
                 if ny >= boards.bheight:
                     ny -= boards.bheightmod
                 elif ny < -2*CELL:
                     ny += boards.bheightmod
                 if (nx % CELL) == 0:
                     if dx < 0:
-                        x0 = nx / CELL - 1
+                        x0 = nx // CELL - 1
                     else:
-                        x0 = (nx+self.ico.w) / CELL
-                    for y in range(self.y / CELL, (self.y+self.ico.h-1) / CELL + 1):
+                        x0 = (nx+self.ico.w) // CELL
+                    for y in range(self.y // CELL, (self.y+self.ico.h-1) // CELL + 1):
                         if bget(x0, y) == '#':
                             dx = 0
                             blocked += 1
                             break
                 if (ny % CELL) == 0:
                     if dy < 0:
-                        y0 = ny / CELL - 1
+                        y0 = ny // CELL - 1
                     else:
-                        y0 = (ny+self.ico.h) / CELL
-                    for x in range(self.x / CELL, (self.x+self.ico.w-1) / CELL + 1):
+                        y0 = (ny+self.ico.h) // CELL
+                    for x in range(self.x // CELL, (self.x+self.ico.w-1) // CELL + 1):
                         if bget(x, y0) == '#':
                             dy = 0
                             blocked += 1
                             break
-                if blocked == 2 and bget(self.x/CELL+1, self.y/CELL+1) == '#':
+                if blocked == 2 and bget(self.x//CELL+1, self.y//CELL+1) == '#':
                     dx, dy = saved_dxdy
                 self.move(nx + dx*self.vx, ny + dy*self.vy)
                 yield None
@@ -547,8 +547,8 @@ class MonsterShot(ActiveSprite):
             nimages = owner.mdef.right_weapon
         ActiveSprite.__init__(self, images.sprget(nimages[0]),
                               owner.x, owner.y + dy)
-        self.step((owner.ico.w - self.ico.w) / 2,
-                  (owner.ico.h - self.ico.h) / 2)
+        self.step((owner.ico.w - self.ico.w) // 2,
+                  (owner.ico.h - self.ico.h) // 2)
         if not self.blocked():
             self.step(dx*owner.dir, 0)
         if len(nimages) > 1:
@@ -557,10 +557,10 @@ class MonsterShot(ActiveSprite):
 
     def blocked(self):
         if self.speed < 0:
-            x0 = (self.x-self.speed-HALFCELL)/CELL
+            x0 = (self.x-self.speed-HALFCELL)//CELL
         else:
-            x0 = (self.x+self.ico.w+self.speed-HALFCELL)/CELL
-        y0 = (self.y+HALFCELL) / CELL + 1
+            x0 = (self.x+self.ico.w+self.speed-HALFCELL)//CELL
+        y0 = (self.y+HALFCELL) // CELL + 1
         return not (' ' == bget(x0,y0) == bget(x0+1,y0))
 
     def moving(self):
@@ -705,10 +705,10 @@ class Springy(Monster):
                 self.dir = -self.dir
                 self.resetimages()
             nx = self.x + self.dir*self.vx
-            if self.y/CELL < int(yf)/CELL:
-                if onground(self.x, (self.y/CELL+1)*CELL):
+            if self.y//CELL < int(yf)//CELL:
+                if onground(self.x, (self.y//CELL+1)*CELL):
                     break
-                if onground(nx, (self.y/CELL+1)*CELL):
+                if onground(nx, (self.y//CELL+1)*CELL):
                     self.move(nx, self.y)
                     break
             if yf >= boards.bheight:

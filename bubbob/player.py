@@ -111,7 +111,7 @@ class Dragon(ActiveSprite):
         self.kill()
         if not self.bubber.dragons:
             self.bubber.bubberdie()
-        #    self.bubber.badpoints = self.bubber.points / 3
+        #    self.bubber.badpoints = self.bubber.points // 3
 
     def killing(self):
         self.kill()
@@ -181,15 +181,15 @@ class Dragon(ActiveSprite):
                 hfp -= 1
                 dir = 0
                 if wannago == -1:
-                    x0 = (self.x+1)/CELL
-                    y0 = (self.y+4) / CELL + 1
-                    y0bis = (self.y+CELL-1) / CELL + 1
+                    x0 = (self.x+1)//CELL
+                    y0 = (self.y+4) // CELL + 1
+                    y0bis = (self.y+CELL-1) // CELL + 1
                     if bget(x0,y0) == ' ' == bget(x0,y0bis):
                         dir = -1
                 elif wannago == 1:
-                    x0 = (self.x-3)/CELL + 2
-                    y0 = self.y / CELL + 1
-                    y0bis = (self.y+CELL-1) / CELL + 1
+                    x0 = (self.x-3)//CELL + 2
+                    y0 = self.y // CELL + 1
+                    y0bis = (self.y+CELL-1) // CELL + 1
                     if bget(x0,y0) == ' ' == bget(x0,y0bis):
                         dir = +1
                 self.step(2*dir, 0)
@@ -227,7 +227,7 @@ class Dragon(ActiveSprite):
                     self.up = 7.5
                     mode = 9
                 else:
-                    mode = self.mytime / 4
+                    mode = self.mytime // 4
             else:
                 mode = 10
                 if self.dcap['fly']:
@@ -251,7 +251,7 @@ class Dragon(ActiveSprite):
                 elif self.fire <= 10:
                     mode = 4
                 self.fire += 1
-                if self.fire >= 64 / self.dcap['firerate']:
+                if self.fire >= 64 // self.dcap['firerate']:
                     self.fire = 0
 
             s = self.dcap['shield']
@@ -534,7 +534,7 @@ def xyiconumber(digits, x, y, pts, lst, width=7):
     for l in range(width):
         ico = images.sprget(digits[pts % 10])
         lst.append((x + (ico.w+1)*(width-1-l), y, ico))
-        pts = pts/10
+        pts = pts//10
         if not pts:
             break
     return lst[-1][0]
@@ -607,11 +607,11 @@ def scoreboard(reset=0):
     if BubPlayer.LimitTime is not None:
         seconds = int(BubPlayer.LimitTime)
         xyiconumber(DigitsMisc.digits_white, x0+2*CELL, HALFCELL,
-                    seconds / 60, lst, width=3)
+                    seconds // 60, lst, width=3)
         ico = images.sprget('colon')
         lst.append((x0+5*CELL-1, HALFCELL+1, ico))
         seconds = seconds % 60
-        ico = images.sprget(DigitsMisc.digits_white[seconds / 10])
+        ico = images.sprget(DigitsMisc.digits_white[seconds // 10])
         lst.append((x0+6*CELL, HALFCELL, ico))
         ico = images.sprget(DigitsMisc.digits_white[seconds % 10])
         lst.append((x0+6*CELL+ico.w, HALFCELL, ico))

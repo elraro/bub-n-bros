@@ -76,7 +76,7 @@ class Bonus(ActiveSprite):
                     s = p
                 else:
                     s = self
-                points(s.x + s.ico.w/2, s.y + s.ico.h/2 - CELL, p, self.points)
+                points(s.x + s.ico.w//2, s.y + s.ico.h//2 - CELL, p, self.points)
         if self.taken1(self.taken_by) != -1:
             self.kill()
 
@@ -101,12 +101,12 @@ class Bonus(ActiveSprite):
         self.setimages(self.cyclic(questionmarklist, 2))
 
     def bubbling(self, bubble, ico):
-        #dx = (bubble.ico.w - nico.w) / 2
-        #dy = (bubble.ico.h - nico.h) / 2
+        #dx = (bubble.ico.w - nico.w) // 2
+        #dy = (bubble.ico.h - nico.h) // 2
         #dx = [dx, dx+1, dx, dx-1]
         #i = 0
         #while not hasattr(bubble, 'poplist'):
-        #    self.move(bubble.x+dx[i/4], bubble.y+dy, nico)
+        #    self.move(bubble.x+dx[i//4], bubble.y+dy, nico)
         #    i = (i+1) % 16
         #    yield None
         while not hasattr(bubble, 'poplist'):
@@ -122,7 +122,7 @@ class Bonus(ActiveSprite):
                     dragon.bubber.givepoints(self.points - 10)
                     pn = dragon.bubber.pn
                     if self.points in GreenAndBlue.points[pn]:
-                        Points(bubble.x + bubble.ico.w/2, bubble.y, pn, self.points)
+                        Points(bubble.x + bubble.ico.w//2, bubble.y, pn, self.points)
                 self.taken1(BubPlayer.DragonList)
                 p = Parabolic(ico, bubble.x, bubble.y)
                 p.gen.append(p.moving(-1.0))
@@ -139,7 +139,7 @@ class Points(ActiveSprite):
 
     def __init__(self, x, y, pn, points):
         ico = images.sprget(GreenAndBlue.points[pn][points])
-        ActiveSprite.__init__(self, ico, x - ico.w/2, max(8, y))
+        ActiveSprite.__init__(self, ico, x - ico.w//2, max(8, y))
         self.nooverlap = 1
         self.gen.append(self.raiser())
 
@@ -149,7 +149,7 @@ class Points(ActiveSprite):
             if s is self:
                 break
             if (isinstance(s, Points) and s.nooverlap and
-                abs(self.x-s.x)<self.ico.w*2/3 and
+                abs(self.x-s.x)<self.ico.w*2//3 and
                 abs(self.y-s.y)<self.ico.h):
                 wait += 5
         for t in range(wait):
@@ -293,7 +293,7 @@ class Extend(RandomBonus):
         from bubbles import extend_name
         names = [extend_name(l) for l in range(6)]
         missing = [name for name in names if name not in dragon.bubber.letters]
-        points(dragon.x + dragon.ico.w/2, dragon.y, dragon, 10000 * len(missing))
+        points(dragon.x + dragon.ico.w//2, dragon.y, dragon, 10000 * len(missing))
         for l in range(6):
             if extend_name(l) in missing:
                 dragon.bubber.giveletter(l, promize=0)
@@ -1009,8 +1009,8 @@ class Megalightning(ActiveSprite):
         x0 = self.x
         y0 = self.y
         poplist = [dragon]
-        x1 += CELL - self.ico.w/2
-        y1 += CELL - self.ico.h/2
+        x1 += CELL - self.ico.w//2
+        y1 += CELL - self.ico.h//2
         deltax = x1 - x0
         if deltax > -100:
             deltax = -100
@@ -1055,8 +1055,8 @@ class Sheep(RandomBonus):
         slist = []
         ico = images.sprget('sheep-big')
         for d in BubPlayer.DragonList[:]:
-            dx = (d.ico.w - ico.w) / 2
-            dy = (d.ico.h - ico.h) / 2
+            dx = (d.ico.w - ico.w) // 2
+            dy = (d.ico.h - ico.h) // 2
             s = ActiveSprite(ico, d.x + dx, d.y + dy)
             s.gen.append(s.parabolic([d.dir, -2.0]))
             slist.append(s)
@@ -1064,7 +1064,7 @@ class Sheep(RandomBonus):
         delta = {}
         for p in BubPlayer.PlayerList:
             if p.isplaying():
-                delta[p] = (self.points0.get(p, 0) - p.points) / 10
+                delta[p] = (self.points0.get(p, 0) - p.points) // 10
         vy = 0
         for i in range(20):
             for p, dp in delta.items():

@@ -4,7 +4,7 @@ import gamesrv
 import images
 
 CELL = 16
-HALFCELL = CELL/2
+HALFCELL = CELL//2
 FRAME_TIME = 0.025
 DEFAULT_LEVEL_FILE = 'levels/scratch.py'
 
@@ -88,7 +88,7 @@ class Board:
             else:
                 righticon = lefticon
             xrange = range(2, self.width-2)
-            for y in range(0, self.height, lefticon.h / CELL):
+            for y in range(0, self.height, lefticon.h // CELL):
                 bl.append(gamesrv.Sprite(lefticon, 0, y*CELL + deltay))
         else:
             xrange = range(self.width)
@@ -105,7 +105,7 @@ class Board:
 
         if righticon is not None:
             n = len(bl)
-            for y in range(0, self.height, lefticon.h / CELL):
+            for y in range(0, self.height, lefticon.h // CELL):
                 bl.append(gamesrv.Sprite(righticon, (self.width-2)*CELL, y*CELL + deltay))
 
         while deltay:
@@ -225,8 +225,8 @@ def bget(x, y):
         return '#'
 
 def wget(x, y):
-    x = (x + curboard.WIND_DELTA) / CELL
-    y = (y + curboard.WIND_DELTA) / CELL
+    x = (x + curboard.WIND_DELTA) // CELL
+    y = (y + curboard.WIND_DELTA) // CELL
     if 0 <= x < curboard.width:
         if y < 0:
             y = 0
@@ -241,10 +241,10 @@ def wget(x, y):
 def onground(x, y):
     if y % CELL:
         return 0
-    x0 = (x+5) / CELL
-    x1 = (x+CELL) / CELL
-    x2 = (x+2*CELL-5) / CELL
-    y0 = y / CELL + 2
+    x0 = (x+5) // CELL
+    x1 = (x+CELL) // CELL
+    x2 = (x+2*CELL-5) // CELL
+    y0 = y // CELL + 2
 
     if x0 < 0 or x2 >= curboard.width:
         return 0
@@ -440,7 +440,7 @@ def normal_play():
                 from monsters import Monster
                 from mnstrmap import BigImages
                 ico = images.sprget(BigImages.hurryup[1])
-                s = images.ActiveSprite(ico, (bwidth-ico.w)/2, (bheight-ico.h)/2)
+                s = images.ActiveSprite(ico, (bwidth-ico.w)//2, (bheight-ico.h)//2)
                 s.setimages(s.die(BigImages.hurryup * 12, 2))
                 images.Snd.Hurry.play()
                 mlist = [s for s in images.ActiveSprites
@@ -493,7 +493,7 @@ def last_monster_killed(end_delay=390, music=None):
 ##        if players:
 ##            players.sort()
 ##            points, BubPlayer.LimitScoreColor = players[-1]
-##            BubPlayer.LimitScore = ((points + limit) / 100000) * 100000
+##            BubPlayer.LimitScore = ((points + limit) // 100000) * 100000
 ##    for p in BubPlayer.PlayerList:
 ##        if p.isplaying():
 ##            p.givepoints(0)  # check LimitScore and update scoreboard()
@@ -563,7 +563,7 @@ def game_over():
 ##    for p in BubPlayer.PlayerList:
 ##        if p.isplaying():
 ##            p.letters = {}
-##            p.bonbons = p.points / 50000
+##            p.bonbons = p.points // 50000
 ##    scoreboard()
     
 ##    while len(BubPlayer.DragonList) > 1:
@@ -636,7 +636,7 @@ def potion_fill(blist):
     while y < 11 or (y < height-2 and len(all_notes) < 10):
         for x in range(2, width-3, 2):
             if ' ' == bget(x,y) == bget(x+1,y) == bget(x,y+1) == bget(x+1,y+1):
-                b = Bonus(x*CELL, y*CELL, falling=0, *blist[((x+y)/2)%len(blist)])
+                b = Bonus(x*CELL, y*CELL, falling=0, *blist[((x+y)//2)%len(blist)])
                 b.timeout = 444
                 all_notes.append(b)
         for i in range(2):
@@ -698,8 +698,8 @@ def display_ranking(ranking, timeleft):
     if ranking:
         cwidth = 10
         cheight = 3*len(ranking)
-        x0 = ((width - cwidth) / 2) * CELL + HALFCELL
-        y0 = ((height - cheight) / 2) * CELL + HALFCELL
+        x0 = ((width - cwidth) // 2) * CELL + HALFCELL
+        y0 = ((height - cheight) // 2) * CELL + HALFCELL
         extras = curboard.sprites.setdefault('ranking', [])
         wallicon = patget((curboard.num, 0, 0), images.KEYCOL)
         fillicon = images.sprget(Flood.fill)
@@ -727,7 +727,7 @@ def display_ranking(ranking, timeleft):
         if timeleft is None:
             nbpoints = 0
         else:
-            nbpoints = ((len(ranking)+1)/2)*10000
+            nbpoints = ((len(ranking)+1)//2)*10000
         for i in range(len(ranking)):
             bubber, text = ranking[i]
             text = [map[digit] for digit in text]
@@ -747,10 +747,10 @@ def display_ranking(ranking, timeleft):
             w0 = 0
             for digit in text:
                 w0 += images.sprget(digit).w+1
-            x = x0 + (22 + 2*CELL + cwidth*CELL - w0) / 2
+            x = x0 + (22 + 2*CELL + cwidth*CELL - w0) // 2
             for digit in text:
                 icon = images.sprget(digit)
-                w = gamesrv.Sprite(icon, x, y + CELL - icon.h/2)
+                w = gamesrv.Sprite(icon, x, y + CELL - icon.h//2)
                 extras.append(w)
                 x += icon.w+1
             y += 3*CELL

@@ -76,7 +76,7 @@ class ActiveSprite(gamesrv.Sprite):
         import boards
         xmin = 2*boards.CELL
         xmax = boards.bwidth-4*boards.CELL
-        snd.play(volume, pad=(self.x-xmin)/(xmax-xmin))
+        snd.play(volume, pad=float(self.x-xmin)/(xmax-xmin))
 
     def setimages(self, gen):
         if self.imgsetter is not None:

@@ -201,14 +201,14 @@ class ppatResource(Resource):
         f.seek(pmTable)
         colormap = loadcolormap(f)
         bits_per_pixel = pixelSize
-        pixels_per_byte = 8 / bits_per_pixel
+        pixels_per_byte = 8 // bits_per_pixel
         image = []
         f.seek(patdata)
         for y in range(h):
             line = f.read(rowBytes)
             imgline = []
             for x in range(w):
-                n = x/pixels_per_byte
+                n = x//pixels_per_byte
                 idx = ((ord(line[n]) >> ((pixels_per_byte - 1 - x%pixels_per_byte) * bits_per_pixel))
                        & ((1<<bits_per_pixel)-1))
                 imgline.append(colormap[idx])
@@ -231,8 +231,8 @@ class LEVLResource(Resource):
         
         walls = []
         for y in range(self.HEIGHT):
-            line = f.read(self.WIDTH/8)
-            line = [self.WALLS[(ord(line[x/8]) >> (x%8)) & 1]
+            line = f.read(self.WIDTH//8)
+            line = [self.WALLS[(ord(line[x//8]) >> (x%8)) & 1]
                     for x in range(self.WIDTH)]
             walls.append(''.join(line))
         result['walls'] = '\n'.join(walls)

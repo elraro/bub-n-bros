@@ -214,7 +214,7 @@ class Playfield:
         for id, ico in pi:
             if self.playing.get(id) != 'l':
                 w, h = ico.size
-                xpos += w * 5 / 3
+                xpos += int(w * 5 / 3)
                 if not self.playing.get(id):
                     y = self.height - h
                     if xpos-w <= cx < xpos:
@@ -222,7 +222,7 @@ class Playfield:
                     if self.keydefinition and id == self.keydefinition[0]:
                         num, icons = self.keys[self.nextkeyname()]
                         ico = icons[int(f*len(icons))-1]
-                        y = y0 + (self.TASKBAR_HEIGHT-ico.size[1])/2
+                        y = y0 + int((self.TASKBAR_HEIGHT-ico.size[1])/2)
                         self.taskbaranim = 1
                     self.dpy.putppm(xpos-w, y,
                                     ico.bitmap, ico.rect)
@@ -232,7 +232,7 @@ class Playfield:
         for id, ico in pi:
             if self.playing.get(id) == 'l':
                 w, h = ico.size
-                xpos -= w * 5 / 3
+                xpos -= int(w * 5 / 3)
                 dy = self.TASKBAR_HEIGHT - h - 1
                 y = self.height - h - int(dy*f)
                 if xpos <= cx < xpos+w:

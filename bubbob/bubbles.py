@@ -176,7 +176,7 @@ class DragonBubble(Bubble):
     def throw_bubble(self, hspeed):
         from monsters import Monster
         nx = self.x
-        yc = (self.y+HALFCELL)/CELL
+        yc = (self.y+HALFCELL)//CELL
         stop = 0
         withmonster = 0
         while abs(hspeed) >= 4.0:
@@ -188,7 +188,7 @@ class DragonBubble(Bubble):
                 break
             nx += hspeed
             hspeed *= 0.965
-            xc = int(nx-3.8)/CELL+1
+            xc = int(nx-3.8)//CELL+1
             if bget(xc,yc) == '#' == bget(xc, yc+1):
                 stop += 1
                 if stop > 1:
@@ -408,8 +408,8 @@ class FireFlame(ActiveSprite):
         self.setimages(self.cyclic(Fire.ground, 1))
     def burning(self, dirs, countdown):
         from monsters import Monster
-        x0 = self.x/CELL
-        y0 = self.y/CELL
+        x0 = self.x//CELL
+        y0 = self.y//CELL
         for dir in dirs:
             if bget(x0+dir, y0+1) == '#' and bget(x0+dir, y0) == ' ':
                 FireFlame(x0+dir, y0, self.poplist, [dir], countdown-1)
@@ -427,14 +427,14 @@ class FireDrop(ActiveSprite):
         self.poplist = poplist or [None]
         self.gen.append(self.dropping())
     def dropping(self):
-        x0 = self.x/CELL
-        while bget(x0, self.y/CELL) == '#' or bget(x0, self.y/CELL+1) != '#':
+        x0 = self.x//CELL
+        while bget(x0, self.y//CELL) == '#' or bget(x0, self.y//CELL+1) != '#':
             if self.y >= boards.bheight:
                 self.kill()
                 return
             self.move(self.x, (self.y + 8) & ~7)
             yield None
-        y0 = self.y/CELL
+        y0 = self.y//CELL
         if bget(x0-1, y0) == ' ':
             FireFlame(x0, y0, self.poplist, [-1, 1], 5)
         self.kill()
@@ -446,7 +446,7 @@ class FireBubble(BonusBubble):
         return boards.curboard.fire
     def popped(self, dragon):
         if dragon:
-            x0 = self.x / CELL + 1
+            x0 = self.x // CELL + 1
             FireDrop(x0*CELL, self.y)
         return 10
 
@@ -476,7 +476,7 @@ class WaterCell(ActiveSprite):
         self.cells2 = cells2
         self.poplist = poplist
         ActiveSprite.__init__(self, images.sprget(Water.top), x, y)
-        key = x/CELL, y/CELL
+        key = x//CELL, y//CELL
         cells[key] = cells.get(key, 0) + 1
         cells2.append(self)
         self.take_with_me = []
@@ -488,8 +488,8 @@ class WaterCell(ActiveSprite):
         self.pending = 0
         self.gen.append(self.flooding())
     def onestep(self):
-        x0 = self.x / CELL
-        y0 = self.y / CELL
+        x0 = self.x // CELL
+        y0 = self.y // CELL
         self.cells[x0, y0] -= 1
         if bget(x0, y0+1) == ' ':
             dx, dy = 0, 1
@@ -526,7 +526,7 @@ class WaterCell(ActiveSprite):
                         c.onestep()
             #l = [(k,v) for k,v in self.cells.items() if v]
             #l.sort()
-            #print (self.x/CELL, self.y/CELL), l
+            #print (self.x//CELL, self.y//CELL), l
             if self.pending == -1:
                 break
             x0, y0 = self.pending
@@ -577,8 +577,8 @@ class WaterBubble(BonusBubble):
         return boards.curboard.water
     def popped(self, dragon):
         if dragon:
-            x0 = self.x / CELL + 1
-            y0 = self.y / CELL + 1
+            x0 = self.x // CELL + 1
+            y0 = self.y // CELL + 1
             if bget(x0,y0) == '#':
                 if bget(x0+1,y0) == '#':
                     y0 += 1
