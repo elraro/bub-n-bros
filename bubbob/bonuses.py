@@ -678,6 +678,8 @@ class Cactus(RandomBonus):
                 count += 1
         cactusbonussound()
 
+Cactus1 = Cactus # increase probability
+
 def makecactusbonus(cls, *args):
     bonus = cls(-3*CELL, 0, *args)
     if not bonus.alive or getattr(bonus, 'bigbonus', None) is None:
@@ -809,7 +811,7 @@ class WaterBubble(FireBubble):
     "Water Bubbles. Your bubbles will now be filled with water."
     nimage = Bonuses.beer
     bubkind = 'WaterBubble'
-    bigbonus = None
+    bigbonus = {'bubkind': 'SolidBubble'}
 
 class LightningBubble(FireBubble):
     "Lightning Bubbles."

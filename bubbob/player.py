@@ -274,7 +274,7 @@ class Dragon(ActiveSprite):
                 touching.reverse()
                 for s in touching:
                     if s.touched(self):
-                        onbubble = 1
+                        onbubble = max(onbubble, getattr(s,'solidbubble',0)+1)
             elif bubber.key_left or bubber.key_right or bubber.key_jump or bubber.key_fire:
                 self.dcap['infinite_shield'] = 0
 
@@ -308,8 +308,8 @@ class Dragon(ActiveSprite):
             else:
                 # going down or staying on ground
                 ground = (onground,underground)[bottom_up](self.x, self.y)
-                if ground or (wannajump and onbubble
-                              and not self.dcap['nojump']):
+                if ground or onbubble>1 or (
+                    wannajump and onbubble and not self.dcap['nojump']):
                     if self.dcap['nojump']:
                         mode = 0
                         self.glueddown = (0, (1,-1)[bottom_up])

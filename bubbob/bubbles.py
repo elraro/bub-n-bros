@@ -49,8 +49,16 @@ class Bubble(ActiveSprite):
               abs(self.x - dragon.x) < 15 and abs(self.y - dragon.y) < 15):
             if dragon not in self.catch_dragons:
                 self.catch_dragons.append(dragon)
-        else:
-            self.pop(dragon.poplist)
+        elif not self.pop(dragon.poplist):
+            if self.x < dragon.x:
+                o.append((1,0))
+            else:
+                o.append((-1,0))
+            if self.y < dragon.y:
+                o.append((0,1))
+            else:
+                o.append((0,-1))
+            self.obstacle = o
         return o == self.check_onbubble[dragon.bottom_up()]
 
     def can_catch_dragons(self, author, catch_myself=0):
@@ -787,6 +795,13 @@ class WaterCell(ActiveSprite):
         dragon.watermove(x2bounds(self.x-HALFCELL), self.y-CELL+1)
         return 1
 
+def watercell(x, y, poplist, dir=None, repeat=4):
+    b = boards.curboard
+    if not hasattr(b, 'watercells'):
+        b.watercells = {}
+    dir = dir or random.choice([-1, 1])
+    WaterCell(x, y, dir, b.watercells, poplist, repeat)
+
 class WaterBubble(BonusBubble):
     max = 4
     nimages = GreenAndBlue.water_bubbles
@@ -803,12 +818,21 @@ class WaterBubble(BonusBubble):
             watercell(x0*CELL, y0*CELL, [None], repeat=19)
         return 10
 
-def watercell(x, y, poplist, dir=None, repeat=4):
-    b = boards.curboard
-    if not hasattr(b, 'watercells'):
-        b.watercells = {}
-    dir = dir or random.choice([-1, 1])
-    WaterCell(x, y, dir, b.watercells, poplist, repeat)
+class SolidBubble(WaterBubble):
+    timeout = 450
+    solidbubble = 1
+    flip = 'vflip'
+
+    def bubble_red(self, *args):
+        self.solidbubble = 0
+        return WaterBubble.bubble_red(self, *args)
+
+    def pop(self, poplist=None):
+        return (not (self.solidbubble and poplist is not None)
+                and WaterBubble.pop(self, poplist))
+
+    def popped(self, dragon):
+        return 100
 
 class FiredLightning(ActiveSprite):
     def __init__(self, x, y, dir, poplist):
