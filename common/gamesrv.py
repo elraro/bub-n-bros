@@ -1,3 +1,4 @@
+from __future__ import generators
 from socket import *
 from select import select
 from struct import pack, unpack
@@ -449,13 +450,15 @@ class Client:
               del self.sounds[key]
         if broadcast_extras is None or self not in broadcast_clients:
           if self.dyncompress is not None:
-            udpdata = self.dynamic_compress(udpdata)
-          try:
-            l = self.udpsocket.send(udpdata)
-            self.udpsockcounter += l
-          except error, e:
-            print >> sys.stderr, 'ignored:', str(e)
-            pass  # ignore UDP send errors (buffer full, etc.)
+            udpdatas = self.dynamic_compress(udpdata)
+          else:
+            udpdatas = [udpdata]
+          for udpdata in udpdatas:
+            try:
+              self.udpsockcounter += self.udpsocket.send(udpdata)
+            except error, e:
+              print >> sys.stderr, 'ignored:', str(e)
+              pass  # ignore UDP send errors (buffer full, etc.)
       if self.has_music > 1 and NOW >= self.musicstreamer:
         self.musicstreamer += 0.99
         self.sendmusicdata()
@@ -469,47 +472,52 @@ class Client:
         self.msgl.append(message(MSG_PING, self.udpsockcounter>>10))
         self.last_ping = NOW
 
-  def dynamic_compress(self, udpdata):
-    # Protocol version 3 UDP packets are compressed in "sequences",
-    # each sequence of UDP packets being compressed with the same
-    # compressor, thus all packets but the first one are very small,
-    # but any lost packet makes the tail of the sequence unreadable.
-    # Sequences are interleaved to minimize the impact of lost packets.
-    # In this version of the server 3 sequences are interleaved,
-    # and each sequence is 4 packets long (the protocol has room for
-    # up to 16). Sequence ids should be discarded by the client
-    # after 10 seconds.
-    # 
-    #   header byte: between 0x80 (1st packet in sequence)
-    #                    and 0x8F (16th packet in sequence)
-    #   second byte: sequence id
-    #      the rest: compressed data
-    #
-    LastPacket = 0x83
-    dyncompress = self.dyncompress
-    if not dyncompress:
-      # initialization
-      self.dyncompress_seqid = 0
-      for packet in range(LastPacket, 0x80, -1):
-        dyncompress.append((packet, chr(self.dyncompress_seqid),
-                            zlib.compressobj(6)))
-        self.dyncompress_seqid += 1
-      # advance until a valid packet is found
-      while dyncompress[0][0] != 0x80:
-        self.dynamic_compress('')
-      #print 'go'
+  def setup_dyncompress(self):
+    def dyncompress():
+      # See comments in pclient.Playfield.dynamic_decompress().
+      frame = 0
+      while 1:
+        # global sync
+        threads = []
+        header = '\x88' + 2*chr(frame)
+        for t in range(0x80, 0x83):
+          co = zlib.compressobj(6)
+          yield header, co
+          header = None
+          threads.append((chr(t) + chr(frame), co))
+        yield None, None
+        frame = (frame + 1) & 0xFF
+        
+        for i in range(11):    # must have 11 & 3 == 3
+          # next packet
+          head, co = threads.pop(0)
+          yield head + chr(frame), co
+          if i & 3 != 3:
+            threads.append((chr(ord(head[0]) & 0x87) + chr(frame), co))
+          else:
+            # sync frame, restart compression at the current frame
+            co2 = zlib.compressobj(6)
+            co3 = zlib.compressobj(6)
+            yield None, co2
+            yield None, co3
+            # repeat frame with next thread
+            threads.append((chr(ord(head[0]) | 8) + chr(frame), co2))
+            head, co = threads.pop(0)
+            yield head + chr(frame), co
+            threads.append((chr(ord(head[0]) | 8) + chr(frame), co3))
+          yield None, None
+          frame = (frame + 1) & 0xFF
     
-    #print dyncompress[0]
-    packet, seqid, co = dyncompress.pop(0)
-    udpdata = ''.join([chr(packet), seqid,
-                       co.compress(udpdata), co.flush(zlib.Z_SYNC_FLUSH)])
-    if packet < LastPacket:
-      c = packet+1, seqid, co
-    else:
-      c = 0x80, chr(self.dyncompress_seqid), zlib.compressobj(6)
-      self.dyncompress_seqid = (self.dyncompress_seqid + 1) & 0xFF
-    dyncompress.append(c)
-    return udpdata
+    self.dyncompress = dyncompress()
+
+  def dynamic_compress(self, framedata):
+    result = []
+    for head, co in self.dyncompress:
+      if not co:
+        return result
+      data = [head, co.compress(framedata), co.flush(zlib.Z_SYNC_FLUSH)]
+      if head:
+        result.append(''.join(data))
 
   def send_can_mix(self):
     return not self.msgl and self.socket is not None
@@ -641,7 +649,6 @@ then use the following address:
     p.setplayername(name)
 
   def set_udp_port(self, port, addr=None, *rest):
-    self.dyncompress = None
     if port == MSG_BROADCAST_PORT:
       #self.log('set_udp_port: broadcast')
       broadcast_clients[self] = 1
@@ -653,6 +660,7 @@ then use the following address:
         pass
       if port == MSG_INLINE_FRAME or port == 0:
         # client requests data in-line on the TCP stream
+        self.dyncompress = None
         import udpovertcp
         self.udpsocket = udpovertcp.SocketMarshaller(self.socket, self)
         s = self.udpsocket.tcpsock
@@ -669,7 +677,7 @@ then use the following address:
           self.udpsockcounter = sys.maxint
         else:
           if self.proto >= 3:
-            self.dyncompress = []
+            self.setup_dyncompress()
         s = self.udpsocket
         #self.log('set_udp_port: %d' % port)
       if s:

@@ -132,7 +132,7 @@ class Playfield:
         print "connected to %r." % self.gameident
         self.s.sendall(message(CMSG_PROTO_VERSION, 3))
 
-    def run(self, mode, udp_over_tcp='auto'):
+    def setup(self, mode, udp_over_tcp):
         self.playing = {}   # 0, 1, or 'l' for local
         self.keys = {}
         self.keycodes = {}
@@ -161,7 +161,6 @@ class Playfield:
         self.udpsock_low = None
         self.udpsock2 = None
         self.accepted_broadcast = 0
-        self.dyndecompress = {}
         self.tcpbytecounter = 0
         self.udpbytecounter = 0
         if udp_over_tcp == 1:
@@ -170,7 +169,10 @@ class Playfield:
             self.udp_over_tcp = None
             if udp_over_tcp == 'auto':
                 self.udpsock_low = 0
-        
+        self.dyndecompress = [[None, None, None, None] for i in range(8)]
+
+    def run(self, mode, udp_over_tcp='auto'):
+        self.setup(mode, udp_over_tcp)
         pss = hostchooser.serverside_ping()
         self.initial_iwtd = [self.s, pss]
         self.iwtd = self.initial_iwtd[:]
@@ -210,10 +212,13 @@ class Playfield:
                     while self.udpsock in iwtd:
                         udpdata = self.udpsock.recv(65535)
                         self.udpbytecounter += len(udpdata)
-                        if len(udpdata) >= 2 and '\x80' <= udpdata[0] < '\x90':
-                            udpdata = self.dynamic_decompress(udpdata)
-                        if udpdata is not None:
-                            udpdata1 = udpdata
+                        # loose some packets
+                        import random
+                        if random.random() >= 0.10:
+                            if len(udpdata) > 3 and '\x80' <= udpdata[0] < '\x90':
+                                udpdata = self.dynamic_decompress(udpdata)
+                            if udpdata is not None:
+                                udpdata1 = udpdata
                         iwtd, owtd, ewtd = select(self.iwtd, [], [], 0)
                     if udpdata1 is not None:
                         self.update_sprites(udpdata1)
@@ -247,24 +252,77 @@ class Playfield:
                 hostchooser.answer_ping(pss, self.gameident, self.sockaddr)
 
     def dynamic_decompress(self, udpdata):
-        # See commends in common.py, dynamic_compress
+        # Format of a UDP version 3 packet:
+        #    header byte:     0x80 - 0x87    packet from thread 0 - 7
+        #                  or 0x88 - 0x8F    reset packet from thread 0 - 7
+        #    previous frame in same thread (1 byte)
+        #    frame number (1 byte)
+        thread = self.dyndecompress[ord(udpdata[0]) & 7]
+        # thread==[decompress, lastframenumber, recompressed, lastframedata]
+        prevframe = udpdata[1]
+        thisframe = udpdata[2]
+        #print '---'
+        #for t in self.dyndecompress:
+        #    print repr(t)[:120]
+        #print
+        #print `udpdata[:3]`
+
+        if udpdata[0] >= '\x88':
+            #print 'reset'
+            # reset
+            if prevframe == thisframe:
+                # global sync point, valid for all threads
+                #print 'global sync'
+                for thread in self.dyndecompress:
+                    d = zlib.decompressobj().decompress
+                    try:
+                        framedata = d(udpdata[3:])
+                    except zlib.error:
+                        #print 'crash'
+                        return None
+                    thread[0] = d
+                    thread[1] = thisframe
+                    thread[2] = 0
+                    thread[3] = framedata
+                return framedata
+            
+            # sync point from a previous frame
+            # find all threads with the same prevframe
+            d = zlib.decompressobj().decompress
+            threads = [t for t in self.dyndecompress if prevframe == t[1]]
+            if not threads:
+                return None   # lost
+            # find a thread with already-recompressed data
+            for t in threads:
+                if t[2]:
+                    data = t[3]
+                    break
+            else:
+                # recompress and cache the prevframe data
+                t = threads[0]
+                data = t[3]
+                co = zlib.compressobj(6)
+                data = co.compress(data) + co.flush(zlib.Z_SYNC_FLUSH)
+                t[2] = 1
+                t[3] = data
+            d(data)  # use it to initialize the state of the decompressobj
+            #print d
+            thread[0] = d
+        elif prevframe != thread[1]:
+            #print 'lost'
+            return None   # lost
+        else:
+            d = thread[0]
+        # go forward in thread
         try:
-            now = time.time()
-            dyndecompress = self.dyndecompress
-            key = ord(udpdata[1]) & 15
-            if key in dyndecompress:
-                entry = dyndecompress[key]
-                expectedheader, timeout, decompress = entry
-                if now < timeout and  udpdata[:2] == expectedheader:
-                    entry[0] = chr(ord(udpdata[0])+1) + udpdata[1]
-                    return decompress(udpdata[2:])
-                del dyndecompress[key]
-            if udpdata[0] != '\x80':
-                return None
-            decompress = zlib.decompressobj().decompress
-            dyndecompress[key] = ['\x81' + udpdata[1], now+10.0, decompress]
-            return decompress(udpdata[2:])
+            framedata = d(udpdata[3:])
+            #print d
+            thread[1] = thisframe
+            thread[2] = 0
+            thread[3] = framedata
+            return framedata
         except zlib.error:
+            #print 'crash'
             return None
 
     def geticon(self, icocode):
