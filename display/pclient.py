@@ -280,14 +280,15 @@ class Playfield:
             return None
 
     def startplaying(self):
-        if self.udp_over_tcp is not None:
-            port = MSG_INLINE_FRAME
-        else:
-            self.udpsock = socket(AF_INET, SOCK_DGRAM)
-            self.udpsock.bind(('', INADDR_ANY))
-            host, port = self.udpsock.getsockname()
-            self.iwtd.append(self.udpsock)
-        self.s.sendall(message(CMSG_UDP_PORT, port))
+        if not self.accepted_broadcast:
+            if self.udp_over_tcp is not None:
+                port = MSG_INLINE_FRAME
+            else:
+                self.udpsock = socket(AF_INET, SOCK_DGRAM)
+                self.udpsock.bind(('', INADDR_ANY))
+                host, port = self.udpsock.getsockname()
+                self.iwtd.append(self.udpsock)
+            self.s.sendall(message(CMSG_UDP_PORT, port))
         if self.dpy.has_sound():
             self.s.sendall(message(CMSG_ENABLE_MUSIC, 1))
             self.s.sendall(message(CMSG_PING))
