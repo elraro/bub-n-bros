@@ -454,12 +454,15 @@ class Potion(RandomBonus):
                        os.path.isdir(os.path.join(LocalDir, s))]
     random.shuffle(Extensions)
 
-    def __init__(self, x, y):
+    def __init__(self, x, y, force_ext=None):
         p_normal = 3
         if boards.curboard.bonuslevel:
             p_extension = 2       # make extensions rare in the bonus level
         else:
             p_extension = 5
+        if force_ext:
+            Potion.Extensions.append(force_ext)
+            p_normal = 0
         if not Potion.Extensions:
             p_extension = 0
         choices = []
@@ -1289,4 +1292,8 @@ def cheatnew():
         if x is None:
             return
         cls = random.choice(Cheat)
-        cls(x, y)
+        if not isinstance(cls, tuple):
+            cls = cls,
+        else:
+            Cheat.remove(cls)
+        cls[0](x, y, *cls[1:])

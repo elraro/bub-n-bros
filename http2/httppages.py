@@ -195,8 +195,16 @@ class PageServer:
         return httpserver.load(os.path.join(LOCALDIR, 'data', 'index.html'),
                                'text/html', locals=locals())
 
-    def indexloader(self, headers, **options):
-        self.searchlocalservers()
+    def indexloader(self, headers, cheat=[], **options):
+        if cheat:
+            import bonuses
+            for c in cheat:
+                c = c.split(',')
+                c[0] = getattr(bonuses, c[0])
+                assert issubclass(c[0], bonuses.Bonus)
+                bonuses.Cheat.append(tuple(c))
+        else:
+            self.searchlocalservers()
         return self.mainpage(headers)
 
     def controlcenterloader(self, headers, **options):

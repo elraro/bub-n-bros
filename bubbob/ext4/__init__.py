@@ -342,18 +342,25 @@ class Tetris:
                 x1 -= 1
             while heights[x2] == h:
                 x2 += 1
-            if heights[x1-1] > h and heights[x2] > h:
-                continue
             parts = (x2-x1) // 8
-            if parts:
-                for p in range(parts+1):
-                    x = x1 + ((x2-x1-1)*p+parts//2)//parts
-                    y = ymax
-                    for i in range(2):
-                        while bget(x, y) == '#':
-                            y -= 1
-                        curboard.putwall(x, y)
-                        heights[x] += 1
+            if not parts:
+                continue
+            left = 0
+            if heights[x1-1] > h:
+                x1 -= 1
+                left += 1
+            right = parts+1
+            if heights[x2] > h:
+                x2 += 1
+                right -= 1
+            for p in range(left, right):
+                x = x1 + ((x2-x1-1)*p+parts//2)//parts
+                y = ymax
+                for i in range(2):
+                    while bget(x, y) == '#':
+                        y -= 1
+                    curboard.putwall(x, y)
+                    heights[x] += 1
         curboard.reorder_walls()
         
         walls_by_pos = curboard.walls_by_pos

@@ -78,13 +78,12 @@ class Shot(bubbles.Bubble):
     def straightup(self, dragon):
         ymin = -self.ico.h
         while self.y > ymin:
-            self.step(0, -7)
-            yield None
-            self.step(0, -8)
+            self.step(0, -10)
             touching = images.touching(self.x+CELL-1, self.y+CELL-1, 2, 2)
             touching = [s for s in touching if isinstance(s, Alien)]
             if touching:
-                self.startnormalbubble(dx=0, dy=0)
+                self.gen = []
+                self.startnormalbubble(dx=0, dy=1)
                 random.choice(touching).in_bubble(self)
                 dragon.galaga.scores[dragon.bubber] += 1
                 return
@@ -132,9 +131,9 @@ class Alien(monsters.Monster):
         ymax = boards.bheight - 3*CELL
         cont = 1
         if relative:
-            shoot_prob = 0.007
+            shoot_prob = 0.009
         else:
-            shoot_prob = 0.025
+            shoot_prob = 0.019
         while cont:
             if self.angry:
                 self.kill()   # never getting out of a bubble
@@ -186,7 +185,7 @@ class Alien(monsters.Monster):
 
     def in_bubble(self, bubble):
         self.in_place = 2
-        monsters.Monster.in_bubble(self, bubble)
+        bubble = monsters.Monster.in_bubble(self, bubble)
 
     def argh(self, poplist=None, onplace=0):
         if poplist and poplist[0] is None:
@@ -253,7 +252,7 @@ class Galaga:
         squadtime = 0
         while 1:
             yield None
-            if random.random() < 0.04:
+            if random.random() < 0.015:
                 bubbles.sendbubble(bubbles.PlainBubble, top=0)
             in_place = {0: [], 1: [], 2: []}
             for s in BubPlayer.MonsterList:
