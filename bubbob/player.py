@@ -14,11 +14,6 @@ KEEPALIVE = 5*60   # seconds
 CheatDontDie = 0
 ExtraLifeEvery = 50000
 
-KeyJustPressed  = 7
-KeyPressed      = 6
-KeyJustClicked  = 5
-KeyOff          = 0
-
 
 class Dragon(ActiveSprite):
     priority = 1
@@ -139,7 +134,6 @@ class Dragon(ActiveSprite):
         yfp = 0.0
         hfp = 0
         angryticks = 0
-        emoticks = 0
         while 1:
             self.poplist = [self]
             carrying = self.dcap['carrying']
@@ -221,7 +215,7 @@ class Dragon(ActiveSprite):
                 self.up -= self.dcap['gravity']
                 if (self.up,-self.up)[bottom_up] < 4.0:
                     self.up = 0.0
-                    #self.key_jump = KeyOff
+                    #self.key_jump = 0
                     mode = 10
                 else:
                     ny = self.y + yfp - self.up
@@ -292,11 +286,7 @@ class Dragon(ActiveSprite):
                 icons = self.bubber.icons
             self.seticon(icons[mode, self.dir])
 
-            if emoticks:
-                emoticks -= 1
-            elif (bubber.key_fire and bubber.key_jump and
-                bubber.key_left and bubber.key_right):
-                emoticks = 20
+            if bubber.key_left + bubber.key_right >= 1999999:
                 self.emotic(6)
 
             self.watermoveable = not wannajump
@@ -456,11 +446,10 @@ class BubPlayer(gamesrv.Player):
         else:
             print 'New player is at position #%d.' % n
             self.reset()
-        self.key_left  = KeyOff
-        self.key_right = KeyOff
-        self.key_jump  = KeyOff
-        self.key_fire  = KeyOff
-        self.last_key_dir = 0
+        self.key_left  = 0
+        self.key_right = 0
+        self.key_jump  = 0
+        self.key_fire  = 0
         players = [p for p in BubPlayer.PlayerList
                    if p.isplaying() and p is not self]
         self.enterboard(players)
@@ -494,10 +483,10 @@ class BubPlayer(gamesrv.Player):
         del self.dragons[:]
 
     def zarkon(self):
-        self.key_left  &= 2
-        self.key_right &= 2
-        self.key_jump  &= 2
-        self.key_fire  &= 2
+        if self.key_left:  self.key_left  -= 1
+        if self.key_right: self.key_right -= 1
+        if self.key_jump:  self.key_jump  -= 1
+        if self.key_fire:  self.key_fire  -= 1
         #if self.badpoints and not (self.FrameCounter & 7):
         #    percent = (int(self.points*0.0000333)+1) * 100
         #    decr = min(self.badpoints, percent)
@@ -526,25 +515,21 @@ class BubPlayer(gamesrv.Player):
             self.pcap = {}
 
     def kLeft(self):
-        self.key_left = KeyJustPressed
-        self.key_right &= 3
-        self.last_key_dir = -1
+        self.key_left = 1000000
     def kmLeft(self):
-        self.key_left &= 5
+        self.key_left = (self.key_left == 1000000)
     def kRight(self):
-        self.key_right = KeyJustPressed
-        self.key_left &= 3
-        self.last_key_dir = 1
+        self.key_right = 1000000
     def kmRight(self):
-        self.key_right &= 5
+        self.key_right = (self.key_right == 1000000)
     def kJump(self):
-        self.key_jump = KeyJustPressed
+        self.key_jump = 1000000
     def kmJump(self):
-        self.key_jump &= 5
+        self.key_jump = (self.key_jump == 1000000)
     def kFire(self):
-        self.key_fire = KeyJustPressed
+        self.key_fire = 1000000
     def kmFire(self):
-        self.key_fire &= 5
+        self.key_fire = (self.key_fire == 1000000)
 
     def bubberdie(self):
         if self.lives is not None and self.lives > 0:
@@ -552,12 +537,7 @@ class BubPlayer(gamesrv.Player):
             scoreboard()
 
     def wannago(self, dcap):
-        if self.key_left and (not self.key_right or self.last_key_dir < 0):
-            return -dcap['left2right']
-        elif self.key_right:
-            return dcap['left2right']
-        else:
-            return 0
+        return dcap['left2right'] * cmp(self.key_right, self.key_left)
 
     def givepoints(self, points):
         self.points += points
@@ -614,10 +594,10 @@ class BubPlayer(gamesrv.Player):
 
 def upgrade(p):
     p.__class__ = BubPlayer
-    p.key_left  = KeyOff
-    p.key_right = KeyOff
-    p.key_jump  = KeyOff
-    p.key_fire  = KeyOff
+    p.key_left  = 0
+    p.key_right = 0
+    p.key_jump  = 0
+    p.key_fire  = 0
     p.dragons = []
 
 
