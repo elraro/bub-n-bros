@@ -181,7 +181,7 @@ static long key_hash(KeyObject* k)
 static PyObject* key_richcmp(KeyObject* k1, KeyObject* k2, int op)
 {
   PyObject* r;
-  assert(op == PyCmp_EQ);
+  assert(op == 2 /*PyCmp_EQ*/ );
   r = k1->o == k2->o ? Py_True : Py_False;
   Py_INCREF(r);
   return r;
