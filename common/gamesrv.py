@@ -7,6 +7,9 @@ from msgstruct import *
 from errno import EWOULDBLOCK
 
 
+SERVER_TIMEOUT = 600   # 10 minutes without any connection or port activity
+
+
 def protofilepath(filename):
   path = []
   while filename:
@@ -1112,6 +1115,7 @@ def recursiveloop(endtime, extra_sockets):
 
 def mainloop():
   global game
+  servertimeout = None
   try:
     while serversockets:
       try:
@@ -1126,9 +1130,18 @@ def mainloop():
             game.socketerrors(ewtd)
           if ewtd:
             print >> sys.stderr, "Unexpected socket error reported"
-        for s in iwtd:
-          if s in serversockets:
-            serversockets[s]()    # call handler
+          servertimeout = None
+        if iwtd:
+          for s in iwtd:
+            if s in serversockets:
+              serversockets[s]()    # call handler
+          servertimeout = None
+        elif clients or getattr(game, 'autoreset', 0):
+          servertimeout = None
+        elif servertimeout is None:
+          servertimeout = time() + SERVER_TIMEOUT
+        elif time() > servertimeout:
+          raise SystemExit, "No more server activity, timing out."
       except KeyboardInterrupt:
         if game is None or not game.FnExcHandler(1):
           raise
