@@ -51,6 +51,7 @@ class FileBlock:
         self.readonly = readonly
         self.complete = complete
     def overwrite(self, newdata):
+        self.memorydata = newdata
         if self.readonly:
             print >> sys.stderr, "cannot overwrite file", self.filename
             return
@@ -61,9 +62,13 @@ class FileBlock:
             print >> sys.stderr, "cache write error:", self.filename
             return
         self.complete = 1
+        del self.memorydata
     def read(self):
-        f = Data.Cache.access(self.filename, self.position)
-        return f.read(self.length)
+        if self.complete:
+            f = Data.Cache.access(self.filename, self.position)
+            return f.read(self.length)
+        else:
+            return self.memorydata
 
 def maybe_unlink(file):
     try:
