@@ -177,6 +177,14 @@ def compactsprites(insert_new=None, insert_before=None):
 
 class Sprite:
 
+##  try:
+##    import psyco.classes
+##  except ImportError:
+##    pass
+##  else:
+##    __slots__ = ['x', 'y', 'ico', 'alive']
+##    __metaclass__ = psyco.classes.psymetaclass
+
   def __init__(self, ico, x,y):
     self.x = x
     self.y = y
