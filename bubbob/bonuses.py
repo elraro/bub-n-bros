@@ -350,7 +350,7 @@ class Extend(RandomBonus):
         if self.big:
             self.letterexplosion()
         else:
-            RandomBonus.taken1(dragons)
+            RandomBonus.taken1(self, dragons)
             
     def taken(self, dragon):
         from bubbles import extend_name
