@@ -366,19 +366,33 @@ class Playfield:
                     eraser(*eraseargs)
                 break
             base += 6
-        getter = self.dpy.getppm
-        setter = self.dpy.putppm
         #print "%d sprites redrawn" % (len(udpdata)/6-j)
-        for j in range(base, len(udpdata)-5, 6):
-            info = udpdata[j:j+6]
-            x, y, icocode = unpack("!hhh", info[:6])
-            try:
-                ico = self.icons[icocode]
-                sprites.append((info, (x, y, getter((x, y) + ico.size))))
-                setter(x, y, ico.pixmap, ico.rect)
-            except KeyError:
-                #print "bad ico code", icocode
-                pass  # ignore sprites with bad ico (probably not defined yet)
+        try:
+            overlayer = self.dpy.overlayppm
+        except AttributeError:
+            getter = self.dpy.getppm
+            setter = self.dpy.putppm
+            for j in range(base, len(udpdata)-5, 6):
+                info = udpdata[j:j+6]
+                x, y, icocode = unpack("!hhh", info[:6])
+                try:
+                    ico = self.icons[icocode]
+                    sprites.append((info, (x, y, getter((x, y) + ico.size))))
+                    setter(x, y, ico.pixmap, ico.rect)
+                except KeyError:
+                    #print "bad ico code", icocode
+                    pass  # ignore sprites with bad ico (probably not defined yet)
+        else:
+            for j in range(base, len(udpdata)-5, 6):
+                info = udpdata[j:j+6]
+                x, y, icocode = unpack("!hhh", info[:6])
+                try:
+                    ico = self.icons[icocode]
+                    overlay = overlayer(x, y, ico.pixmap, ico.rect)
+                    sprites.append((info, overlay))
+                except KeyError:
+                    #print "bad ico code", icocode
+                    pass  # ignore sprites with bad ico (probably not defined yet)
 
         t0, n = self.painttimes
         n = n + 1

@@ -12,6 +12,7 @@ class Display(BaseDisplay):
         self.pixmap = xdpy.pixmap
         self.getppm = xdpy.getppm
         self.putppm = xdpy.putppm
+        self.overlayppm = xdpy.overlayppm
         self.close  = xdpy.close
         self.clear  = xdpy.clear
         self.flip   = xdpy.flip

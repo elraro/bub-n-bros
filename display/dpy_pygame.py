@@ -79,9 +79,8 @@ class Display:
 ##        flipimg.set_colorkey(colorkey, RLEACCEL)
 ##        return flipimg, h
 
-    def getppm(self, rect, bkgnd=None):
-        if bkgnd is None:
-            bkgnd = pygame.Surface(rect[2:])
+    def getppm(self, rect):
+        bkgnd = pygame.Surface(rect[2:])
         bkgnd.blit(self.offscreen, (0, 0), rect)
         return bkgnd
 

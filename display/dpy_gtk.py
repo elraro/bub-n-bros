@@ -125,7 +125,7 @@ class Display:
         else:
             return self.renderpixbuf((newpb,))
 
-    def getppm(self, (x, y, w, h), bkgnd=None, int=int, ceil=math.ceil):
+    def getppm(self, (x, y, w, h), int=int, ceil=math.ceil):
         scale = self.scale
         if isinstance(scale, int):
             x *= scale
@@ -139,8 +139,7 @@ class Display:
             y = int(y*scale)
             w -= x
             h -= y
-        if bkgnd is None:
-            bkgnd = gtk.create_pixmap(self.window.window, w, h)
+        bkgnd = gtk.create_pixmap(self.window.window, w, h)
         bkgnd.draw_drawable(self.gc, self.offscreen, x, y, 0, 0, w, h)
         return bkgnd, self.gc, None
 
