@@ -1,4 +1,4 @@
-import os, md5
+import os, md5, sys
 #import common.debug
 
 
