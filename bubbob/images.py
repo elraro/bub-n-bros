@@ -249,12 +249,13 @@ def sprget_vflip(n, vflipped={}):
         vflipped[filename] = bitmap, height
     return bitmap.geticon(x, height-(y+h), w, h)
 
-def sprget_subrect(n, subrect):
-    x, y, w, h = subrect
-    filename, (x0, y0, w0, h0) = sprmap[n]
-    key = (n, 'subrect', subrect)
-    sprmap[key] = filename, (x0+x, y0+y, w, h)
-    return sprget(key)
+if 0:  # disabled clipping
+    def sprget_subrect(n, subrect):
+        x, y, w, h = subrect
+        filename, (x0, y0, w0, h0) = sprmap[n]
+        key = (n, 'subrect', subrect)
+        sprmap[key] = filename, (x0+x, y0+y, w, h)
+        return sprget(key)
 
 def haspat(n):
     return n in patmap

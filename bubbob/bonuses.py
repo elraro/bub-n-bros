@@ -1,5 +1,5 @@
 from __future__ import generators
-import random, os
+import random, os, math
 import gamesrv
 import images
 import boards
@@ -440,19 +440,39 @@ class Megabonus(Bonus):
             bubble.pop(poplist)
 
     def bubbles_position(self):
-        nx = 5
-        ny = 6
-        xmargin = 2
-        ymargin = 7
-        xstep = (self.ico.w+2*xmargin-2*CELL) / float(nx-1)
-        ystep = (self.ico.h+2*ymargin-2*CELL) / float(ny-1)
-        for dx in range(nx):
-            corner = dx in [0, nx-1]
-            for dy in range(corner, ny-corner):
-                dx1 = int(dx*xstep)-xmargin
-                dy1 = int(dy*ystep)-ymargin
-                yield (dx1 + random.randrange(-2,3),
-                       dy1 + random.randrange(-2,3))
+        import time; start=time.time()
+        cx = self.ico.w//2 - CELL
+        cy = self.ico.h//2 - CELL
+        positions = []
+        pi2 = math.pi * 2
+        dist = 10.0
+        for i in range(31):
+            while 1:
+                angle = random.random() * pi2
+                nx = cx + int(dist*math.sin(angle))
+                ny = cy + int(dist*math.cos(angle))
+                for ox, oy in positions:
+                    if (nx-ox)*(nx-ox) + (ny-oy)*(ny-oy) < 220:
+                        dist += 0.3
+                        break
+                else:
+                    break
+            positions.append((nx, ny))
+        print time.time()-start
+        return positions
+##        nx = 5
+##        ny = 6
+##        xmargin = 2
+##        ymargin = 7
+##        xstep = (self.ico.w+2*xmargin-2*CELL) / float(nx-1)
+##        ystep = (self.ico.h+2*ymargin-2*CELL) / float(ny-1)
+##        for dx in range(nx):
+##            corner = dx in [0, nx-1]
+##            for dy in range(corner, ny-corner):
+##                dx1 = int(dx*xstep)-xmargin
+##                dy1 = int(dy*ystep)-ymargin
+##                yield (dx1 + random.randrange(-2,3),
+##                       dy1 + random.randrange(-2,3))
 
     def nearest_free_point(self, x0, y0):
         distlst = [((x0-x)*(x0-x)+(y0-y)*(y0-y)+random.random(), x, y)
@@ -474,7 +494,11 @@ class Megabonus(Bonus):
         while 1:
             for t in range(2):
                 yield None
-            dx, dy = self.nearest_free_point(*random.choice(self.bubbles.keys()))
+            bubbles = [dxy for dxy, b in self.bubbles.items()
+                           if b.bubber is bubber]
+            if not bubbles:
+                break
+            dx, dy = self.nearest_free_point(*random.choice(bubbles))
             if dx is None:
                 break
             self.cover_bubble(dx, dy, bubber)
