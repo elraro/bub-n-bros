@@ -369,7 +369,9 @@ class BubPlayer(gamesrv.Player):
         'Moebius': 0,
         }
     TRANSIENT_DATA = ('_client', 'key_left', 'key_right',
-                      'key_jump', 'key_fire')
+                      'key_jump', 'key_fire', 'pn',
+                      'icons', 'flippedicons',
+                      'standardplayericon', 'iconnames')
 
     def __init__(self, n):
         self.pn = n
