@@ -96,8 +96,8 @@ class Playfield:
             if udp_over_tcp == 'auto':
                 self.udpsock_low = 0
         
-        pss = hostchooser.serverside_ping()
-        self.initial_iwtd = [self.s] + pss
+        pss, pss_port = hostchooser.serverside_ping()
+        self.initial_iwtd = [self.s, pss]
         self.iwtd = self.initial_iwtd[:]
         inbuf = ""
         delay = 0.0
@@ -159,9 +159,8 @@ class Playfield:
                         delay = 0.04
                 else:
                     self.dpy.flip()
-            for sock in iwtd:
-                if sock in pss:
-                    hostchooser.answer_ping(sock, self.gameident, self.sockaddr)
+            if pss in iwtd:
+                hostchooser.answer_ping(pss, self.gameident, self.sockaddr)
 
     def update_sprites(self, udpdata):
         sprites = self.sprites

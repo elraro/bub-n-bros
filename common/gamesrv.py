@@ -1,7 +1,7 @@
 from socket import *
 from select import select
 from struct import pack, unpack
-import zlib, os, random
+import zlib, os, random, struct
 from time import time, ctime
 from msgstruct import *
 import hostchooser
@@ -202,6 +202,19 @@ class Sprite:
     if ico is not None:
       self.ico = ico
     sprites[self.alive] = pack("!hhh", x, y, self.ico.code)
+
+  def setdisplaypos(self, x, y):
+    # special use only (self.x,y are not updated)
+    sprites[self.alive] = pack("!hhh", x, y, self.ico.code)
+
+  sizeof_displaypos = struct.calcsize("!hh")
+  def getdisplaypos(self):
+    # special use only (normally, read self.x,y,ico directly)
+    s = sprites[self.alive]
+    if self.alive and len(s) >= self.sizeof_displaypos:
+      return unpack("!hh", s[:self.sizeof_displaypos])
+    else:
+      return None, None
 
   def step(self, dx,dy):
     x = self.x = self.x + dx
@@ -734,8 +747,9 @@ def Run():
       return
   HOST, PORT = s.getsockname()
   FnReady()
-  pss = hostchooser.serverside_ping()
+  pss, UDP_PORT = hostchooser.serverside_ping()
 
+  HOSTNAME = gethostname()
   extramsg = ''
   jfileno = []
   if FnHttpPort:
@@ -744,7 +758,7 @@ def Run():
                               width=playfield.width, height=playfield.height)
     if jsetup:
       jfileno.append(jsetup[0])
-      extramsg = 'HTTP Java server: http://%s:%d' % (gethostname(), FnHttpPort)
+      extramsg = 'HTTP Java server: http://%s:%d' % (HOSTNAME, FnHttpPort)
     else:
       extramsg = 'Cannot start HTTP Java server on port %d' % FnHttpPort
 
@@ -761,10 +775,17 @@ def Run():
     broadcast_port = None
     
   print '%s server at %s:%d, Broadcast %d, UDP %d' % (
-    FnDesc, gethostname(), PORT, broadcast_port,
-    hostchooser.UDP_PORT)
+    FnDesc, HOSTNAME, PORT, broadcast_port, UDP_PORT)
   if extramsg:
     print extramsg
+
+  try:
+    from localmsg import autonotify
+  except ImportError:
+    pass
+  else:
+    autonotify(FnDesc, HOSTNAME, PORT)
+
   nextframe = time()
 
   try:
@@ -810,7 +831,7 @@ def Run():
             broadcast_next = time() + broadcast_delay
             broadcast_delay *= hostchooser.BROADCAST_DELAY_INCR
         
-        iwtd = [s] + [c.socket for c in clients] + pss + jfileno
+        iwtd = [s, pss] + [c.socket for c in clients] + jfileno
         iwtd, owtd, ewtd = select(iwtd, [], iwtd, delay)
         if ewtd:
           for c in clients[:]:
@@ -848,9 +869,8 @@ def Run():
               else:
                 print 'Connection refused.'
                 conn.close()
-          for sock in pss:
-            if sock in iwtd:
-              hostchooser.answer_ping(sock, FnDesc, ('', PORT))
+          if pss in iwtd:
+            hostchooser.answer_ping(pss, FnDesc, (HOSTNAME, PORT))
           for sock in jfileno:
             if sock in iwtd:
               jsetup[1]()

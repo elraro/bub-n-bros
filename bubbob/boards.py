@@ -926,6 +926,39 @@ def single_blocks_falling(xylist):
         for i in range(7):
             yield 0
 
+def extra_display_repulse(cx, cy):
+    offsets = {}
+    for s in gamesrv.sprites_by_n.values():
+        x, y = s.getdisplaypos()
+        if x is not None:
+            dx = x - cx
+            dy = y - cy
+            d = dx*dx + dy*dy + 100
+            if d <= 5000:
+                dx = (dx*1000)//d
+                dy = (dy*1000)//d
+                offsets[s] = dx, dy
+                s.setdisplaypos(x+dx, y+dy)
+    yield 0
+    yield 0
+    while offsets:
+        prevoffsets = offsets
+        offsets = {}
+        for s, (dx, dy) in prevoffsets.items():
+            if s.alive:
+                if dx < 0:
+                    dx += max(1, (-dx)//5)
+                elif dx:
+                    dx -= max(1, dx//5)
+                if dy < 0:
+                    dy += max(1, (-dy)//5)
+                elif dy:
+                    dy -= max(1, dy//5)
+                if dx or dy:
+                    offsets[s] = dx, dy
+                s.setdisplaypos(s.x+dx, s.y+dy)
+        yield 0
+
 def register(dict):
     global width, height, bwidth, bheight, bheightmod
     items = dict.items()

@@ -843,6 +843,8 @@ class Bomb(RandomBonus):
                         pass
         brd.reorder_walls()
         starexplosion(self.x, self.y, 2)
+        gen = boards.extra_display_repulse(self.x+CELL, self.y+CELL)
+        boards.extra_boardgen(gen)
 
 class Ham(RandomBonus):
     "Protein. Let's build something!"
@@ -867,6 +869,8 @@ class Ham(RandomBonus):
                         xylist.append((x, y))
         brd.reorder_walls()
         boards.extra_boardgen(boards.single_blocks_falling(xylist))
+        gen = boards.extra_display_repulse(self.x+CELL, self.y+CELL)
+        boards.extra_boardgen(gen)
 
 class Chestnut(RandomBonus):
     "Relativity. Speed up or slow down the game."
