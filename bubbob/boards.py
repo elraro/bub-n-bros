@@ -691,14 +691,14 @@ def game_over():
     images.Snd.Extralife.play()
     gamesrv.set_musics([], [images.music_potion])
     scoreboard()
-    maximum = 0
+    #maximum = 0
     results = {}
     for p in BubPlayer.PlayerList:
         if p.points:
             results[p] = p.points
-            if p.points > maximum:
-                maximum = p.points
-    maximum = BubPlayer.LimitScore or maximum
+            #if p.points > maximum:
+            #    maximum = p.points
+    maximum = BubPlayer.LimitScore or None #maximum
     for t in result_ranking(results, maximum, None):
         yield t
 
