@@ -506,9 +506,10 @@ class Playfield:
         pointermotion = self.dpy.pointermotion()
         if pointermotion:
             x, y = pointermotion
-            self.settaskbar(y >= self.height - self.TASKBAR_HEIGHT)
+            self.settaskbar(y >= self.height - 2*self.TASKBAR_HEIGHT)
         mouseevents = self.dpy.mouseevents()
         if mouseevents:
+            self.settaskbar(1)
             self.keydefinition = None
             for clic in mouseevents:
                 clic_id = self.clic_taskbar(clic)
@@ -517,12 +518,17 @@ class Playfield:
                         self.s.sendall(message(CMSG_REMOVE_PLAYER, clic_id))
                     else:
                         self.keydefinition = clic_id, {}
+        if self.taskbartimeout is not None and time.time() > self.taskbartimeout:
+            self.settaskbar(0)
 
     def settaskbar(self, nmode):
+        self.taskbartimeout = None
         if self.taskbarfree:
             self.taskbarmode = (nmode or
                                 'l' not in self.playing.values() or
                                 (self.keydefinition is not None))
+            if nmode:
+                self.taskbartimeout = time.time() + 5.0
 
     def define_key(self, keysym):
         clic_id, df = self.keydefinition
@@ -612,6 +618,7 @@ class Playfield:
         self.s.sendall(message(CMSG_PING))
         self.taskbarmode = 0
         self.taskbarfree = 0
+        self.taskbartimeout = None
         self.keydefinition = None
 
     def msg_def_key(self, name, num, *icons):
