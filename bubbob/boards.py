@@ -170,9 +170,11 @@ class Board(Copyable):
         playing = []
         plist = BubPlayer.PlayerList[:]
         random.shuffle(plist)
+        teams = [0, 1]
+        random.shuffle(teams)
         for p in plist:
             if p.isplaying():
-                p.enterboard(playing)
+                p.enterboard(playing, *teams)
                 p.zarkon()
                 playing.append(p)
         # add monsters

@@ -439,6 +439,7 @@ class BubPlayer(gamesrv.Player):
             (11,+1): 'shield-right',
             }
         self.nameicons = []
+        self.team = -1
         self.reset()
 
     def reset(self):
@@ -451,7 +452,6 @@ class BubPlayer(gamesrv.Player):
         self.pcap = {}
         self.dragons = []
         self.keepalive = None
-        self.team = -1
 
     def loadicons(self, icons, fn):
         for key, value in self.iconnames.items():
@@ -468,8 +468,8 @@ class BubPlayer(gamesrv.Player):
                 self.team = 1
             name = m.group(1).strip()
             print "New player in team", m.group(2), "with name", m.group(1)
-        else:
-            print "The regexp didn't match:", name
+        #else:
+        #    print "The regexp didn't match:", name
         icons = [images.sprcharacterget(c) for c in name]
         self.nameicons = [ico for ico in icons if ico is not None][:16]
         self.nameicons.reverse()
@@ -504,11 +504,16 @@ class BubPlayer(gamesrv.Player):
         self.keepalive = time.time() + KEEPALIVE
         scoreboard()
 
-    def enterboard(self, players):
-        leftplayers = [p for p in players if p.start_left]
-        rightplayers = [p for p in players if not p.start_left]
-        self.start_left = (len(leftplayers) + random.random() <
-                           len(rightplayers) + random.random())
+    def enterboard(self, players, leftteam=None, rightteam=None):
+        if self.team == leftteam:
+            self.start_left = 1
+        elif self.team == rightteam:
+            self.start_left = 0
+        else:
+            leftplayers = [p for p in players if p.start_left]
+            rightplayers = [p for p in players if not p.start_left]
+            self.start_left = (len(leftplayers) + random.random() <
+                               len(rightplayers) + random.random())
 
     def savecaps(self):
         dragons = self.dragons
