@@ -4,6 +4,7 @@ LOCALDIR = os.path.abspath(os.path.dirname(LOCALDIR))
 sys.path.append(os.path.join(LOCALDIR, os.pardir, 'common'))
 
 from msgstruct import *
+from socket import error
 
 MMSG_INFO     = 'I'
 MMSG_START    = '+'
@@ -51,7 +52,10 @@ class MessageSocket:
         self.buffer = ""
 
     def receive(self):
-        data = self.s.recv(2048)
+        try:
+            data = self.s.recv(2048)
+        except error:
+            data = ''
         if not data:
             self.disconnect()
             return
