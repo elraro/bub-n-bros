@@ -826,6 +826,12 @@ class Egg(RandomBonus):
                     break
             for d1, d2 in zip(dragons, copy):
                 xchg[d1] = d2.bubber
+        elif len(dragons) == 1:
+            x, y = chooseground(200)
+            if x is not None:
+                d1 = dragons[0]
+                d1.move(x, y)
+                d1.dcap['shield'] = 50
         for d1, bubber2 in xchg.items():
             d1.bubber.dragons.remove(d1)
             d1.bubber = bubber2
