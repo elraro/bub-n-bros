@@ -325,13 +325,17 @@ def vertical_warp(nx, ny):
 
 MODULES = ['boards', 'bonuses', 'bubbles', 'images',
            'mnstrmap', 'monsters', 'player',
-           'binboards', 'macbinary', 'boarddef']
+           'binboards', 'macbinary', 'boarddef',
+           'ext1', 'ext2', 'ext3', 'ext4']
 
 def loadmodules(force=0):
     levelfilename = gamesrv.game.levelfile
     modulefiles = {None: levelfilename}
     for m in MODULES:
-        modulefiles[m] = m+'.py'
+        if os.path.isfile(m+'.py'):
+            modulefiles[m] = m+'.py'
+        elif os.path.isfile(os.path.join(m, '__init__.py')):
+            modulefiles[m] = os.path.join(m, '__init__.py')
     mtimes = {}
     for m, mfile in modulefiles.items():
         mtimes[m] = os.stat(mfile).st_mtime
@@ -772,7 +776,11 @@ def potion_fill(blist):
     #for i in range(fullsoundframes, 490):
     #    yield normal_frame()
 
-def result_ranking(results, maximum, timeleft=200):
+def result_ranking(results, maximum=None, timeleft=200):
+    if maximum is None:
+        maximum = 0
+        for n in results.values():
+            maximum += n
     maximum = maximum or 1
     ranking = []
     for p, n in results.items():

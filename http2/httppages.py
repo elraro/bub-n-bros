@@ -321,9 +321,10 @@ class PageServer:
             anyname = None
             for id in range(7):
                 keyid = 'player%d' % id
-                value = options.get(keyid, [''])[0]
-                anyname = anyname or value
-                setattr(self.localoptions, keyid, value)
+                if keyid in options:
+                    value = options[keyid][0]
+                    anyname = anyname or value
+                    setattr(self.localoptions, keyid, value)
             if 'c' in options:
                 for id in range(7):
                     keyid = 'player%d' % id

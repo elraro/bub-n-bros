@@ -455,11 +455,11 @@ class Potion(RandomBonus):
     random.shuffle(Extensions)
 
     def __init__(self, x, y):
-        p_normal = 2
+        p_normal = 3
         if boards.curboard.bonuslevel:
-            p_extension = 1       # make extensions rare in the bonus level
+            p_extension = 2       # make extensions rare in the bonus level
         else:
-            p_extension = 3
+            p_extension = 5
         if not Potion.Extensions:
             p_extension = 0
         choices = []
@@ -481,8 +481,8 @@ class Potion(RandomBonus):
             ext = Potion.Extensions.pop()
             ext = __import__(ext, globals(), locals(), ['run'])
             ext.run()
-    def _import_note():
-        import ext1; import ext2; import ext3  # for import auto-detection
+    def _import_note():      # for import auto-detection
+        import ext1; import ext2; import ext3; import ext4
 
 class FireBubble(RandomBonus):
     "Fire Bubbles. Makes you fire napalm bubbles."
