@@ -8,7 +8,7 @@ from msgstruct import *
 from errno import EWOULDBLOCK
 
 
-SERVER_TIMEOUT = 600   # 10 minutes without any connection or port activity
+SERVER_TIMEOUT = 7200   # 2 hours without any connection or port activity
 
 
 def protofilepath(filename):
@@ -1244,8 +1244,7 @@ def mainloop():
             if s in serversockets:
               serversockets[s]()    # call handler
           servertimeout = None
-        elif (clients or getattr(game, 'autoreset', 0)
-                      or getattr(game, 'metaserver', 0)):
+        elif clients or getattr(game, 'autoreset', 0):
           servertimeout = None
         elif servertimeout is None:
           servertimeout = time() + SERVER_TIMEOUT
