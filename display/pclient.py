@@ -137,13 +137,11 @@ class Playfield:
         self.playericons = {}
         self.screenmode = mode
         self.initlevel = 0
-        self.trackcfgfile = None
-        self.trackcfgmtime = None
         if mode[-1].has_key('udp_over_tcp'):
             udp_over_tcp = mode[-1]['udp_over_tcp']
-        if mode[-1].has_key('cfgfile'):
-            self.trackcfgfile = mode[-1]['cfgfile']
-        
+        self.trackcfgmtime = None
+        self.trackcfgfile = os.path.join(DataChunk.SOURCEDIR,
+                                         'http2', 'config.txt')
         self.udpsock = None
         self.udpsock_low = None
         self.udpsock2 = None
