@@ -1059,11 +1059,11 @@ class Game:
     self.broadcast_port = socketports.get(bs)
     self.broadcast_next = None
     self.nextframe = time()
+    clearsprites()
+    game = self
     if recording:
       for b in bitmaps.values():
         b.defall(recording)
-    clearsprites()
-    game = self
 
   def openserver(self):
     ps = openpingsocket()
