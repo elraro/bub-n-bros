@@ -345,6 +345,27 @@ def screen_bubble():
             lines.append([pic, RNumber(str(count))])
     return lines
 
+def screen_die():
+    pairs = []
+    for p in BubPlayer.PlayerList:
+        count = p.stats['die']
+        if count:
+            pairs.append((count, p))
+    random.shuffle(pairs)
+    pairs.sort()
+    pairs.reverse()
+    del pairs[5:]
+    lines = []
+    if pairs:
+        lines.append([RText('Top Deaths')])
+        n = 0
+        for count, p in pairs:
+            pic = RPicture()
+            pic.put(p.icons[6+(n%3),+1], 0)
+            lines.append([pic, RNumber(str(count))])
+            n += 1
+    return lines
+
 def screen_authors():
     return [
         [RText('programming', 6)],
@@ -362,7 +383,8 @@ def screen_authors():
 def game_over():
     while 1:
         for screen in [screen_scores, screen_monster, screen_catch,
-                       screen_bonus, screen_bubble, screen_authors]:
+                       screen_bonus, screen_bubble, screen_die,
+                       screen_authors]:
             lines = screen()
             if lines:
                 for t in display(lines, 300, just_wait(), 1):

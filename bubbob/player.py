@@ -451,7 +451,7 @@ class BubPlayer(gamesrv.Player):
         self.pcap = {}
         self.dragons = []
         self.keepalive = None
-        self.stats = {'bubble': 0}
+        self.stats = {'bubble': 0, 'die': 0}
 
     def loadicons(self, icons, fn):
         for key, value in self.iconnames.items():
@@ -581,6 +581,7 @@ class BubPlayer(gamesrv.Player):
         self.key_fire = (self.key_fire == 1000000)
 
     def bubberdie(self):
+        self.stats['die'] += 1
         if self.lives is not None and self.lives > 0:
             self.lives -= 1
             scoreboard()
