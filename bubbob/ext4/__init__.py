@@ -197,17 +197,16 @@ class BrickEyes(BubblingEyes):
                     self.play(images.Snd.Extra)
                 pts *= 2
                 for y in range(py-1, -1, -1):
-                    pause = 4
+                    if not [x for x in xlist if (x, y) in staticbricks]:
+                        break
+                    for t in range(4):
+                        yield None
                     if [x for x in xlist if (x, y+1) in staticbricks]:
                         break
                     for x in xlist:
                         if (x, y) in staticbricks:
-                            for t in range(pause):
-                                yield None
-                            pause = 0
                             staticbricks[x, y].shiftdown()
                 yield None
-                progress = 1
                 break
             else:
                 break
