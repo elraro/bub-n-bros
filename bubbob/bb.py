@@ -110,9 +110,10 @@ def parse_cmdline(argv):
     # parse command-line
     def usage():
         print >> sys.stderr, 'usage:'
-        print >> sys.stderr, '  python bb.py [-w/--webbrowser=no]'
-        print >> sys.stderr, 'where:'
-        print >> sys.stderr, '  -w  --webbrowser=no  don''t automatically start web browser'
+        print >> sys.stderr, '  python bb.py'
+##        print >> sys.stderr, '  python bb.py [-w/--webbrowser=no]'
+##        print >> sys.stderr, 'where:'
+##        print >> sys.stderr, '  -w  --webbrowser=no  don''t automatically start web browser'
         print >> sys.stderr, 'or:'
         print >> sys.stderr, '  python bb.py [level-file.bin] [-m] [-b#] [-s#] [-l#]'
         print >> sys.stderr, 'with options:'
@@ -131,8 +132,9 @@ def parse_cmdline(argv):
         from getopt import getopt
     from getopt import error
     try:
-        opts, args = getopt(argv, 'wmb:s:l:h',
-                            ['webbrowser=', 'metaserver', 'start=', 'step=', 'lives=', 'help'])
+        opts, args = getopt(argv, 'mb:s:l:h',
+                            ['metaserver', 'start=', 'step=',
+                             'lives=', 'help', 'pipeurlto='])
     except error, e:
         print >> sys.stderr, 'bb.py: %s' % str(e)
         print >> sys.stderr
@@ -140,11 +142,10 @@ def parse_cmdline(argv):
         
     options = {}
     metaserver = 0
-    webbrowser = 1
+    #webbrowser = 1
+    pipe_url_to = None
     for key, value in opts:
-        if key in ('-w', '--webbrowser'):
-            webbrowser = value.startswith('y')
-        elif key in ('-m', '--metaserver'):
+        if key in ('-m', '--metaserver'):
             metaserver = 1
         elif key in ('-b', '--start', '--begin'):
             options['beginboard'] = int(value)
@@ -154,6 +155,11 @@ def parse_cmdline(argv):
             options['limitlives'] = int(value)
         elif key in ('-h', '--help'):
             usage()
+        elif key == '--pipeurlto':
+            rdside, pipe_url_to = map(int, value.split(','))
+            os.close(rdside)
+        #elif key in ('-w', '--webbrowser'):
+        #    webbrowser = value.startswith('y')
     if args:
         if len(args) > 1:
             print >> sys.stderr, 'bb12.py: multiple level files specified'
@@ -171,7 +177,7 @@ def parse_cmdline(argv):
             print >> sys.stderr, 'bb12.py: command-line options ignored'
         setuphttp2path()
         import httppages
-        httppages.main(BubBobGame, webbrowser)
+        httppages.main(BubBobGame, pipe_url_to)
 
 
 def setup():

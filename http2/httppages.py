@@ -52,6 +52,7 @@ class PageServer:
 
     def registerpages(self):
         prefix = '%s/' % self.seed
+        httpserver.register('controlcenter.html',  self.controlcenterloader)
         httpserver.register(prefix,                self.indexloader)
         httpserver.register(prefix+'index.html',   self.indexloader)
         httpserver.register(prefix+'list.html',    self.listloader)
@@ -89,25 +90,6 @@ class PageServer:
 ##            os.spawnv(os.P_NOWAITO, sys.executable,
 ##                      [sys.executable, os.path.join(LOCALDIR, 'httppages.py'),
 ##                       self.indexurl])
-
-    def launchbrowser(self):
-        try:
-            import webbrowser
-            browser = webbrowser.get()
-            name = getattr(browser, 'name', browser.__class__.__name__)
-            print "Trying to display the above URL with '%s'..." % name
-            browser.open(self.indexurl)
-        except:
-            exc, val, tb = sys.exc_info()
-            print >> sys.stderr, "Failed to launch the web browser:"
-            print >> sys.stderr, "  %s: %s" % (exc.__name__, val)
-            print
-            print "Sorry, I guess you have to go to the following URL manually:"
-        else:
-            print "Done running '%s'." % name
-            print "If the browser fails to open the page automatically,"
-            print "you will have to manually go to the following URL:"
-        print self.indexurl
 
     def getlocalservers(self):
         if self.localservers is None:
@@ -228,6 +210,12 @@ class PageServer:
         self.searchlocalservers()
         return self.mainpage(headers)
 
+    def controlcenterloader(self, headers, **options):
+        host = headers['remote host']
+        if host != '127.0.0.1':
+            raise HTTPRequestError, "Access denied."
+        return None, self.indexurl
+
     def listloader(self, headers, s=[], **options):
         self.setinetserverlist(s)
         self.checkinetserverlist()
@@ -309,9 +297,13 @@ class PageServer:
         address = '%s:%s' % (host[0], port[0])
         nbclients = len(gamesrv.clients)
         script = os.path.join(LOCALDIR, os.pardir, 'display', 'main.py')
-        args = [sys.executable, script] + args + [address]
+        args = [script] + args + [address]
+        if sys.platform == 'darwin':   # must start as a UI process
+            args = ['/usr/bin/open', '-a', 'Python.app'] + args
+        else:
+            args.insert(0, sys.executable)
         print '*', ' '.join(args)
-        os.spawnv(os.P_NOWAITO, sys.executable, args)
+        os.spawnv(os.P_NOWAITO, args[0], args)
         if my_server_address() == address:
             endtime = time.time() + 3.0
             while gamesrv.recursiveloop(endtime, []):
@@ -484,14 +476,20 @@ def quote_plus(s):
     return ''.join([getter(c, '%%%02X' % ord(c)) for c in s])
 
 
-def main(Game, webbrowser=1):
+def main(Game, pipe_url_to=None):
+    gamesrv.openpingsocket(0)  # try to reserve the standard UDP port
     srv = PageServer(Game)
     srv.registerpages()
     if not srv.opensocket():
         print >> sys.stderr, "server aborted."
         sys.exit(1)
-    if webbrowser:
-        srv.launchbrowser()
+    if pipe_url_to is not None:
+        url = srv.indexurl
+        while url:
+            url = url[os.write(pipe_url_to, url):]
+        os.close(pipe_url_to)
+    #if webbrowser:
+    #    srv.launchbrowser()
 
 
 ##if __name__ == '__main__':

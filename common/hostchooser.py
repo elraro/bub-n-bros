@@ -7,27 +7,30 @@ PING_MESSAGE = "pclient-game-ping"
 PONG_MESSAGE = "server-game-pong"
 
 
-def serverside_ping(port=None):
-    port = port or UDP_PORT
+def serverside_ping(only_port=None):
+    port = only_port or UDP_PORT
     s = socket(AF_INET, SOCK_DGRAM)
     try:
         s.bind(('', port))
         s.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
         return s
     except error, e:
-        s = socket(AF_INET, SOCK_DGRAM)
-        s.bind(('', INADDR_ANY))
-        return s
+        if only_port is None:
+            s = socket(AF_INET, SOCK_DGRAM)
+            s.bind(('', INADDR_ANY))
+            return s
+        else:
+            return None
 
 def answer_ping(s, descr, addr, extra='', httpport=''):
     try:
         data, source = s.recvfrom(100)
     except error, e:
-        print >> sys.stderr, str(e)
+        print >> sys.stderr, 'ping error:', str(e)
         return
     if data == PING_MESSAGE:
         print "ping by", source
-        answer = '%s:%s:%s:%d:%s:%s' % (PONG_MESSAGE, descr,
+        answer = '%s:%s:%s:%s:%s:%s' % (PONG_MESSAGE, descr,
                                         addr[0], addr[1], extra, httpport)
         s.sendto(answer, source)
     else:
@@ -72,11 +75,12 @@ def pick(hostlist, delay=1):
     raise SystemExit
 
 def find_servers(hostlist=[('127.0.0.1', None), ('255.255.255.255', None)],
-                 tries=2, delay=0.5):
+                 tries=2, delay=0.5, verbose=1, port_needed=1):
     import gamesrv
-    print 'Looking for servers in the following list:'
-    for host, udpport in hostlist:
-        print '    %s,  UDP port %s'%(host, udpport or ("%s (default)"%UDP_PORT))
+    if verbose:
+        print 'Looking for servers in the following list:'
+        for host, udpport in hostlist:
+            print '    %s,  UDP port %s'%(host, udpport or ("%s (default)"%UDP_PORT))
     servers = {}
     events = {}
     aliases = {}
@@ -114,14 +118,16 @@ def find_servers(hostlist=[('127.0.0.1', None), ('255.255.255.255', None)],
                 try:
                     port = int(data[3])
                 except ValueError:
-                    pass
-                else:
-                    result = (hostname, port)
-                    servers[result] = ':'.join(data[1:2]+data[4:])
-                    aliases[hostname] = ipaddr
+                    if port_needed:
+                        continue
+                    port = ''
+                result = (hostname, port)
+                servers[result] = ':'.join(data[1:2]+data[4:])
+                aliases[hostname] = ipaddr
             else:
                 print >> sys.stderr, "got an unexpected answer from", answer_from
-    print "%d answer(s):" % len(servers), servers.keys()
+    if verbose:
+        print "%d answer(s):" % len(servers), servers.keys()
     for host, port in servers.keys():
         ping = None
         ipaddr = aliases[host]

@@ -100,7 +100,9 @@ class MiniHandler(SimpleHTTPRequestHandler):
                 kwds.update(cgi.parse_qs(q))
         loader = pathloaders[path]
         try:
-            f, ctype = loader(headers=self.headers, **kwds)
+            hdr = self.headers
+            hdr['remote host'] = self.client_address[0]
+            f, ctype = loader(headers=hdr, **kwds)
         except IOError, e:
             self.send_error(404, "I/O error: " + str(e))
             return None

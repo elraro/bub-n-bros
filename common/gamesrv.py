@@ -913,17 +913,28 @@ def opentcpsocket(port=INADDR_ANY):
     addsocket('LISTEN', s, tcpsocket_handler)
   return s
 
-def openpingsocket(port=None):
+def openpingsocket(only_port=None):
   s = findsocket('PING')
   if s is None:
     import hostchooser
-    s = hostchooser.serverside_ping(port)
+    s = hostchooser.serverside_ping(only_port)
+    if s is None:
+      return None
     def pingsocket_handler(s=s):
+      global game
       import hostchooser
+      if game is not None:
+        args = game.FnDesc, game.address, game.FnExtraDesc()
+      else:
+        ts = findsocket('LISTEN')
+        if ts:
+          address = gethostname(), displaysockport(ts)
+        else:
+          address = '', ''
+        args = 'Not playing', address, ''
       hs = findsocket('HTTP')
-      hostchooser.answer_ping(s, game.FnDesc, game.address,
-                              game.FnExtraDesc(),
-                              displaysockport(hs))
+      args = args + (displaysockport(hs),)
+      hostchooser.answer_ping(s, *args)
     addsocket('PING', s, pingsocket_handler)
   return s
 
