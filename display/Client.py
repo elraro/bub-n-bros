@@ -22,9 +22,12 @@ def parse_cmdline(argv):
     # parse command-line
     def usage():
         print >> sys.stderr, 'usage:'
-        print >> sys.stderr, '  python main.py [-d#] [-s#] [extra options] [host:port]'
+        print >> sys.stderr, '  python main.py [-d#] [-s#] [extra options] [host[:port]]'
         print >> sys.stderr
         print >> sys.stderr, 'options:'
+        print >> sys.stderr, '  host              search for a game on the given machine'
+        print >> sys.stderr, '  host:port         connect to the given game server'
+        print >> sys.stderr, '                      (default search for any local server)'
         print >> sys.stderr, '  -d#  --display=#  graphic driver (see below)'
         print >> sys.stderr, '  -s#  --sound=#    sound driver (see below)'
         print >> sys.stderr, '       --music=no   disable background music'
@@ -32,8 +35,6 @@ def parse_cmdline(argv):
         print >> sys.stderr, '  -t   --tcp        for slow or proxy connections'
         print >> sys.stderr, '  -u   --udp        for fast direct connections'
         print >> sys.stderr, '                      (default is to autodetect tcp or udp)'
-        print >> sys.stderr, '  host:port         connect to the given server'
-        print >> sys.stderr, '                      (default search for any local server)'
         print >> sys.stderr
         print >> sys.stderr, 'graphic drivers:'
         for info in modes.graphicmodeslist():
@@ -86,14 +87,19 @@ def parse_cmdline(argv):
         if len(args) > 1:
             usage()
         hosts = args[0].split(':')
-        if len(hosts) != 2:
+        if len(hosts) == 1:
+            host, = hosts
+            from common import hostchooser
+            server = hostchooser.pick([host] * 5)
+        elif len(hosts) == 2:
+            host, port = hosts
+            try:
+                port = int(port)
+            except ValueError:
+                usage()
+            server = host, port
+        else:
             usage()
-        host, port = hosts
-        try:
-            port = int(port)
-        except ValueError:
-            usage()
-        server = host, port
     else:
         from common import hostchooser
         server = hostchooser.pick(UdpLookForServer * 3)
