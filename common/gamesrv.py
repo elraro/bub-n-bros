@@ -1074,7 +1074,7 @@ class Game:
       udpdata = ''.join(broadcast_extras.keys() + [udpdata])
       try:
         self.broadcast_s.sendto(udpdata,
-                                ('<broadcast>', broadcast_port))
+                                ('<broadcast>', self.broadcast_port))
         #print "Broadcast UDP data"
       except error:
         pass  # ignore failed broadcasts
