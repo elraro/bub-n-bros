@@ -468,7 +468,11 @@ class Playfield:
             host, port = self.udpsock.getsockname()
             self.iwtd.append(self.udpsock)
             self.initial_iwtd.append(self.udpsock)
-        self.s.sendall(message(CMSG_UDP_PORT, port))
+        if 'sendudpto' in PORTS:
+            args = (PORTS['sendudpto'],)
+        else:
+            args = ()
+        self.s.sendall(message(CMSG_UDP_PORT, port, *args))
         if self.snd and self.snd.has_music:
             self.s.sendall(message(CMSG_ENABLE_MUSIC, 1))
             self.s.sendall(message(CMSG_PING))

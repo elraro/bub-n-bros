@@ -167,14 +167,19 @@ class PageServer:
             print >> sys.stderr, "! Cannot save config file: " + str(e)
 
     def reloadports(self):
+        import msgstruct
+        msgstruct.PORTS.clear()
         for key, value in self.localoptions.dict().items():
             if key.startswith('port_'):
+                key = key[5:]
+                if key == 'CLIENT' and type(value) == str and ':' in value:
+                    udphostname, value = value.split(':')
+                    msgstruct.PORTS['sendudpto'] = udphostname
                 try:
                     value = int(value)
                 except:
                     continue
-                import msgstruct
-                msgstruct.PORTS[key[5:]] = value
+                msgstruct.PORTS[key] = value
 
     def startgame(self):
         self.reloadports()
@@ -451,13 +456,9 @@ class PageServer:
         options = self.localoptions
         result = ['--cfg='+self.filename]
         for key, value in options.dict().items():
-            if key.startswith('port_'):
-                try:
-                    value = int(value)
-                except:
-                    continue
+            if key.startswith('port_') and value:
                 result.append('--port')
-                result.append('%s=%d' % (key[5:], value))
+                result.append('%s=%s' % (key[5:], value))
         if options.datachannel == 'tcp': result.append('--tcp')
         if options.datachannel == 'udp': result.append('--udp')
         if options.music       == 'no':  result.append('--music=no')
