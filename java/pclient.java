@@ -101,7 +101,7 @@ public class pclient extends Applet {
             if (!"255".equals(line))
                 throw new IOException("not a 255-levels PPM image");
 
-            pixelData = new int[w*h];
+            pixelData = new int[w*(h+1)]; // (h+1) instead of h: bug workaround
             int target = 0;
             int w3 = 3*w;
             byte[] lineBuffer = new byte[w3];
@@ -135,7 +135,7 @@ public class pclient extends Applet {
     public Socket pickHost(String udphostname, int port)
                                              throws IOException {
         InetAddress addr = InetAddress.getByName(udphostname);
-        byte[] msg = pingMessage.getBytes("UTF-8");
+        byte[] msg = pingMessage.getBytes("UTF8");
         DatagramPacket outp = new DatagramPacket(msg, msg.length, addr, port);
         byte[] buffer = new byte[200];
         DatagramPacket inp = new DatagramPacket(buffer, buffer.length);
@@ -145,7 +145,7 @@ public class pclient extends Applet {
         s.send(outp);
         
         s.receive(inp);
-        String inpmsg = new String(inp.getData(), 0, inp.getLength(), "UTF-8");
+        String inpmsg = new String(inp.getData(), 0, inp.getLength(), "UTF8");
         String[] data = splitString(inpmsg, ':');
         //System.out.println(inpmsg);
         //System.out.println(data.length);
@@ -534,7 +534,7 @@ public class pclient extends Applet {
 
         SocketListener(pclient aclient, Socket asocket) throws IOException {
             setDaemon(true);
-            byte[] msgWelcome = MSG_WELCOME.getBytes("UTF-8");
+            byte[] msgWelcome = MSG_WELCOME.getBytes("UTF8");
 
             client = aclient;
             socket = asocket;
@@ -679,7 +679,7 @@ public class pclient extends Applet {
                 int keyid   = args[2];
                 int nicons  = nargs - 3;
                 KeyName key = new KeyName();
-                key.keyname = new String(buffer, nameofs, namelen, "UTF-8");
+                key.keyname = new String(buffer, nameofs, namelen, "UTF8");
                 key.keyid   = keyid;
                 key.keyicons= new Image[nicons];
                 for (i=0; i<nicons; i++)
