@@ -101,7 +101,9 @@ public class pclient extends Applet {
             if (!"255".equals(line))
                 throw new IOException("not a 255-levels PPM image");
 
-            pixelData = new int[w*(h+1)]; // (h+1) instead of h: bug workaround
+            // over-allocate an extra uninitialized line at the bottom of the
+            // image to work around a bug in the MemoryImageSource constructor
+            pixelData = new int[w*(h+1)];
             int target = 0;
             int w3 = 3*w;
             byte[] lineBuffer = new byte[w3];
