@@ -682,24 +682,24 @@ def game_reset():
             # someone else ticking the clock, try again later
             return
     # anyone playing ?
-    gameover = gamesrv.game.End == 'gameover'
-    if not gameover:
-        for p in BubPlayer.PlayerList:
-            if p.isplaying() and p.lives != 0:
-                return  # yes -> cancel game_reset()
+    if not gamesrv.game.End:
+        return  # yes -> cancel game_reset()
     # let's tick the clock !
     tc = TimeCounter(60.9, blink=1)   # 1:00
     t1 = time.time()
     while tc.time:
         yield 0
         # anyone playing now ?
-        if not gameover:
-            for p in BubPlayer.PlayerList:
-                if p.isplaying() and p.lives != 0:
-                    tc.restore()
-                    return  # yes -> cancel game_reset()
+        if not gamesrv.game.End:
+            tc.restore()
+            return  # yes -> cancel game_reset()
         t = time.time()  # use real time
-        tc.update((t-t1)/FRAME_TIME)
+        deltat = (t-t1)/FRAME_TIME
+        if deltat < 1.0:
+            deltat = 1.0
+        elif deltat > 100.0:
+            deltat = 100.0
+        tc.update(deltat)
         t1 = t
     gamesrv.game.reset()
 

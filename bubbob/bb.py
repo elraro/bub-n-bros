@@ -76,11 +76,14 @@ class BubBobGame(gamesrv.Game):
                         boards.BoardGen.remove(gen)
                     except ValueError:
                         pass
-        if self.End and self.autoreset:
-            if (self.game_reset_gen is None or
-                self.game_reset_gen not in boards.BoardGen):
+        if self.game_reset_gen is None:
+            if self.End and self.autoreset:
                 self.game_reset_gen = boards.game_reset()
-                boards.BoardGen.append(self.game_reset_gen)
+        else:
+            try:
+                self.game_reset_gen.next()
+            except StopIteration:
+                self.game_reset_gen = None
         return frametime * boards.FRAME_TIME
 
     def FnExcHandler(self, kbd):

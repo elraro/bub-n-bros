@@ -2,6 +2,7 @@ import sys
 from cStringIO import StringIO
 import puremixer
 import wingame
+from music1 import Music
 
 
 class Sound:
@@ -77,43 +78,6 @@ class Sound:
 
     def fadeout(self, millisec):
         self.cmusics = [], 0, -1
-
-
-class Music:
-    def __init__(self, filename):
-        self.filename = filename
-        self.w = None
-        self.sampledata = StringIO()
-    def openchannel(self):
-        if self.w is None:
-            import wave
-            self.w = w = wave.open(open(self.filename, 'rb'), 'r')
-            self.w_params = (w.getnchannels(),
-                             w.getsampwidth(),
-                             w.getframerate())
-            chan, width, freq = self.w_params
-            self.dataleft = w.getnframes() * (chan*width)
-        self.sampledata.seek(0)
-    def decode(self, mixer, bytecount):
-        result = self.sampledata.read(bytecount)
-        if not result and self.dataleft > 0:
-            # decode and convert some more data
-            chan, width, freq = self.w_params
-            framecount = bytecount / (chan*width)
-            inputdata = self.w.readframes(framecount)
-            self.dataleft -= len(inputdata)
-            result = mixer.resample(inputdata,
-                                    freq = freq,
-                                    bits = width * 8,
-                                    signed = width > 1,
-                                    channels = chan,
-                                    byteorder = 'little')
-            del inputdata
-            self.sampledata.write(result)
-            if len(result) > bytecount:
-                self.sampledata.seek(bytecount-len(result), 1)
-                result = result[:bytecount]
-        return result
 
 
 def htmloptionstext(nameval):

@@ -1,6 +1,7 @@
 import sys
 from cStringIO import StringIO
 import puremixer
+from music1 import Music
 
 
 class Sound:
@@ -117,77 +118,6 @@ class Sound:
 
     def fadeout(self, millisec):
         self.cmusics = [], 0, -1
-
-    #def music_readahead(self):
-    #    if self.mixer_channels[:1] == [self]:
-    #        musics, loop_from, c = self.cmusics
-    #        if 0 <= c < len(musics):
-    #            musics[c].readahead()
-
-
-class Music:
-    def __init__(self, filename):
-##            self.data = {}
-##            self.buffer = ''
-        self.filename = filename
-        self.w = None
-        self.sampledata = StringIO()
-##        def write(self, position, data):
-##            "Got new data from the TCP link."
-##            self.data[position] = data
-##        def read(self, size=-1):
-##            "The 'wave' module asks for data."
-##            if not self.buffer:
-##                items = self.data.items()
-##                if not items:
-##                    return ''
-##                items.sort()
-##                position, self.buffer = items[0]
-##                del self.data[position]  # no need to rewind, discard old data
-##            if size < 0:
-##                data = self.buffer
-##                self.buffer = ''
-##            else:
-##                data = self.buffer[:size]
-##                self.buffer = self.buffer[size:]
-##            return data
-    def openchannel(self):
-        if self.w is None:
-            import wave
-##                self.w = w = wave.open(self, 'r')
-            self.w = w = wave.open(open(self.filename, 'rb'), 'r')
-            self.w_params = (w.getnchannels(),
-                             w.getsampwidth(),
-                             w.getframerate())
-            chan, width, freq = self.w_params
-            self.dataleft = w.getnframes() * (chan*width)
-        self.sampledata.seek(0)
-    def decode(self, mixer, bytecount):
-        result = self.sampledata.read(bytecount)
-        if not result and self.dataleft > 0:
-            # decode and convert some more data
-            chan, width, freq = self.w_params
-            framecount = bytecount / (chan*width)
-            inputdata = self.w.readframes(framecount)
-            self.dataleft -= len(inputdata)
-            result = mixer.resample(inputdata,
-                                    freq = freq,
-                                    bits = width * 8,
-                                    signed = width > 1,
-                                    channels = chan,
-                                    byteorder = 'little')
-            del inputdata
-            self.sampledata.write(result)
-            if len(result) > bytecount:
-                self.sampledata.seek(bytecount-len(result), 1)
-                result = result[:bytecount]
-        return result
-        #def readahead(self):
-        #    if self.w is not None:
-        #        import puremixer2
-        #        p = self.sampledata.tell()
-        #        self.decode(puremixer2.mixer_bufsize)
-        #        self.sampledata.seek(p)
 
 
 def imperror():
