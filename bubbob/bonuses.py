@@ -398,7 +398,7 @@ class Book(RandomBonus):
         starexplosion(self.x, self.y, 1, killmonsters=1)
 
 class Potion(RandomBonus):
-    "Potions. Clear the level and fill it's top with bonuses."
+    "Potions. Clear the level and fill its top with bonuses."
     nimages = [Bonuses.red_potion, Bonuses.green_potion, Bonuses.yellow_potion]
     Potions = [(Bonuses.red_potion,    150,
                      [(PotionBonuses.coin, 350), (PotionBonuses.rainbow, 600)]),
@@ -995,7 +995,7 @@ class WhiteCarrot(TemporaryBonus):
     captime = 650
 
 class AmphetamineSpeed(TemporaryBonus):
-    "Amphetamine Dose. Cumulative increase of your general speed!"
+    "Amphetamine Dose. Increase of your general speed!"
     nimage = Bonuses.tin
     points = 700
     def taken(self, dragon):
