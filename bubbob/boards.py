@@ -577,9 +577,12 @@ def set_frametime(ft):
     BubPlayer.BaseFrametime = ft
     images.loadsounds(1.0 / ft)
 
-def extra_boardgen(gen):
+def extra_boardgen(gen, at_end=0):
     if curboard.playingboard:
-        BoardGen.append(gen)
+        if at_end or not BoardGen:
+            BoardGen.append(gen)
+        else:
+            BoardGen.insert(1, gen)
 
 def replace_boardgen(gen, force=0):
     if curboard.playingboard or force:
@@ -1016,7 +1019,7 @@ def extra_water_flood():
         s.kill()
     del curboard.sprites['flood']
 
-def extra_walls_falling(big=0):
+def extra_walls_falling():
     walls_by_pos = curboard.walls_by_pos
     moves = 1
     while moves and not curboard.cleaning_gen_state:
@@ -1033,7 +1036,7 @@ def extra_walls_falling(big=0):
                     curboard.putwall(x, y+1, w)
                     moves = 1
         curboard.reorder_walls()
-        for y in range((height, 1)[big]):
+        for y in range(6):
             yield 0
 
 def single_blocks_falling(xylist):
@@ -1099,6 +1102,27 @@ def extra_bkgnd_black(cx, cy):
                 gl2.append(s)
         gl[:] = gl2
         yield 0
+
+def extra_light_off(timeout, icocache={}):
+    for i in range(timeout):
+        if curboard.cleaning_gen_state:
+            break
+        dragons = {}
+        import player
+        playerlist = player.BubPlayer.PlayerList
+        for bubber in playerlist:
+            for dragon in bubber.dragons:
+                dragons[dragon] = True
+        for s in gamesrv.sprites_by_n.values():
+            try:
+                ico = icocache[s.ico, s in dragons]
+            except KeyError:
+                ico = images.make_darker(s.ico, s in dragons)
+                icocache[s.ico, s in dragons] = ico
+            s.setdisplayicon(ico)
+        yield 0
+    for s in gamesrv.sprites_by_n.values():
+        s.setdisplayicon(s.ico)
 
 def register(dict):
     global width, height, bwidth, bheight, bheightmod

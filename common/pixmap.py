@@ -69,6 +69,13 @@ def makebkgnd(w, h, data):
         result.append(line)
     return w*2, h*2, ''.join(result)
 
+translation_darker = ('\x00\x01' + '\x00'*126 +
+                      ''.join([chr(n//4) for n in range(0,128)]))
+translation_dragon = translation_darker[:255] + '\xC0'
+
+def make_dark((w, h, data), translation):
+    return w, h, data.translate(translation)
+
 def col((r, g, b)):
     r = ord(r)
     g = ord(g)
@@ -95,8 +102,7 @@ def imagezoomer(w, h, data):
                 revcache[c] = key
             line.append(c)
         pixels.append(line)
-        if base % scale == 1:
-            yield None
+        yield None
 
     Pairs = {
         (0, 0): [(0, 0, 0, 0),

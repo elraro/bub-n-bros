@@ -274,6 +274,22 @@ if 0:  # disabled clipping
         sprmap[key] = filename, (x0+x, y0+y, w, h)
         return sprget(key)
 
+def make_darker(ico, is_dragon, bmpcache={}):
+    bmp, rect = ico.getorigin()
+    try:
+        darkbmp = bmpcache[bmp, is_dragon]
+    except KeyError:
+        image = pixmap.decodepixmap(bmp.read())
+        if is_dragon:
+            translation = pixmap.translation_dragon
+        else:
+            translation = pixmap.translation_darker
+        darkimage = pixmap.make_dark(image, translation)
+        data = pixmap.encodepixmap(*darkimage)
+        darkbmp = gamesrv.newbitmap(data, bmp.colorkey)
+        bmpcache[bmp, is_dragon] = darkbmp
+    return darkbmp.geticon(*rect)
+
 def haspat(n):
     return n in patmap
 
@@ -309,8 +325,8 @@ def computebiggericon(ico, bigger={}):
         bigger[ico] = None, pixmap.imagezoomer(*ico.getimage())
         return None
     if computing is not None:
-        result = computing.next()
-        if result is None:
+        result = computing.next() or computing.next() or computing.next()
+        if not result:
             return None   # still computing
         w, h, data = result
         data = pixmap.encodepixmap(w, h, data)

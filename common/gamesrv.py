@@ -41,6 +41,10 @@ class Icon:
     image = pixmap.decodepixmap(bitmap.read())
     return pixmap.cropimage(image, (x, y, self.w, self.h))
 
+  def getorigin(self):
+    bitmap, x, y = self.origin
+    return bitmap, (x, y, self.w, self.h)
+
 
 class DataChunk:
   
@@ -305,14 +309,22 @@ class Sprite:
 
   def setdisplaypos(self, x, y):
     # special use only (self.x,y are not updated)
-    sprites[self.alive] = pack("!hhh", x, y, self.ico.code)
+    s = sprites[self.alive]
+    if len(s) == 6:
+      sprites[self.alive] = pack("!hh", x, y) + s[4:]
 
-  sizeof_displaypos = struct.calcsize("!hh")
+  def setdisplayicon(self, ico):
+    # special use only (self.ico is not updated)
+    s = sprites[self.alive]
+    if len(s) == 6:
+      sprites[self.alive] = s[:4] + pack("!h", ico.code)
+
+  #sizeof_displaypos = struct.calcsize("!hh")
   def getdisplaypos(self):
     # special use only (normally, read self.x,y,ico directly)
     s = sprites[self.alive]
-    if self.alive and len(s) >= self.sizeof_displaypos:
-      return unpack("!hh", s[:self.sizeof_displaypos])
+    if self.alive and len(s) == 6:
+      return unpack("!hh", s[:4])
     else:
       return None, None
 
@@ -335,7 +347,7 @@ class Sprite:
       self.alive = 0
 
   def prefix(self, n, m=0):
-    sprites[self.alive] = pack("!hhh", n, m, 32767) + sprites[self.alive]
+    pass #sprites[self.alive] = pack("!hhh", n, m, 32767) + sprites[self.alive]
 
   def to_front(self):
     if self.alive and self.alive < len(sprites)-1:
@@ -865,8 +877,9 @@ def set_musics(musics_intro, musics_loop, reset=1):
   mlist.append(loop_from)
   for m in musics_intro + musics_loop:
     mlist.append(m.fileid)
-  if reset or not finalsegment(mlist, currentmusics):
-    currentmusics[:] = mlist
+  reset = reset or not finalsegment(mlist, currentmusics)
+  currentmusics[:] = mlist
+  if reset:
     for c in clients:
       c.startmusic()
 

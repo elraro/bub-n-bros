@@ -183,7 +183,7 @@ class Dragon(ActiveSprite):
                     else:
                         wannago = 1
                 wannafire = 1
-                if self.fire > 11:
+                if self.fire > (11 // self.dcap['hotstuff']):
                     self.fire = 0
             if wannago:
                 self.dir = wannago * self.dcap['lookforward']
@@ -270,7 +270,9 @@ class Dragon(ActiveSprite):
                 if dir:
                     mytime = (mytime+self.dcap['lookforward']) % 12
                 else:
-                    self.dcap['vslippy'] *= -0.6666
+                    f = - self.dcap['vslippy'] * (self.dcap['slippy']+1)/3.0
+                    self.dcap['vslippy'] = max(min(f, 10.0), -10.0)
+                    hfp = 0
             onbubble = 0
             if not self.dcap['infinite_shield']:
                 touching = images.touching(self.x+1, self.y+1, 30, 30)
@@ -450,14 +452,23 @@ class Dragon(ActiveSprite):
         #if boards.curboard.wastingplay is None:
         shootbubbles = self.dcap['shootbubbles']
         special_bubbles = shootbubbles and shootbubbles.pop()
+        thrustfactors = None
         N = self.dcap['flower']
         if N == 1:
             angles = [0]
         elif N > 1:
             angles = [i*(2.0*math.pi/N) for i in range(N)]
             self.dcap['flower'] = N*2//3
-        else:  # N == 0 for triple fire
+        elif N == 0:  # triple fire
             angles = [0, -0.19, 0.19]
+        else:         # heptuple fire
+            c = 0.17
+            a = math.sqrt(1-c+c*c)
+            alpha = math.atan2(math.sqrt(3)/2*c, 1-c/2)
+            b = math.sqrt(1+c+c*c)
+            beta  = math.atan2(math.sqrt(3)/2*c, 1+c/2)
+            angles =        [0, 0,   0,   alpha, -alpha, beta, -beta]
+            thrustfactors = [1, 1-c, 1+c, a,      a,     b,     b]
         dir = self.dir
         x = self.x
         if self.glueddown:
@@ -468,9 +479,11 @@ class Dragon(ActiveSprite):
                 delta = self.dir*gx * math.pi/2
                 angles = [angle-delta for angle in angles]
                 x -= 16
-        for angle in angles:
+        if not thrustfactors:
+            thrustfactors = [None] * len(angles)
+        for angle, thrustfactor in zip(angles, thrustfactors):
             bubbles.DragonBubble(self, x + 4*dir, self.y, dir,
-                                 special_bubbles, angle)
+                                 special_bubbles, angle, thrustfactor)
         #else:
         #    from monsters import DragonShot
         #    DragonShot(self)

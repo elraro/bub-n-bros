@@ -216,7 +216,8 @@ class CatchNote:
 class DragonBubble(Bubble):
     touchable = 0
 
-    def __init__(self, d, x, y, dir, special_bubble=None, angle=0):
+    def __init__(self, d, x, y, dir, special_bubble=None, angle=0,
+                 thrustfactor=None):
         self.d = d
         pn = d.bubber.pn
         imglist1 = GreenAndBlue.new_bubbles[pn]
@@ -227,8 +228,13 @@ class DragonBubble(Bubble):
             asin, acos = 0, 1
         Bubble.__init__(self, images.sprget(imglist1[0]), x + 12*dir, y)
         self.setimages(self.imgseq(imglist1[1:] + imglist2[2:3], 4))
-        self.gen.append(self.throw_bubble(dir*d.dcap['shootthrust'],
-                                          special_bubble, (acos,asin)))
+        hspeed = dir*d.dcap['shootthrust']
+        if thrustfactor is not None:
+            negative = hspeed < 0
+            hspeed = (abs(hspeed) - 4.0) * thrustfactor + 4.0
+            if negative:
+                hspeed = -hspeed
+        self.gen.append(self.throw_bubble(hspeed, special_bubble, (acos,asin)))
 
     def throw_bubble(self, hspeed, special_bubble=None, (acos,asin)=(1,0)):
         from monsters import Monster
@@ -551,13 +557,13 @@ class FireBubble(BonusBubble):
             FireDrop(x0*CELL, self.y)
         return 10
 
-class BombBubble(FireBubble):
-    flip = 'vflip'
-    def popped(self, dragon):
-        if dragon:
-            import bonuses
-            bonuses.bomb_explosion(self.x, self.y + CELL, starmul=1)
-        return 100
+##class BombBubble(FireBubble):
+##    flip = 'vflip'
+##    def popped(self, dragon):
+##        if dragon:
+##            import bonuses
+##            bonuses.bomb_explosion(self.x, self.y + CELL, starmul=1)
+##        return 100
 
 ##class WaterCell(ActiveSprite):
 ##    ICONS = {
@@ -819,21 +825,21 @@ class WaterBubble(BonusBubble):
             watercell(x0*CELL, y0*CELL, [None], repeat=19)
         return 10
 
-class SolidBubble(WaterBubble):
-    timeout = 450
-    solidbubble = 1
-    flip = 'vflip'
+##class SolidBubble(WaterBubble):
+##    timeout = 450
+##    solidbubble = 1
+##    flip = 'vflip'
 
-    def bubble_red(self, *args):
-        self.solidbubble = 0
-        return WaterBubble.bubble_red(self, *args)
+##    def bubble_red(self, *args):
+##        self.solidbubble = 0
+##        return WaterBubble.bubble_red(self, *args)
 
-    def pop(self, poplist=None):
-        return (not (self.solidbubble and poplist is not None)
-                and WaterBubble.pop(self, poplist))
+##    def pop(self, poplist=None):
+##        return (not (self.solidbubble and poplist is not None)
+##                and WaterBubble.pop(self, poplist))
 
-    def popped(self, dragon):
-        return 100
+##    def popped(self, dragon):
+##        return 100
 
 class FiredLightning(ActiveSprite):
     def __init__(self, x, y, dir, poplist):
@@ -862,13 +868,13 @@ class LightningBubble(BonusBubble):
             FiredLightning(self.x, self.y, -dragon.dir, self.poplist)
         return 10
 
-class BigLightBubble(LightningBubble):
-    flip = 'vflip'
-    def popped(self, dragon):
-        if dragon:
-            import bonuses
-            bonuses.Megalightning(self.x, self.y, dragon)
-        return 100
+##class BigLightBubble(LightningBubble):
+##    flip = 'vflip'
+##    def popped(self, dragon):
+##        if dragon:
+##            import bonuses
+##            bonuses.Megalightning(self.x, self.y, dragon)
+##        return 100
 
 class SpinningBall(ActiveSprite):
     def __init__(self, x, y, poplist):
