@@ -307,7 +307,7 @@ class Dragon(ActiveSprite):
             if bottom_up:
                 icons = self.bubber.flippedicons
                 if not icons:
-                    self.bubber.loadicons(icons, images.sprget_vflip)
+                    self.bubber.loadicons(icons, 'vflip')
             else:
                 icons = self.bubber.icons
             self.seticon(icons[mode, self.dir])
@@ -472,9 +472,9 @@ class BubPlayer(gamesrv.Player):
         self.keepalive = None
         self.stats = {'bubble': 0, 'die': 0}
 
-    def loadicons(self, icons, fn):
+    def loadicons(self, icons, flip):
         for key, value in self.iconnames.items():
-            icons[key] = fn(value)
+            icons[key] = images.sprget((flip, value))
 
     def setplayername(self, name):
         name = name.strip()
@@ -495,7 +495,7 @@ class BubPlayer(gamesrv.Player):
     def playerjoin(self):
         n = self.pn
         if not self.icons:
-            self.loadicons(self.icons, images.sprget)
+            self.loadicons(self.icons, flip='')
         self.keepalive = None
         if self.points or self.letters:
             print 'New player continues at position #%d.' % n
@@ -663,10 +663,6 @@ class BubPlayer(gamesrv.Player):
     def emotic(self, dragon, strenght):
         bottom_up = hasattr(dragon, 'bottom_up') and dragon.bottom_up()
         vshift = getattr(dragon, 'up', 0.0)
-        if bottom_up:
-            sprget = images.sprget_vflip
-        else:
-            sprget = images.sprget
         for i in range(7):
             angle = math.pi/6 * i
             dx, dy = -math.cos(angle), -math.sin(angle)
@@ -675,7 +671,7 @@ class BubPlayer(gamesrv.Player):
             if bottom_up:
                 dy = -dy
                 ny = -ny
-            e = ActiveSprite(sprget(('emotic', i)),
+            e = ActiveSprite(images.sprget(('vflip'*bottom_up, ('emotic', i))),
                              int(dragon.x + 8 + nx),
                              int(dragon.y + 8 + ny - vshift))
             e.gen.append(e.straightline((3.3+random.random())*dx, (2.3+random.random())*dy))

@@ -953,8 +953,17 @@ class Grenade(RandomBonus):
         poplist = [None]
         for y in range(1, boards.height-1):
             for x in range(2, boards.width-2):
-                if bget(x,y) == ' ' and (bget(x,y+1) == '#' or self.big):
-                    f = FireFlame(x, y, poplist)
+                if bget(x,y) != ' ':
+                    continue
+                if bget(x,y+1) == '#':
+                    FireFlame(x, y, poplist)
+                elif self.big:
+                    if bget(x,y-1) == '#':
+                        FireFlame(x, y, poplist, flip='vflip')
+                    elif bget(x-1,y) == '#':
+                        FireFlame(x, y, poplist, flip='cw')
+                    elif bget(x+1,y) == '#':
+                        FireFlame(x, y, poplist, flip='ccw')
 
 class Conch(RandomBonus):
     "Sea Shell. Let's bring the sea here!"

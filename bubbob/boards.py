@@ -605,11 +605,11 @@ def display_hat(p, d):
     except AttributeError:
         image = ('hat', p.team)
     if bottom_up:
-        ico = images.sprget_vflip(image)
+        image = 'vflip', image
         y = d.y
     else:
-        ico = images.sprget(image)
         y = d.y - 16
+    ico = images.sprget(image)
     if (getattr(d,'hatsprite',None) is None or
         not d.hatsprite.alive):
         d.hatsprite = images.ActiveSprite(ico, d.x, y)

@@ -3,6 +3,7 @@ import gamesrv, os
 from sprmap import sprmap as original_sprmap
 from patmap import patmap
 import mnstrmap
+import pixmap
 
 KEYCOL = 0x010101
 MAX = 10
@@ -67,11 +68,8 @@ class ActiveSprite(gamesrv.Sprite):
         pass
 
     # common generators
-    def cyclic(self, nimages, speed=5, vflip=0):
-        if vflip:
-            images = [sprget_vflip(n) for n in nimages]
-        else:
-            images = [sprget(n) for n in nimages]
+    def cyclic(self, nimages, speed=5):
+        images = [sprget(n) for n in nimages]
         speed = range(speed)
         while 1:
             for img in images:
@@ -215,7 +213,14 @@ def sprget(n, spriconcache={}):
     try:
         return spriconcache[n]
     except KeyError:
+        key = n
+        if isinstance(key, tuple) and key[0] in Transformations:
+            t, n = key
+            transform = Transformations[t]
+        else:
+            transform = transform_noflip
         filename, rect = sprmap[n]
+        bitmap, rect = transform(filename, rect)
         if isinstance(n, tuple):
             n1 = n[0]
         else:
@@ -223,25 +228,43 @@ def sprget(n, spriconcache={}):
         if isinstance(n1, int):
             n1 = n1 % 1000
         alpha = transparency.get(n1, 255)
-        ico = gamesrv.getbitmap(filename, KEYCOL).geticon(alpha=alpha, *rect)
-        spriconcache[n] = ico
+        ico = bitmap.geticon(alpha=alpha, *rect)
+        spriconcache[key] = ico
         return ico
 
-def sprget_vflip(n, vflipped={}):
-    filename, (x,y,w,h) = sprmap[n]
-    try:
-        bitmap, height = vflipped[filename]
-    except KeyError:
-        import pixmap
-        f = open(filename, "rb")
-        data = f.read()
-        f.close()
-        width, height, data = pixmap.decodepixmap(data)
-        data = pixmap.vflip(width, height, data)
-        data = pixmap.encodepixmap(width, height, data)
-        bitmap = gamesrv.newbitmap(data, KEYCOL)
-        vflipped[filename] = bitmap, height
-    return bitmap.geticon(x, height-(y+h), w, h)
+def transform_noflip(filename, rect):
+    bitmap = gamesrv.getbitmap(filename, KEYCOL)
+    return bitmap, rect
+
+def make_transform(datamap, ptmap):
+    def transform(filename, rect, datamap=datamap, ptmap=ptmap, cache={}):
+        try:
+            bitmap, width, height = cache[filename]
+        except KeyError:
+            f = open(filename, "rb")
+            data = f.read()
+            f.close()
+            width, height, data = pixmap.decodepixmap(data)
+            data = datamap(width, height, data)
+            dummy, dummy, nwidth, nheight = ptmap(0, 0, width, height)
+            data = pixmap.encodepixmap(nwidth, nheight, data)
+            bitmap = gamesrv.newbitmap(data, KEYCOL)
+            cache[filename] = bitmap, width, height
+            #print 'transformed', filename, 'to', nwidth, nheight
+        x, y, w, h = rect
+        x1, y1, dummy, dummy = ptmap(x,   y,   width, height)
+        x2, y2, dummy, dummy = ptmap(x+w, y+h, width, height)
+        rect = min(x1,x2), min(y1,y2), abs(x2-x1), abs(y2-y1)
+        #print filename, ':', (x,y,w,h), '->', rect
+        return bitmap, rect
+    return transform
+
+Transformations = {
+    '':       transform_noflip,
+    'vflip':  make_transform(pixmap.vflip,     lambda x,y,w,h: (x,h-y,w,h)),
+    'cw':     make_transform(pixmap.rotate_cw, lambda x,y,w,h: (h-y,x,h,w)),
+    'ccw':    make_transform(pixmap.rotate_ccw,lambda x,y,w,h: (y,w-x,h,w)),
+    }
 
 if 0:  # disabled clipping
     def sprget_subrect(n, subrect):
@@ -265,7 +288,6 @@ def makebkgndpattern(bitmap, (x,y,w,h), darker={}):
     try:
         nbitmap, hscale, vscale = darker[bitmap]
     except KeyError:
-        import pixmap
         data = bitmap.read()
         width, height, data = pixmap.decodepixmap(data)
         nwidth, nheight, data = pixmap.makebkgnd(width, height, data)
@@ -284,14 +306,12 @@ def computebiggericon(ico, bigger={}):
     try:
         result, computing = bigger[ico]
     except KeyError:
-        import pixmap
         bigger[ico] = None, pixmap.imagezoomer(*ico.getimage())
         return None
     if computing is not None:
         result = computing.next()
         if result is None:
             return None   # still computing
-        import pixmap
         w, h, data = result
         data = pixmap.encodepixmap(w, h, data)
         result = gamesrv.newbitmap(data, KEYCOL).geticon(0, 0, w, h)
