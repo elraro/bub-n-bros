@@ -248,6 +248,7 @@ class Ball(ActiveSprite):
             if (2 <= x < curboard.width - 2 and 0 <= y < curboard.height and
                 aget(x, y) == '#'):
                 curboard.killwall(x, y)
+                self.paddle.arkanoid.killedbricks += 1
                 total += 1.0
         return total
 
@@ -328,12 +329,15 @@ class Arkanoid:
             for x in range(2, curboard.width-2):
                 if y < 0 or aget(x, y) == ' ':
                     curboard.putwall(x, y)
+            nbbricks += brickline
             curboard.reorder_walls()
             y -= 1
-        
+
+        nbbricks -= brickline
         self.ready = 1
-        self.nbbricks = len(curboard.walls_by_pos) - brickline
-        while len(curboard.walls_by_pos) > brickline:
+        self.nbbricks = nbbricks
+        self.killedbricks = 0
+        while self.killedbricks < self.nbbricks:
             yield None
 
     def build_paddles(self):
