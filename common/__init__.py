@@ -32,12 +32,18 @@ def capture_stderr(filename=None):
 
 def run(UdpLookForServer, Display):
     import sys
-    if len(sys.argv) == 2:
-        Host, Port = sys.argv[1].split(':')
-        Port = int(Port)
-        Server = Host, Port
-    else:
+    kw = {'mode': Display}
+    for arg in sys.argv[1:]:
+        if arg == '-no-udp':
+            kw['udp_over_tcp'] = 1
+        elif ':' in arg:
+            Host, Port = sys.argv[1].split(':')
+            Port = int(Port)
+            kw['server'] = Host, Port
+        else:
+            raise ValueError, 'unknown argument %r' % arg
+    if 'server' not in kw:
         import hostchooser
-        Server = hostchooser.pick(UdpLookForServer * 5)
+        kw['server'] = hostchooser.pick(UdpLookForServer * 5)
     import display.pclient
-    display.pclient.run(Server, Display)
+    display.pclient.run(**kw)

@@ -63,7 +63,7 @@ class Playfield:
 ##                                                 self.gameident[i+1:-1])
         print "connected to %r." % self.gameident
 
-    def run(self, mode):
+    def run(self, mode, udp_over_tcp=0):
         self.playing = {}   # 0, 1, or 'l' for local
         self.keys = {}
         self.keycodes = {}
@@ -77,7 +77,16 @@ class Playfield:
         self.playingsounds = {}
         self.playericons = {}
         self.screenmode = mode
+        self.initlevel = 0
         self.udpsock = None
+        self.udpsock2 = None
+        self.accepted_broadcast = 0
+        self.bytecounter = 0
+        if udp_over_tcp:
+            self.udp_over_tcp = ''
+            self.udp_over_tcp_decompress = zlib.decompressobj().decompress
+        else:
+            self.udp_over_tcp = None
         pss = hostchooser.serverside_ping()
         self.initial_iwtd = [self.s] + pss
         self.iwtd = self.initial_iwtd[:]
@@ -93,6 +102,7 @@ class Playfield:
             if self.s in iwtd:
                 while self.s in iwtd:
                     inputdata = self.s.recv(0x6000)
+                    self.bytecounter += len(inputdata)
                     ##import os; logfn='/tmp/log%d'%os.getpid()
                     ##g = open(logfn, 'ab'); g.write(inputdata); g.close()
                     inbuf += inputdata
@@ -114,11 +124,24 @@ class Playfield:
                 if self.udpsock in iwtd:
                     while self.udpsock in iwtd:
                         udpdata = self.udpsock.recv(65535)
+                        self.bytecounter += len(udpdata)
                         iwtd, owtd, ewtd = select(self.iwtd, [], [], 0)
-                        #if iwtd:
-                        #    print "udp skip: %d bytes" % len(udpdata)
-                    #print "udp recv: %d bytes" % len(udpdata)
                     self.update_sprites(udpdata)
+                if self.udpsock2 in iwtd:
+                    while self.udpsock2 in iwtd:
+                        udpdata = self.udpsock2.recv(65535)
+                        self.bytecounter += len(udpdata)
+                        if udpdata == hostchooser.BROADCAST_MESSAGE:
+                            if not self.accepted_broadcast:
+                                self.s.sendall(message(CMSG_UDP_PORT, '*'))
+                                self.accepted_broadcast = 1
+                            udpdata = ''
+                        iwtd, owtd, ewtd = select(self.iwtd, [], [], 0)
+                    if udpdata and self.accepted_broadcast:
+                        self.update_sprites(udpdata)
+                if self.udp_over_tcp:
+                    self.update_sprites(self.udp_over_tcp)
+                    self.udp_over_tcp = ''
                 if self.taskbarmode:
                     self.taskbaranim = 0
                     self.flip_with_taskbar()
@@ -184,7 +207,9 @@ class Playfield:
             t = time.time()
             t, t0 = t-t0, t
             if t:
-                print "%.2f images per second" % (float(n)/t)
+                print "%.2f images per second,  %.1f kbytes per second" % (
+                    float(n)/t, float(self.bytecounter)/1024/t)
+                self.bytecounter = 0
             n = 0
         self.painttimes = t0, n
 
@@ -244,11 +269,14 @@ class Playfield:
             return None
 
     def startplaying(self):
-        self.udpsock = socket(AF_INET, SOCK_DGRAM)
-        self.udpsock.bind(('', INADDR_ANY))
-        host, port = self.udpsock.getsockname()
+        if self.udp_over_tcp is not None:
+            port = MSG_INLINE_FRAME
+        else:
+            self.udpsock = socket(AF_INET, SOCK_DGRAM)
+            self.udpsock.bind(('', INADDR_ANY))
+            host, port = self.udpsock.getsockname()
+            self.iwtd.append(self.udpsock)
         self.s.sendall(message(CMSG_UDP_PORT, port))
-        self.iwtd.append(self.udpsock)
         if self.dpy.has_sound():
             self.s.sendall(message(CMSG_ENABLE_MUSIC, 1))
             self.s.sendall(message(CMSG_PING))
@@ -326,6 +354,32 @@ class Playfield:
         for key, (pid, msg) in self.keycodes.items():
             if pid == id:
                 del self.keycodes[key]
+
+    def msg_broadcast_port(self, port):
+        if self.udp_over_tcp is not None:
+            return
+        if self.udpsock2 is not None:
+            try:
+                self.iwtd.remove(self.udpsock2)
+            except ValueError:
+                pass
+            try:
+                self.initial_iwtd.remove(self.udpsock2)
+            except ValueError:
+                pass
+            self.udpsock2.close()
+            self.udpsock2 = None
+            self.accepted_broadcast = 0
+        try:
+            self.udpsock2 = socket(AF_INET, SOCK_DGRAM)
+            self.udpsock2.bind(('', port))
+            self.udpsock2.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
+        except error, e:
+            print "Cannot listen on the broadcast port %d" % port, str(e)
+            self.udpsock2 = None
+        else:
+            self.iwtd.append(self.udpsock2)
+            self.initial_iwtd.append(self.udpsock2)
 
     def msg_def_playfield(self, width, height, *rest):
         if self.dpy is not None:
@@ -435,15 +489,23 @@ class Playfield:
         self.s.sendall(message(CMSG_PONG, *rest))
 
     def msg_pong(self, *rest):
-        if self.udpsock is None:
+        if self.initlevel == 0:
             self.startplaying()
-        elif self.dpy.has_sound():
-            self.s.sendall(message(CMSG_ENABLE_MUSIC, 2))
+            self.initlevel = 1
+        elif self.initlevel == 1:
+            if self.dpy.has_sound():
+                self.s.sendall(message(CMSG_ENABLE_MUSIC, 2))
+            self.initlevel = 2
         if not self.taskbarfree and not self.taskbarmode:
             self.taskbarfree = 1
             self.settaskbar(1)
+
+    def msg_inline_frame(self, data, *rest):
+        if self.udp_over_tcp is not None:
+            self.udp_over_tcp = self.udp_over_tcp_decompress(data)
     
     MESSAGES = {
+        MSG_BROADCAST_PORT:msg_broadcast_port,
         MSG_DEF_PLAYFIELD: msg_def_playfield,
         MSG_DEF_KEY      : msg_def_key,
         MSG_DEF_ICON     : msg_def_icon,
@@ -457,12 +519,13 @@ class Playfield:
         MSG_PLAYER_ICON  : msg_player_icon,
         MSG_PING         : msg_ping,
         MSG_PONG         : msg_pong,
+        MSG_INLINE_FRAME : msg_inline_frame,
 ##        MSG_LOAD_PREFIX  : msg_load_prefix,
         }
 
 
-def run(server, mode):
-    Playfield(server).run(mode)
+def run(server, *args, **kw):
+    Playfield(server).run(*args, **kw)
 
 def usage():
     print >> sys.stderr, "usage:"

@@ -2,6 +2,7 @@ import struct
 
 
 MSG_WELCOME = "Welcome to gamesrv.py(3) !\n"
+MSG_BROADCAST_PORT= "*"
 MSG_DEF_PLAYFIELD = "p"
 MSG_DEF_KEY       = "k"
 MSG_DEF_ICON      = "r"
@@ -15,6 +16,7 @@ MSG_PLAYER_KILL   = "-"
 MSG_PLAYER_ICON   = "i"
 MSG_PING          = "g"
 MSG_PONG          = "G"
+MSG_INLINE_FRAME  = "\\"
 #MSG_LOAD_PREFIX   = "F"
 MSG_RECORDED      = "\x00"
 

@@ -23,7 +23,8 @@ class Display_X:
         self.pointermotion = xdpy.pointermotion
         if self.use_shm and not xdpy.shmmode():
             print >> sys.stderr, \
-                  "Note: cannot use SHM extension, display will be slow."
+                  "Note: cannot use SHM extension (%dx%d), display will be slow." % \
+                  (width, height)
         pixel = "\x00\x00\x80"
         hole  = "\x01\x01\x01"
         self.taskbkgnd = self.pixmap(32, 32,

@@ -5,6 +5,11 @@ UDP_PORT     = 8056
 PING_MESSAGE = "pclient-game-ping"
 PONG_MESSAGE = "server-game-pong"
 
+BROADCAST_PORT_RANGE = xrange(18000, 19000)
+BROADCAST_MESSAGE    = "game!"   # less than 6 bytes
+BROADCAST_DELAY      = 0.6180
+BROADCAST_DELAY_INCR = 2.7183
+
 
 def serverside_ping():
     s = socket(AF_INET, SOCK_DGRAM)

@@ -1,7 +1,7 @@
 from socket import *
 from select import select
 from struct import pack, unpack
-import zlib, os
+import zlib, os, random
 from time import time
 from msgstruct import *
 import hostchooser
@@ -280,7 +280,7 @@ class Client:
   SEND_BOUND_PER_FRAME = 0x6000   # bytes
   KEEP_ALIVE           = 2.2      # seconds
 
-  def __init__(self, socket, addr):
+  def __init__(self, socket, addr, broadcast_port):
     socket.setblocking(0)
     self.socket = socket
     self.addr = addr
@@ -289,7 +289,10 @@ class Client:
 ##      desc = '%s [%s]' % (FnDesc, FnPath)
 ##    else:
 ##      desc = FnDesc
-    self.initialdata = MSG_WELCOME + FnDesc + '\n' + deffieldmsg()
+    self.initialdata = MSG_WELCOME + FnDesc + '\n'
+    if broadcast_port is not None:
+      self.initialdata += message(MSG_BROADCAST_PORT, broadcast_port)
+    self.initialdata += deffieldmsg()
     self.initialized = 0
     self.msgl = [message(MSG_PING)]
 ##    self.known_files = { }
@@ -308,45 +311,60 @@ class Client:
       if p.standardplayericon is not None:
         self.msgl.append(message(MSG_PLAYER_ICON, id, p.standardplayericon.code))
 
-  def emit(self, udpdata, now):
-    buffer = self.initialdata
-    if not buffer and self.initialized:
-      buffer = ''.join(self.msgl)
-    if buffer:
-      try:
-        count = self.socket.send(buffer[:self.SEND_BOUND_PER_FRAME])
-      except error, e:
-        if e.args[0] not in EWOULDBLOCK:
-          self.disconnect(e, 'emit')
-          return
-      else:
-        #g = open('log', 'ab'); g.write(buffer[:count]); g.close()
-        buffer = buffer[count:]
-        self.activity = now
-      if self.initialdata:
-        self.initialdata = buffer
-      elif buffer:
-        self.msgl = [buffer]
-      else:
-        self.msgl = []
-    elif abs(now - self.activity) > self.KEEP_ALIVE:
-      self.msgl.append(message(MSG_PING))
-    if self.udpsocket is not None:
-      #print "udp send: %d bytes" % len(udpdata)
-      if self.sounds:
-        udpdata = ''.join(self.sounds.keys() + [udpdata])
-        for key, value in self.sounds.items():
-          if value:
-            self.sounds[key] = value-1
+  def emit(self, udpdata):
+    if self.initialdata:
+      self.send_buffer(self.initialdata)
+    else:
+      if self.initialized:
+        buffer = ''.join(self.msgl)
+        if buffer:
+          self.send_buffer(buffer)
+      if self.udpsocket is not None:
+        #print "udp send: %d bytes" % len(udpdata)
+        if self.sounds:
+          if broadcast_extras is None or self not in broadcast_clients:
+            udpdata = ''.join(self.sounds.keys() + [udpdata])
           else:
-            del self.sounds[key]
-      try:
-        self.udpsocket.send(udpdata)
-      except error:
-        pass  # ignore UDP send errors (buffer full, etc.)
-    if self.has_music > 1 and now >= self.musicstreamer:
-      self.musicstreamer += 0.99
-      self.sendmusicdata()
+            broadcast_extras.update(self.sounds)
+          for key, value in self.sounds.items():
+            if value:
+              self.sounds[key] = value-1
+            else:
+              del self.sounds[key]
+        if broadcast_extras is None or self not in broadcast_clients:
+          try:
+            self.udpsocket.send(udpdata)
+            #print "Non-Broadcast to", self.addr
+          except error:
+            pass  # ignore UDP send errors (buffer full, etc.)
+      if self.has_music > 1 and NOW >= self.musicstreamer:
+        self.musicstreamer += 0.99
+        self.sendmusicdata()
+      if not self.msgl and abs(NOW - self.activity) > self.KEEP_ALIVE:
+        self.msgl.append(message(MSG_PING))
+
+  def send_can_mix(self):
+    return not self.msgl and self.socket is not None
+
+  def send_buffer(self, buffer):
+    try:
+      count = self.socket.send(buffer[:self.SEND_BOUND_PER_FRAME])
+    except error, e:
+      if e.args[0] not in EWOULDBLOCK:
+        self.msgl = []
+        self.initialdata = ""
+        self.disconnect(e, 'emit')
+        return
+    else:
+      #g = open('log', 'ab'); g.write(buffer[:count]); g.close()
+      buffer = buffer[count:]
+      self.activity = NOW
+    if self.initialdata:
+      self.initialdata = buffer
+    elif buffer:
+      self.msgl = [buffer]
+    else:
+      self.msgl = []
 
   def init(self):
     self.buf = ""
@@ -376,11 +394,16 @@ class Client:
     print 'Disconnected by', self.addr, extra
     for p in self.players.values():
       p._playerleaves()
+    try:
+      del broadcast_clients[self]
+    except KeyError:
+      pass
     clients.remove(self)
     try:
       self.socket.close()
     except:
       pass
+    self.socket = None
     if not clients:
       FnDisconnected()
 
@@ -417,9 +440,18 @@ class Client:
       p._playerleaves()
 
   def set_udp_port(self, port, *rest):
-    self.udpsocket = socket(AF_INET, SOCK_DGRAM)
-    self.udpsocket.setblocking(0)
-    self.udpsocket.connect((self.addr[0], port))
+    if port == MSG_BROADCAST_PORT:
+      # client accepts broadcasted data
+      broadcast_clients[self] = 1
+      #print "++++ Broadcasting ++++ to", self.addr
+    elif port == MSG_INLINE_FRAME:
+      # client requests data in-line on the TCP stream
+      import udpovertcp
+      self.udpsocket = udpovertcp.SocketMarshaller(self.socket, self)
+    else:
+      self.udpsocket = socket(AF_INET, SOCK_DGRAM)
+      self.udpsocket.setblocking(0)
+      self.udpsocket.connect((self.addr[0], port))
 
   def enable_sound(self, *rest):
     self.sounds = {}
@@ -523,6 +555,8 @@ FnHttpPort= None
 MAX_CLIENTS = 32
 
 clients = []
+broadcast_clients = {}
+broadcast_extras = None
 bitmaps = {}
 samples = {}
 music_by_id = {}
@@ -622,6 +656,7 @@ def recordudpdata(now, udpdata):
 
 
 def Run():
+  global broadcast_extras, NOW
 
   s = socket(AF_INET, SOCK_STREAM)
   try:
@@ -649,28 +684,65 @@ def Run():
                         width=playfield.width, height=playfield.height):
       extramsg = ', HTTP %d' % FnHttpPort
 
-  print '%s server at %s:%d, UDP %d%s' % (FnDesc, gethostname(), PORT,
-                                          hostchooser.UDP_PORT, extramsg)
+  broadcast_next  = None
+  broadcast_port = random.choice(hostchooser.BROADCAST_PORT_RANGE)
+  try:
+    broadcast_socket = socket(AF_INET, SOCK_DGRAM)
+    #broadcast_socket.setblocking(0)
+    broadcast_socket.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
+    #broadcast_socket.connect(('255.255.255.255', broadcast_port))
+  except error, e:
+    print "Cannot broadcast", str(e)
+    broadcast_socket = None
+    broadcast_port = None
+    
+  print '%s server at %s:%d, Broadcast %d, UDP %d%s' % (
+    FnDesc, gethostname(), PORT, broadcast_port,
+    hostchooser.UDP_PORT, extramsg)
   nextframe = time()
 
   try:
     while 1:
       try:
-        now = time()
-        delay = nextframe - now
+        NOW = time()
+        delay = nextframe - NOW
         if delay<=0.0:
           nextframe = nextframe + FnFrame()
           sprites[0] = ''
           udpdata = ''.join(sprites)
+          if len(broadcast_clients) >= 2:
+            broadcast_extras = {}
           for c in clients[:]:
-            c.emit(udpdata, now)
-          now = time()
-          if recording and now >= recording[2]:
-            recordudpdata(now, udpdata)
-          delay = nextframe - now
+            c.emit(udpdata)
+          if broadcast_extras is not None:
+            udpdata = ''.join(broadcast_extras.keys() + [udpdata])
+            broadcast_extras = None
+            try:
+              broadcast_socket.sendto(udpdata,
+                                      ('255.255.255.255', broadcast_port))
+              #print "Broadcast UDP data"
+            except error:
+              pass  # ignore failed broadcasts
+          NOW = time()
+          if recording and NOW >= recording[2]:
+            recordudpdata(NOW, udpdata)
+          delay = nextframe - NOW
           if delay<0.0:
-            nextframe = now
+            nextframe = NOW
             delay = 0.0
+
+        if broadcast_next is not None and NOW >= broadcast_next:
+          if broadcast_socket is None or not clients:
+            broadcast_next = None
+          else:
+            try:
+              broadcast_socket.sendto(hostchooser.BROADCAST_MESSAGE,
+                                      ('255.255.255.255', broadcast_port))
+              #print "Broadcast ping"
+            except error:
+              pass  # ignore failed broadcasts
+            broadcast_next = time() + broadcast_delay
+            broadcast_delay *= hostchooser.BROADCAST_DELAY_INCR
         
         iwtd = [s] + [c.socket for c in clients] + pss
         iwtd, owtd, ewtd = select(iwtd, [], iwtd, delay)
@@ -689,7 +761,7 @@ def Run():
                 c.disconnect(e, "socket.recv")
               else:
                 if data:
-                  c.activity = now
+                  c.activity = NOW
                   c.receive(data)
           if s in iwtd:
             conn, addr = s.accept()
@@ -698,9 +770,11 @@ def Run():
               conn.close()
             else:
               print 'Connected by', addr
-              c = FnClient(conn, addr)
+              c = FnClient(conn, addr, broadcast_port)
               if c.init():
                 clients.append(c)
+                broadcast_delay = hostchooser.BROADCAST_DELAY
+                broadcast_next  = time() + broadcast_delay
               else:
                 print 'Connection refused.'
                 conn.close()
