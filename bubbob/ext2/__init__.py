@@ -348,7 +348,7 @@ class Pacman:
 
     def remove_pacs(self):
         from player import Dragon
-        killclasses = (Pac, FruitBonus, Dragon)
+        killclasses = (PacSprite, FruitBonus, Dragon)
         for s in images.ActiveSprites[:]:
             if isinstance(s, killclasses):
                 s.kill()
