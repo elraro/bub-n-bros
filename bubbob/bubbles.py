@@ -227,10 +227,11 @@ class DragonBubble(Bubble):
             touched_monsters = [s for s in self.touching(9)
                                 if isinstance(s, Monster)]
             if touched_monsters:
-                if random.choice(touched_monsters).in_bubble(self) is None:
+                in_bubble = random.choice(touched_monsters).in_bubble(self)
+                withmonster = self.withmonster = 1
+                if in_bubble is None:
                     self.warp = 1
                     break
-                withmonster = self.withmonster = 1
             if asin:
                 (nx, ny), moebius = vertical_warp(nx + hspeed*acos, ny + hspeed*asin)
                 if moebius:
