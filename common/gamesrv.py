@@ -5,13 +5,11 @@ import zlib, os, random
 from time import time, ctime
 from msgstruct import *
 import hostchooser
+from errno import EWOULDBLOCK
 
 #LOGFILE = None
 LOGFILE = 'gamesrv.log'
 LOGFILE_LIMIT = 16384  # bytes
-
-EWOULDBLOCK = (11,     # Posix
-               10035)  # Windows
 
 
 class Icon:
@@ -373,7 +371,7 @@ class Client:
     try:
       count = self.socket.send(buffer[:self.SEND_BOUND_PER_FRAME])
     except error, e:
-      if e.args[0] not in EWOULDBLOCK:
+      if e.args[0] != EWOULDBLOCK:
         self.msgl = []
         self.initialdata = ""
         self.disconnect(e, 'emit')
@@ -738,10 +736,13 @@ def Run():
   pss = hostchooser.serverside_ping()
 
   extramsg = ''
+  jfileno = []
   if FnHttpPort:
     import javaserver
-    if javaserver.setup(httpport=FnHttpPort, title=FnDesc, gameport=PORT,
-                        width=playfield.width, height=playfield.height):
+    jsetup = javaserver.setup(httpport=FnHttpPort, title=FnDesc, gameport=PORT,
+                              width=playfield.width, height=playfield.height)
+    if jsetup:
+      jfileno.append(jsetup[0])
       extramsg = 'HTTP Java server: http://%s:%d' % (gethostname(), FnHttpPort)
     else:
       extramsg = 'Cannot start HTTP Java server on port %d' % FnHttpPort
@@ -808,7 +809,7 @@ def Run():
             broadcast_next = time() + broadcast_delay
             broadcast_delay *= hostchooser.BROADCAST_DELAY_INCR
         
-        iwtd = [s] + [c.socket for c in clients] + pss
+        iwtd = [s] + [c.socket for c in clients] + pss + jfileno
         iwtd, owtd, ewtd = select(iwtd, [], iwtd, delay)
         if ewtd:
           for c in clients[:]:
@@ -849,6 +850,9 @@ def Run():
           for sock in pss:
             if sock in iwtd:
               hostchooser.answer_ping(sock, FnDesc, ('', PORT))
+          for sock in jfileno:
+            if sock in iwtd:
+              jsetup[1]()
       except KeyboardInterrupt:
         if not FnExcHandler(1):
           raise

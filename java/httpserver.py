@@ -40,16 +40,11 @@ class MiniHandler(SimpleHTTPRequestHandler):
         return f
 
 
-def runserver(bkgnd=0, port=8000, HandlerClass=MiniHandler,
+def runserver(port=8000, HandlerClass=MiniHandler,
               ServerClass=BaseHTTPServer.HTTPServer):
     server_address = ('', port)
     try:
         httpd = ServerClass(server_address, HandlerClass)
     except socket.error:
-        return 0
-    if bkgnd:
-        import thread
-        thread.start_new_thread(httpd.serve_forever, ())
-    else:
-        httpd.serve_forever()
-    return 1
+        return None
+    return httpd.fileno(), httpd.handle_request

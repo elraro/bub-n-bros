@@ -14,7 +14,7 @@ INDEX_PAGE = '''<html>
 '''
 
 
-def setup(bkgnd=1, httpport=8000, **kw):
+def setup(httpport=8000, **kw):
     indexdata = INDEX_PAGE % kw
 
     def indexloader():
@@ -35,4 +35,4 @@ def setup(bkgnd=1, httpport=8000, **kw):
     httpserver.register('', indexloader)
     httpserver.register('index.html', indexloader)
 
-    return httpserver.runserver(bkgnd, httpport)
+    return httpserver.runserver(httpport)
