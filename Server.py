@@ -92,5 +92,7 @@ else:
     print "you will have to manually go to the following URL:"
 print ' ', url
 print '-'*60
-print "The server is running in the background. Please remember to use"
+print "Note that the server runs in the background. You have to use"
 print "the 'Stop this program' link to cleanly stop it."
+print "Normally, however, running this script multiple times should"
+print "not create multiple servers in the background."
