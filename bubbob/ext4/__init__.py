@@ -396,7 +396,7 @@ class Tetris:
                 dragon = random.choice(dragons)
                 eyes = BrickEyes(self, p, dragon.dcap, dragon)
                 p.dragons.append(eyes)
-                p.emotic(dragon, 4)
+                #p.emotic(dragon, 4)
             for d in dragons:
                 d.kill()
 

@@ -46,6 +46,7 @@ class Board(Copyable):
         self.holes = testline.find('  ') >= 0
         self.playingboard = 0
         self.bonuslevel = not self.monsters
+        self.cleaning_gen_state = 0
 
     def set_musics(self):
         if (self.num+1) % 20 < 10:
@@ -261,13 +262,15 @@ class Board(Copyable):
             yield 4
 
     def clean_gen_state(self):
+        self.cleaning_gen_state = 1
         while len(BoardGen) > 1:
-            yield force_singlegen()
-            for key, value in self.sprites.items():
-                if isinstance(key, tuple) and key[:1] == ('flood',):
-                    for s in value:
-                        s.kill()
-                    del self.sprites[key]
+            #yield force_singlegen()
+            #if 'flood' in self.sprites:
+            #    for s in self.sprites['flood']:
+            #        s.kill()
+            #    del self.sprites['flood']
+            yield normal_frame()
+        self.cleaning_gen_state = 0
 
 def bget(x, y):
     if 0 <= x < curboard.width:
@@ -1002,7 +1005,7 @@ def extra_water_flood():
 def extra_walls_falling():
     walls_by_pos = curboard.walls_by_pos
     moves = 1
-    while moves:
+    while moves and not curboard.cleaning_gen_state:
         moves = 0
         for y in range(height-3, -1, -1):
             for x in range(2, width-2):
@@ -1066,6 +1069,21 @@ def extra_display_repulse(cx, cy, dlimit=5000, dfactor=1000):
                 if dx or dy:
                     offsets[s] = dx, dy
                 s.setdisplaypos(s.x+dx, s.y+dy)
+        yield 0
+
+def extra_bkgnd_black(cx, cy):
+    gl = curboard.sprites.get('background')
+    dist = 0
+    while gl:
+        dist += 17
+        dist2 = dist * dist
+        gl2 = []
+        for s in gl:
+            if (s.x-cx)*(s.x-cx) + (s.y-cy)*(s.y-cy) < dist2:
+                s.kill()
+            else:
+                gl2.append(s)
+        gl[:] = gl2
         yield 0
 
 def register(dict):

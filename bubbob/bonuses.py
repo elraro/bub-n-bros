@@ -484,6 +484,7 @@ class Potion(RandomBonus):
             ext = Potion.Extensions.pop()
             ext = __import__(ext, globals(), locals(), ['run'])
             ext.run()
+            boards.BoardGen.append(boards.extra_bkgnd_black(self.x, self.y))
     def _import_note():      # for import auto-detection
         import ext1; import ext2; import ext3; import ext4
 

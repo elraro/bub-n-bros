@@ -227,6 +227,9 @@ class Galaga:
             self.build_dragons()
             self.explode_bubbles()
             yield t
+        for s in images.ActiveSprites[:]:
+            if isinstance(s, Alien):
+                s.kill()
 
     def frame(self):
         y = curboard.height-1
@@ -313,7 +316,7 @@ class Galaga:
                     dragon.galaga_setup()
                     dragon.galaga = self
                     dragons.remove(dragon)
-                    p.emotic(dragon, 4)
+                    #p.emotic(dragon, 4)
             for d in dragons:
                 d.kill()
 
