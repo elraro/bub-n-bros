@@ -72,17 +72,24 @@ class Bubble(ActiveSprite):
                       for bonus in d.listcarrybonuses()
                       if isinstance(bonus, CatchNote)]
             random.shuffle(caught)
-            if len(dragons) < 2:
-                points = 250
-            else:
-                self.play(images.Snd.Extra)
-                if len(dragons) == 2:
-                    points = 10000
-                elif len(dragons) == 3:
-                    points = 30000
+            # count caught dragons, excluding team mates, but including self
+            count = 0
+            for d in dragons:
+                if d.bubber is author.bubber or (
+                    d.bubber.team == -1 or d.bubber.team != author.bubber.team):
+                    count += 1
+            if count:
+                if count == 1:
+                    points = 250
                 else:
-                    points = 70000
-            caught.insert(0, CatchNote(points))
+                    self.play(images.Snd.Extra)
+                    if count == 2:
+                        points = 10000
+                    elif count == 3:
+                        points = 30000
+                    else:
+                        points = 70000
+                caught.insert(0, CatchNote(points))
             for bonus in caught:
                 author.carrybonus(bonus, 111)
                 bonuses.points(self.x, self.y-HALFCELL, author, bonus.points)
