@@ -39,6 +39,7 @@ class Dragon(ActiveSprite):
         'lookforward': 1,
         'fly': 0,
         'flower': 1,
+        'bigflower': None,
         'overlayglasses': 0,
         'carrying': (),
         }
@@ -50,7 +51,8 @@ class Dragon(ActiveSprite):
     def __init__(self, bubber, x, y, dir, dcap=DCAP):
         self.bubber = bubber
         self.dir = dir
-        ActiveSprite.__init__(self, bubber.icons[0, dir], x, y)
+        icobubber = dcap.get('bubbericons', bubber)
+        ActiveSprite.__init__(self, icobubber.icons[0, dir], x, y)
         self.fire = 0
         self.up = 0.0
         self.watermoveable = 0
@@ -375,11 +377,12 @@ class Dragon(ActiveSprite):
                     mode = 12
                 else:
                     mode = 11
+            icobubber = self.dcap.get('bubbericons', self.bubber)
             try:
-                icons = self.bubber.transformedicons[imgtransform]
+                icons = icobubber.transformedicons[imgtransform]
             except KeyError:
-                icons = self.bubber.transformedicons[imgtransform] = {}
-                self.bubber.loadicons(imgtransform)
+                icons = icobubber.transformedicons[imgtransform] = {}
+                icobubber.loadicons(imgtransform)
             self.seticon(icons[mode, dir])
 
             self.watermoveable = not wannajump
@@ -479,6 +482,15 @@ class Dragon(ActiveSprite):
                 delta = self.dir*gx * math.pi/2
                 angles = [angle-delta for angle in angles]
                 x -= 16
+        if self.dcap['bigflower'] is not None:
+            N = 45
+            elasped = BubPlayer.FrameCounter - self.dcap['bigflower']
+            if not (0 <= elasped < N):
+                self.dcap['bigflower'] = BubPlayer.FrameCounter
+                elaspsed = 0
+            angles = [-elasped * (2.0*math.pi/N) * self.dir]
+            thrustfactors = None
+            self.fire = max(1, 64 // self.dcap['firerate'] - 2)
         if not thrustfactors:
             thrustfactors = [None] * len(angles)
         for angle, thrustfactor in zip(angles, thrustfactors):

@@ -681,8 +681,9 @@ class Cactus(RandomBonus):
 
 #Cactus1 = Cactus # increase probability
 
+OFFSCREEN = -3*CELL
 def makecactusbonus(cls, *args):
-    bonus = cls(-3*CELL, 0, *args)
+    bonus = cls(OFFSCREEN, 0, *args)
     if not bonus.alive or getattr(bonus, 'bigbonus', None) is None:
         return None
     bonus.__dict__.update(bonus.bigbonus)
@@ -1224,7 +1225,15 @@ class Carrot(RandomBonus):
 class Egg(RandomBonus):
     "Teleporter. Exchange yourself with somebody else."
     nimage = Bonuses.egg
+    big = 0
+    bigbonus = {'big': 1}
     def taken1(self, dragons):
+        if self.big:
+            self.exchange_bubbers()
+        else:
+            self.exchange_dragons(dragons)
+
+    def exchange_dragons(self, dragons):
         dragons = [d for d in dragons if d in d.bubber.dragons]
         alldragons = [d for d in BubPlayer.DragonList if d in d.bubber.dragons]
         others = [d for d in alldragons if d not in dragons]
@@ -1258,6 +1267,23 @@ class Egg(RandomBonus):
             d1.bubber = bubber2
             bubber2.dragons.append(d1)
             d1.dcap['shield'] = 50
+
+    def exchange_bubbers(self):
+        self.exchange_dragons(list(BubPlayer.DragonList))
+        players = [p for p in BubPlayer.PlayerList
+                   if p.isplaying()]
+        if len(players) > 1:
+            while 1:
+                copy = players[:]
+                random.shuffle(copy)
+                for j in range(len(players)):
+                    if players[j] is copy[j]:
+                        break
+                else:
+                    break
+            for b1, b2 in zip(players, copy):
+                for d in b1.dragons:
+                    d.dcap['bubbericons'] = b2
 
 class Bomb(RandomBonus):
     "Baaoouuuummmm! Explode that wall!"
@@ -1651,22 +1677,34 @@ class Flower(RandomBonus):
     "Flower.  Fire in all directions."
     nimage = 'flower'
     points = 800
-    bigbonus = {'multiply': 3}
+    big = 0
+    bigbonus = {'big': 1}
     def taken(self, dragon):
-        dragon.dcap['flower'] += 12
+        if self.big:
+            dragon.dcap['bigflower'] = -99
+        else:
+            dragon.dcap['flower'] += 12
         dragon.carrybonus(self)
 
 class Flower2(TemporaryBonus):
     "Bottom-up Flower.  Turn you upside-down."
     nimage = 'flower2'
     points = 1000
+    big = 0
+    bigbonus = {'big': 1}
     def __init__(self, *args):
         RandomBonus.__init__(self, *args)
-        while not underground(self.x, self.y):
-            self.step(0, -CELL)
-            if self.y < 0:
-                self.kill()
-                return
+        if self.x != OFFSCREEN:
+            while not underground(self.x, self.y):
+                self.step(0, -CELL)
+                if self.y < 0:
+                    self.kill()
+                    return
+    def taken1(self, dragons):
+        if self.big:
+            boards.extra_boardgen(boards.extra_swap_up_down())
+        else:
+            RandomBonus.taken1(self, dragons)
     def faller(self):
         while self.y >= 0:
             if underground(self.x, self.y):

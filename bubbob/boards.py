@@ -1130,6 +1130,63 @@ def extra_light_off(timeout, icocache={}):
     for s in gamesrv.sprites_by_n.values():
         s.setdisplayicon(s.ico)
 
+def extra_swap_up_down(N=25):
+    # unregister all walls
+    walls = curboard.walls_by_pos.items()
+    walls.sort()
+    if not walls:
+        return
+    curboard.walls_by_pos.clear()
+    emptyline = '##' + ' '*(width-4) + '##'
+    curboard.walls = [emptyline] * height
+    l = curboard.sprites['walls']
+    wallicon = l[0].ico
+    wallpool = l[:]
+    l[:] = [gamesrv.Sprite(wallicon, 0, -wallicon.h)]
+    
+    # force the top half of the walls on front
+    #for (y,x), w in walls:
+    #    if y*2 < height:
+    
+    # show the walls swapping up/down
+    ycenter = ((height-1)*CELL) // 2
+    for i in range(N):
+        alpha = math.cos((math.pi*(i+1))/N)
+        ymap = {}
+        for y in range(height):
+            ymap[y] = int(alpha*(y*CELL-ycenter)) + ycenter
+        for (y,x), w in walls:
+            if y in ymap:
+                w.move(x*CELL, ymap[y])
+        yield 0
+        if i == (N+1)//2:
+            # reorder the wall sprites in the middle of the swap
+            walls = [((-y,x), w) for (y,x), w in walls]
+            walls.sort()
+            for i in range(len(walls)):
+                (y,x), w = walls[i]
+                walls[i] = (y,x), wallpool[i]
+            walls = [((-y,x), w) for (y,x), w in walls]
+            walls.sort()
+            # reverse all dragons!
+            from player import BubPlayer
+            for dragon in BubPlayer.DragonList:
+                dragon.dcap['gravity'] *= -1.0
+    
+    # freeze the walls in their new position
+    i = 0
+    for (y,x), w in walls:
+        y = height-1 - y
+        if 0 <= y < height and bget(x, y) == ' ':
+            w = wallpool[i]
+            i += 1
+            curboard.putwall(x, y, w)
+    l[:0] = wallpool[:i]
+    for w in wallpool[i:]:
+        w.kill()
+    curboard.reorder_walls()
+
+
 def register(dict):
     global width, height, bwidth, bheight, bheightmod
     items = dict.items()

@@ -74,7 +74,8 @@ class Bubble(ActiveSprite):
         author = dragons.pop(0)
         if dragons:
             import bonuses
-            imglist = [self.nimages[d.bubber.pn][i]
+            imglist = [self.nimages[d.dcap.get('bubbericons', 
+                                               d.bubber).pn][i]
                        for d in dragons for i in [1,2,1,0]]
             self.setimages(self.cyclic(imglist))
             self.warp = 1
@@ -389,8 +390,9 @@ class BubblingEyes(ActiveSprite):
             kw = {'gravity': -0.3}
         else:
             kw = {}
+        bi = self.dcap.get('bubbericons', bubber)
         self.setimages(self.cyclic(
-            [(flip, n) for n in GreenAndBlue.comming[bubber.pn]], 2))
+            [(flip, n) for n in GreenAndBlue.comming[bi.pn]], 2))
         dxy = [(random.random()-0.5) * 9.0,
                (random.random()+0.5) * (-5.0,5.0)[bottom_up]]
         for n in self.parabolic(dxy, 1, **kw):
