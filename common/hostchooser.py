@@ -29,7 +29,7 @@ def answer_ping(s, descr, addr, extra='', httpport=''):
         print >> sys.stderr, 'ping error:', str(e)
         return
     if data == PING_MESSAGE:
-        print "ping by", source
+        print >> sys.stderr, "ping by", source
         answer = '%s:%s:%s:%s:%s:%s' % (PONG_MESSAGE, descr,
                                         addr[0], addr[1], extra, httpport)
         s.sendto(answer, source)
@@ -42,7 +42,7 @@ def pick(hostlist, delay=1):
     s = socket(AF_INET, SOCK_DGRAM)
     s.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
     for host in hostlist:
-        print "* Looking for a server on %s... " % host
+        print >> sys.stderr, "* Looking for a server on %s... " % host
         try:
             s.sendto(PING_MESSAGE, (host, UDP_PORT))
         except error, e:
@@ -68,7 +68,7 @@ def pick(hostlist, delay=1):
                     pass
                 else:
                     result = (hostname, port)
-                    print "* Picking %r at" % data[1], result
+                    print >> sys.stderr, "* Picking %r at" % data[1], result
                     return result
             print >> sys.stderr, "got an unexpected answer", data, "from", answer_from
     print >> sys.stderr, "no server found."
@@ -78,9 +78,10 @@ def find_servers(hostlist=[('127.0.0.1', None), ('<broadcast>', None)],
                  tries=2, delay=0.5, verbose=1, port_needed=1):
     import gamesrv
     if verbose:
-        print 'Looking for servers in the following list:'
+        print >> sys.stderr, 'Looking for servers in the following list:'
         for host, udpport in hostlist:
-            print '    %s,  UDP port %s'%(host, udpport or ("%s (default)"%UDP_PORT))
+            print >> sys.stderr, '    %s,  UDP port %s' % (
+                host, udpport or ("%s (default)" % UDP_PORT))
     servers = {}
     events = {}
     aliases = {}
@@ -141,7 +142,7 @@ def find_servers(hostlist=[('127.0.0.1', None), ('<broadcast>', None)],
             else:
                 print >> sys.stderr, "got an unexpected answer from", answer_from
     if verbose:
-        print "%d answer(s):" % len(servers), servers.keys()
+        print >> sys.stderr, "%d answer(s):" % len(servers), servers.keys()
     for host, port in servers.keys():
         ping = None
         ipaddr = aliases[host]

@@ -208,7 +208,6 @@ class PageServer:
         return metaserver_url + '?join=%s&time=%s' % (joinurl, time.time())
 
     def mainpage(self, headers, juststarted=0):
-        servers = self.getlocalservers()
         running = my_server()
         count = len(gamesrv.clients)
         tim = time.time()
@@ -229,7 +228,7 @@ class PageServer:
                 assert issubclass(c[0], bonuses.Bonus)
                 bonuses.Cheat.append(tuple(c))
         else:
-            self.searchlocalservers()
+            self.localservers = None
         return self.mainpage(headers, juststarted=('juststarted' in options))
 
     def controlcenterloader(self, headers, **options):
@@ -254,7 +253,7 @@ class PageServer:
         if not self.Game:
             raise HTTPRequestError, "Complete bub-n-bros installation needed"
         locals = {
-            'levels': self.Game.FnListBoards(),
+            'Game': self.Game,
             'options': self.globaloptions,
             'running': gamesrv.game is not None,
             }
@@ -361,12 +360,9 @@ class PageServer:
                 setattr(self.localoptions, key, value[0])
             self.saveoptions()
         locals = {
-            'graphicmodes': self.graphicmodeslist(),
-            'soundmodes'  : self.soundmodeslist(),
-            'currentmodes': self.localmodes(),
-            'options'     : self.localoptions,
+            'self'   : self,
+            'options': self.localoptions,
             }
-        locals['java'] = locals['graphicmodes'][0] in locals['currentmodes']
         return httpserver.load(os.path.join(LOCALDIR, 'data', 'options.html'),
                                'text/html', locals=locals)
 

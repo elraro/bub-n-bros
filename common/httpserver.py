@@ -35,6 +35,26 @@ class Translator:
         else:
             return eval(expr, self.globals, self.locals)
 
+class TranslatorIO:
+    "Lazy version of Translator."
+    
+    def __init__(self, fmt, d):
+        self.gen = self.generate(fmt, d)
+        
+    def read(self, ignored=None):
+        for text in self.gen:
+            if text:
+                return text
+        return ''
+
+    def close(self):
+        self.gen = ()
+
+    def generate(self, fmt, d):
+        t = Translator(d, d)
+        for data in fmt.split('\x0c'):
+            yield data % t
+
 
 # HTML quoting
 
@@ -73,7 +93,7 @@ def load(filename, mimetype=None, locals=None):
         #data = data.replace('%"', '%%"')
         d = globals().copy()
         d.update(locals)
-        f = StringIO(data % Translator(d, d))
+        f = TranslatorIO(data, d)
     return f, mimetype
 
 def fileloader(filename, mimetype=None):

@@ -8,7 +8,7 @@ METASERVER_URL = 'http://codespeak.net:8050/bub-n-bros.html'
 #METASERVER_URL = 'http://127.0.0.1:8050/bub-n-bros.html'
 
 def connect():
-    print 'Connecting to the meta-server %s:%d...' % METASERVER
+    print >> sys.stderr, 'Connecting to the meta-server %s:%d...' % METASERVER
     try:
         s = socket(AF_INET, SOCK_STREAM)
         s.connect(METASERVER)
@@ -16,7 +16,7 @@ def connect():
         print >> sys.stderr, '*** cannot contact meta-server:', str(e)
         return None
     else:
-        print 'connected.'
+        print >> sys.stderr, 'connected.'
     return s
 
 sys.setcheckinterval(4096)
@@ -48,7 +48,7 @@ class MetaClientSrv(MessageSocket):
         import gamesrv
         gamesrv.removesocket('META', self.s)
         self.closed = 1
-        print 'disconnected from the meta-server'
+        print >> sys.stderr, 'disconnected from the meta-server'
 
     def send_traceback(self):
         if not self.closed:
@@ -74,11 +74,11 @@ class MetaClientSrv(MessageSocket):
             host, _ = origin.split(':')
             addr = host, port
             s = socket(AF_INET, SOCK_STREAM)
-            print 'backconnecting to', addr
+            print >> sys.stderr, 'backconnecting to', addr
             try:
                 s.connect(addr)
             except error, e:
-                print 'backconnecting:', str(e)
+                print >> sys.stderr, 'backconnecting:', str(e)
             else:
                 self.game.newclient(s, addr)
         import thread
@@ -106,11 +106,11 @@ class MetaClientSrv(MessageSocket):
             #print 'sleep(%r)' % delay
             if 0.0 <= delay <= 10.0:
                 time.sleep(delay)
-            print 'synconnecting to', addr
+            print >> sys.stderr, 'synconnecting to', addr
             try:
                 s.connect(addr)
             except error, e:
-                print 'synconnecting:', str(e)
+                print >> sys.stderr, 'synconnecting:', str(e)
             else:
                 self.game.newclient(s, addr)
         import thread
@@ -180,7 +180,7 @@ class MetaClientCli:
 
     def run(self):
         import thread
-        print 'Trying to connect to', self.serverkey
+        print >> sys.stderr, 'Trying to connect to', self.serverkey
         self.ev = Event()
         thread.start_new_thread(self.bipbip, ())
         self.startthread(self.try_direct_connect)
@@ -220,9 +220,9 @@ class MetaClientCli:
                 break
         else:
             if self.threads:
-                print '*** time out, giving up.'
+                print >> sys.stderr, '*** time out, giving up.'
             else:
-                print '*** failed to connect.'
+                print >> sys.stderr, '*** failed to connect.'
             sys.exit(1)
 
     def try_direct_connect(self):
@@ -232,9 +232,9 @@ class MetaClientCli:
         try:
             s.connect((host, port))
         except error, e:
-            print 'direct connexion failed:', str(e)
+            print >> sys.stderr, 'direct connexion failed:', str(e)
         else:
-            print 'direct connexion accepted.'
+            print >> sys.stderr, 'direct connexion accepted.'
             self.resultsocket = s
 
     def try_indirect_connect(self):
@@ -281,7 +281,7 @@ class MetaClientCli:
                 break
             data = self.s.recv(2048)
             if not data:
-                print 'disconnected from the meta-server'
+                print >> sys.stderr, 'disconnected from the meta-server'
                 sys.exit()
             self.buffer += data
         return msg
@@ -292,9 +292,9 @@ class MetaClientCli:
         s1.listen(1)
         _, port = s1.getsockname()
         self.routemsg(RMSG_CONNECT, port)
-        print 'listening for backward connection'
+        print >> sys.stderr, 'listening for backward connection'
         s, addr = s1.accept()
-        print 'accepted backward connection from', addr
+        print >> sys.stderr, 'accepted backward connection from', addr
         self.resultsocket = s
 
     def send_ping(self):
@@ -307,7 +307,8 @@ class MetaClientCli:
         remotehost, _ = origin.split(':')
         remoteaddr = remotehost, remoteport
         s.connect(remoteaddr)
-        print 'simultaneous SYN connect succeeded with %s:%d' % remoteaddr
+        print >> sys.stderr, 'simultaneous SYN connect succeeded with %s:%d' % (
+            remoteaddr,)
         self.resultsocket = s
 
 

@@ -65,6 +65,8 @@ def nameval(name, value, default=0, options=options):
 <td bgcolor="#000000">&nbsp;</td>
 </tr>
 
+
+
 <tr>
 <td bgcolor="#000000">&nbsp;</td>
 <td bgcolor="#FFFFFF" align="right">
@@ -90,7 +92,7 @@ def nameval(name, value, default=0, options=options):
       <tr>
         <td width=48><img src="bob.png"></td>
         <td><select name="file">%(
-for displayname, filename in levels:
+for displayname, filename in Game.FnListBoards():
     print '<option',
     if filename == str(options.file):
         print 'selected',

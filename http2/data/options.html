@@ -176,7 +176,12 @@ def modeitems(modelist):
 
 <form name="options" action="options.html" method="get">
 <table border=0 cellspacing=4>
+
+
+
 %(
+graphicmodes = self.graphicmodeslist()
+currentmodes = self.localmodes()
 begingroup('Display driver', '#800000', '#FFC000', '#C0C0C0',
            'lbeb.png', len(graphicmodes))
 modeitems(graphicmodes)
@@ -185,7 +190,11 @@ endgroup()
 
 <tr><td>&nbsp;</td><td>&nbsp;</td></tr>
 
+
+
 %(
+soundmodes = self.soundmodeslist()
+java = graphicmodes[0] in currentmodes
 begingroup('Sound driver', '#800000', '#FFFF00', '#C0C0C0',
            'lbiob.png', java and 1 or len(soundmodes))
 if java:

@@ -357,14 +357,24 @@ hatmap = {
     ('hat', 0)      :('hat5.ppm',( 32, 0, 32, 48)),
     ('hat', 1)      :('hat5.ppm',(  0, 0, 32, 48)),
     }
-sprmap = {}
-for n, (filename, rect) in original_sprmap.items() + extramap.items() + hatmap.items():
-    if filename.find('%d') >= 0:
-        for i in range(MAX):
-            sprmap[n+1000*i] = (os.path.join('images',filename % i), rect)
-    else:
-        sprmap[n] = (os.path.join('images', filename), rect)
-del n, filename, rect
+
+def generate_sprmap():
+    # check and maybe regenerate the colored image files
+    file = os.path.join('images', 'buildcolors.py')
+    g = {'__name__': '__auto__', '__file__': file}
+    execfile(file, g)
+    # replace the entries 'filename_%d.ppm' by a family of entries,
+    # one for each color
+    sprmap = {}
+    for n, (filename, rect) in (original_sprmap.items() +
+                                extramap.items() + hatmap.items()):
+        if filename.find('%d') >= 0:
+            for i in range(MAX):
+                sprmap[n+1000*i] = (os.path.join('images',filename % i), rect)
+        else:
+            sprmap[n] = (os.path.join('images', filename), rect)
+    return sprmap
+sprmap = generate_sprmap()
 
 transparency = {
     mnstrmap.GreenAndBlue.new_bubbles[0][0]: 0xA0,
