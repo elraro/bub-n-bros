@@ -39,6 +39,7 @@ class Options:
 
 class PageServer:
     CONFIGFILE = 'config.txt'
+    localservers = None
 
     def __init__(self, Game):
         self.Game = Game
