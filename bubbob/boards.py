@@ -932,9 +932,10 @@ def extra_water_flood():
     from monsters import Monster
     waves_icons = [images.sprget(n) for n in Flood.waves]
     fill_icon = images.sprget(Flood.fill)
-    atom = object()
     bspr = []
-    curboard.sprites['flood', atom] = bspr
+    if 'flood' in curboard.sprites:
+        return    # only one flooding at a time
+    curboard.sprites['flood'] = bspr
     waves_sprites = [gamesrv.Sprite(waves_icons[0], x, bheight-CELL)
                      for x in range(0, bwidth, CELL)]
     bspr += waves_sprites
@@ -968,7 +969,7 @@ def extra_water_flood():
             s.step(0, 16)
     for s in waves_sprites:
         s.kill()
-    del curboard.sprites['flood', atom]
+    del curboard.sprites['flood']
 
 def extra_walls_falling():
     walls_by_pos = curboard.walls_by_pos
@@ -986,9 +987,9 @@ def extra_walls_falling():
                     w = curboard.killwall(x, y0, 0)
                     curboard.putwall(x, y+1, w)
                     moves = 1
-            curboard.reorder_walls()
+        curboard.reorder_walls()
+        for y in range(height):
             yield 0
-        yield 0
 
 def single_blocks_falling(xylist):
     walls_by_pos = curboard.walls_by_pos
