@@ -852,13 +852,20 @@ def set_udp_port(port):
 def has_loop_music():
   return currentmusics[0] < len(currentmusics)-1
 
+def finalsegment(music1, music2):
+  intro1 = music1[1:1+music1[0]]
+  intro2 = music2[1:1+music2[0]]
+  loop1 = music1[1+music1[0]:]
+  loop2 = music2[1+music2[0]:]
+  return loop1 == loop2 and intro1 == intro2[len(intro2)-len(intro1):]
+
 def set_musics(musics_intro, musics_loop, reset=1):
   mlist = []
   loop_from = len(musics_intro)
   mlist.append(loop_from)
   for m in musics_intro + musics_loop:
     mlist.append(m.fileid)
-  if reset or mlist != currentmusics:
+  if reset or not finalsegment(mlist, currentmusics):
     currentmusics[:] = mlist
     for c in clients:
       c.startmusic()

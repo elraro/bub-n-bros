@@ -227,6 +227,7 @@ class DragonBubble(Bubble):
         ny = self.y
         stop = 0
         withmonster = 0
+        specialangle = (acos,asin) != (1,0)
         self.warp = 0
         while abs(hspeed) >= 4.0:
             touched_monsters = [s for s in self.touching(9)
@@ -246,7 +247,7 @@ class DragonBubble(Bubble):
                                                                    {})
                         s_monster[key] = s_monster.get(key, 0) + 1
                     break
-            if asin:
+            if specialangle:
                 (nx, ny), moebius = vertical_warp(nx + hspeed*acos, ny + hspeed*asin)
                 if moebius:
                     acos = -acos
@@ -437,6 +438,29 @@ class BonusBubble(Bubble):
         if not holes:
             holes = range(2, len(testline)-3)
         return random.choice(holes) * CELL
+
+    def thrown_bubble(self, x, y, hspeed, acossin):
+        self.untouchable()
+        self.move(x, y)
+        self.gen = [self.throwing_bubble(hspeed, acossin, self.imgsetter)]
+
+    def throwing_bubble(self, hspeed, (acos,asin), restore_img):
+        nx = self.x
+        ny = self.y
+        while abs(hspeed) >= 4.0:
+            (nx, ny), moebius = vertical_warp(nx + hspeed*acos, ny + hspeed*asin)
+            if moebius:
+                acos = -acos
+            if nx <= CELL:
+                acos = abs(acos)
+            if nx >= boards.bwidth-3*CELL:
+                acos = -abs(acos)
+            hspeed *= 0.965
+            self.move(int(nx+0.5), int(ny+0.5))
+            yield None
+        self.touchable = 1
+        self.gen.append(self.normal_movements(timeout=self.timeout))
+        self.setimages(restore_img)
 
 
 class PlainBubble(BonusBubble):

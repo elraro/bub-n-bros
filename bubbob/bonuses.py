@@ -345,21 +345,39 @@ class Extend(RandomBonus):
     points = 0
     big = 0
     bigbonus = {'big': 1}
+
+    def taken1(self, dragons):
+        if self.big:
+            self.letterexplosion()
+        else:
+            RandomBonus.taken1(dragons)
+            
     def taken(self, dragon):
         from bubbles import extend_name
         names = [extend_name(l) for l in range(6)]
         missing = [name for name in names if name not in dragon.bubber.letters]
         x = dragon.x + dragon.ico.w//2
         y = dragon.y
-        if self.big:
-            pts = [10000*i for i in range(6-len(missing), 6) if i]
-        else:
-            pts = [10000*len(missing)]
-        for pts in pts:
-            points(x, y, dragon, pts)
+        points(x, y, dragon, 10000*len(missing))
         for l in range(6):
             if extend_name(l) in missing:
                 dragon.bubber.giveletter(l, promize=0)
+
+    def letterexplosion(self):
+        from bubbles import LetterBubble
+        playercount = len([p for p in BubPlayer.PlayerList if p.isplaying()])
+        N = 2 + (playercount > 3)
+        angles = [i*(2.0*math.pi/N) for i in range(N)]
+        for l, dx, dy in [(0,  5,  9), (1, 16, 10), (2, 26,  8),
+                          (3,  7, 23), (4, 15, 24), (5, 25, 24)]:
+            delta = 2.0*math.pi * random.random()
+            angles = [angle-delta for angle in angles]
+            x = self.x + self.ico.w//2 + 3*(dx-16)
+            y = self.y + self.ico.h//2 + 3*(dy-16)
+            for angle in angles:
+                bubble = LetterBubble(None, l)
+                bubble.thrown_bubble(x, y, 7.0 + 4.0 * random.random(),
+                                     (math.cos(angle), math.sin(angle)))
 
 class HeartPoison(RandomBonus):
     "Heart Poison. Freeze all free monsters."
@@ -667,7 +685,7 @@ def makecactusbonus(cls, *args):
     bonus.__dict__.update(bonus.bigbonus)
     bonus.untouchable()
     bonus.gen = []
-    mb = Cactusbonus(0, -3*CELL, 'cactus', bonus.points and 10000) # temp image
+    mb = Cactusbonus(0, -3*CELL, 'cactus', 10000) # temp image
     mb.outcome = (cls,) + args
     mb.outcome_image = bonus.nimage
     mb.bonus = bonus
@@ -1130,9 +1148,15 @@ class Bubblizer(RandomBonus):
     "Bubblizer."
     points = 750
     nimage = Bonuses.gold_crux
+    big = 0
+    bigbonus = {'big': 1}
     def taken(self, dragon):
-        from bubbles import FireBubble, WaterBubble, LightningBubble
-        bcls = random.choice([FireBubble, WaterBubble, LightningBubble])
+        if self.big:
+            from bubbles import BombBubble, BigLightBubble
+            bcls = random.choice([BombBubble, BigLightBubble])
+        else:
+            from bubbles import FireBubble, WaterBubble, LightningBubble
+            bcls = random.choice([FireBubble, WaterBubble, LightningBubble])
         b = bcls(dragon.bubber.pn)
         b.move(dragon.x, dragon.y)
         if not dragon.become_bubblingeyes(b):
