@@ -401,20 +401,185 @@ class WandBonus(RandomBonus):
         ico = images.sprget(nico)
         x = random.randrange(0, boards.bwidth-ico.w)
         mb = Megabonus(x, -ico.h, nico, npoints)
+        mb.outcome = (Bonus,) + self.mode[2:4]
 WandBonus1 = WandBonus  # increase probability
 
 class Megabonus(Bonus):
     touchable = 0
-    bubblable = 0
+    vspeed = 6
     sound = 'Extra'
+    
     def faller(self):
+        self.fullpoints = self.points
+        self.bubbles_pos = list(self.bubbles_position())
+        self.bubbles = {}
+        self.gen.append(self.animate_bubbles())
         for t in range(71):
             yield None
+        y0 = self.y - HALFCELL
         ymax = boards.bheight - CELL - self.ico.h
-        while self.y < ymax:
-            self.step(0, 6)
+        self.touchable = 1
+        ny = self.y
+        while self.y >= y0:
+            ny += self.vspeed
+            if ny > ymax:
+                ny = ymax
+                self.vspeed = 0
+            self.move(self.x, int(ny))
             yield None
-            self.touchable = 1
+        self.kill()
+
+    def kill(self):
+        for bubble in self.bubbles.values():
+            bubble.pop()
+        Bonus.kill(self)
+
+    def taken(self, dragon):
+        poplist = [dragon]
+        for bubble in self.bubbles.values():
+            bubble.pop(poplist)
+
+    def bubbles_position(self):
+        nx = 5
+        ny = 6
+        xmargin = 2
+        ymargin = 7
+        xstep = (self.ico.w+2*xmargin-2*CELL) / float(nx-1)
+        ystep = (self.ico.h+2*ymargin-2*CELL) / float(ny-1)
+        for dx in range(nx):
+            corner = dx in [0, nx-1]
+            for dy in range(corner, ny-corner):
+                dx1 = int(dx*xstep)-xmargin
+                dy1 = int(dy*ystep)-ymargin
+                yield (dx1 + random.randrange(-2,3),
+                       dy1 + random.randrange(-2,3))
+
+    def nearest_free_point(self, x0, y0):
+        distlst = [((x0-x)*(x0-x)+(y0-y)*(y0-y)+random.random(), x, y)
+                   for x, y in self.bubbles_pos if (x, y) not in self.bubbles]
+        if distlst:
+            ignored, dx, dy = min(distlst)
+            return dx, dy
+        else:
+            return None, None
+
+    def in_bubble(self, bubble):
+        dx, dy = self.nearest_free_point(bubble.x-self.x, bubble.y-self.y)
+        if dx is not None:
+            self.cover_bubble(dx, dy, bubble.d.bubber)
+            self.gen.append(self.cover_bubbles(bubble.d.bubber))
+        bubble.kill()
+
+    def cover_bubbles(self, bubber):
+        while 1:
+            for t in range(2):
+                yield None
+            dx, dy = self.nearest_free_point(*random.choice(self.bubbles.keys()))
+            if dx is None:
+                break
+            self.cover_bubble(dx, dy, bubber)
+        self.untouchable()
+
+    def cover_bubble(self, dx, dy, bubber):
+        if (dx, dy) in self.bubbles:
+            return
+        from bubbles import Bubble
+        if len(self.bubbles) & 1:
+            MegabonusBubble = Bubble
+        else:
+            outcome = self.outcome
+            class MegabonusBubble(Bubble):
+                def popped(self, dragon):
+                    BonusMaker(self.x, self.y, [outcome[1]], outcome=outcome)
+                    return 10
+        
+        nimages = GreenAndBlue.normal_bubbles[bubber.pn]
+        b = MegabonusBubble(images.sprget(nimages[1]), self.x+dx, self.y+dy)
+        b.dx = dx
+        b.dy = dy
+        b.bubber = bubber
+        b.nimages = nimages
+        self.bubbles[dx, dy] = b
+        self.timeout = 0
+        f = float(len(self.bubbles)) / len(self.bubbles_pos)
+        self.vspeed = -0.73*f + self.vspeed*(1.0-f)
+        self.points = int(self.fullpoints*(1.0-f) / 10000.0 + 0.9999) * 10000
+
+    def animate_bubbles(self):
+        if 0:  # disabled clipping
+            d = {}
+            for dx, dy in self.bubbles_pos:
+                d[dx] = d[dy] = None
+            north = d.copy()
+            south = d.copy()
+            west = d.copy()
+            east = d.copy()
+            del d
+            for dx, dy in self.bubbles_pos:
+                lst = [y for x, y in self.bubbles_pos if x==dx and y<dy]
+                if lst: north[dy] = max(lst)
+                lst = [y for x, y in self.bubbles_pos if x==dx and y>dy]
+                if lst: south[dy] = min(lst)
+                lst = [x for x, y in self.bubbles_pos if x<dx and y==dy]
+                if lst: west[dx] = max(lst)
+                lst = [x for x, y in self.bubbles_pos if x>dx and y==dy]
+                if lst: east[dx] = min(lst)
+            W = 2*CELL
+            H = 2*CELL
+        bubbles = self.bubbles
+        while 1:
+            for cycle in [1]*8 + [2]*10 + [1]*8 + [0]*10:
+                yield None
+                for (dx, dy), bubble in bubbles.items():
+                    if not hasattr(bubble, 'poplist'):
+                        if 0:   # disabled clipping
+                            if (dx, north[dy]) in bubbles:
+                                margin_n = (north[dy]+H-dy)//2
+                            else:
+                                margin_n = 0
+                            if (dx, south[dy]) in bubbles:
+                                margin_s = (dy+H-south[dy])//2
+                            else:
+                                margin_s = 0
+                            if (west[dx], dy) in bubbles:
+                                margin_w = (west[dx]+W-dx)//2
+                            else:
+                                margin_w = 0
+                            if (east[dx], dy) in bubbles:
+                                margin_e = (dx+W-east[dx])//2
+                            else:
+                                margin_e = 0
+                            r = (margin_w,
+                                 margin_n,
+                                 W-margin_w-margin_e,
+                                 H-margin_n-margin_s)
+                            bubble.move(self.x + bubble.dx + margin_w,
+                                        self.y + bubble.dy + margin_n,
+                                        images.sprget_subrect(
+                                            bubble.nimages[cycle], r))
+                        else:
+                            bubble.move(self.x + bubble.dx,
+                                        self.y + bubble.dy,
+                                        images.sprget(bubble.nimages[cycle]))
+                    elif len(bubbles) == len(self.bubbles_pos):
+                        self.pop_bubbles(bubble.poplist)
+                        return
+
+    def pop_bubbles(self, poplist):
+        def bubble_timeout(bubble, vspeed):
+            ny = bubble.y
+            for t in range(random.randrange(15,25)):
+                if hasattr(bubble, 'poplist'):
+                    return
+                ny += vspeed
+                bubble.move(bubble.x, int(ny))
+                yield None
+            bubble.pop(poplist)
+
+        for bubble in self.bubbles.values():
+            bubble.gen.append(bubble_timeout(bubble, self.vspeed))
+        self.bubbles.clear()
+        self.kill()
 
 
 def starexplosion(x, y, multiplyer, killmonsters=0, outcomes=[]):

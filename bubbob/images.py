@@ -222,12 +222,12 @@ def sprget(n, spriconcache={}):
         return spriconcache[n]
     except KeyError:
         filename, rect = sprmap[n]
-        if isinstance(n, int):
-            n1 = n % 1000
-        elif isinstance(n, tuple):
+        if isinstance(n, tuple):
             n1 = n[0]
         else:
             n1 = n
+        if isinstance(n1, int):
+            n1 = n1 % 1000
         alpha = transparency.get(n1, 255)
         ico = gamesrv.getbitmap(filename, KEYCOL).geticon(alpha=alpha, *rect)
         spriconcache[n] = ico
@@ -248,6 +248,13 @@ def sprget_vflip(n, vflipped={}):
         bitmap = gamesrv.newbitmap(data, KEYCOL)
         vflipped[filename] = bitmap, height
     return bitmap.geticon(x, height-(y+h), w, h)
+
+def sprget_subrect(n, subrect):
+    x, y, w, h = subrect
+    filename, (x0, y0, w0, h0) = sprmap[n]
+    key = (n, 'subrect', subrect)
+    sprmap[key] = filename, (x0+x, y0+y, w, h)
+    return sprget(key)
 
 def haspat(n):
     return n in patmap

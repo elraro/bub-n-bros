@@ -276,6 +276,8 @@ class DragonBubble(Bubble):
                     if bonus:
                         bonus.in_bubble(self)
                         withmonster = 1
+        if not self.alive:
+            return
         if special_bubble:
             cls = globals()[special_bubble]
             if not withmonster:
