@@ -86,7 +86,7 @@ static int create_shm_image(DisplayObject* self, XImage_Shm* img,
   int image_size = 4*width*height;
 	
   if (XShmQueryExtension(self->dpy) == False)
-    // does we have the extension at all?
+    /* does we have the extension at all? */
     return 0;
 	
   img->m_shm_image = XShmCreateImage(
@@ -103,19 +103,19 @@ static int create_shm_image(DisplayObject* self, XImage_Shm* img,
   img->m_width = width;
   img->m_height = height;
 
-  // Create shared memory segment:
+  /* Create shared memory segment: */
   img->m_shminfo.shmid = shmget(IPC_PRIVATE, image_size, IPC_CREAT|0777);
   if (img->m_shminfo.shmid < 0)
     return 0;
 	
-  // Get memory address to segment:
+  /* Get memory address to segment: */
   img->m_shminfo.shmaddr = (char *) shmat(img->m_shminfo.shmid, 0, 0);
 
-  // Tell XServer that it may only read from it and attach to display:
+  /* Tell XServer that it may only read from it and attach to display: */
   img->m_shminfo.readOnly = True;
   XShmAttach (self->dpy, &img->m_shminfo);
 
-  // Fill the XImage struct:
+  /* Fill the XImage struct: */
   img->m_shm_image->data = img->m_shminfo.shmaddr;
   return 1;
 }
@@ -404,6 +404,9 @@ static PyObject* display_pixmap1(DisplayObject* self, PyObject* args)
           PyList_SET_ITEM(lines, y, str);
         }
 
+      /* fprintf(stderr, "%dx%d:  %d bytes instead of %d\n", w, h,
+             totalbufsize, bytes_per_pixel*w*h); */
+      
       /* compact all the lines into a single string buffer */
       str = PyString_FromStringAndSize(NULL, totalbufsize);
       if (str == NULL)
@@ -420,7 +423,7 @@ static PyObject* display_pixmap1(DisplayObject* self, PyObject* args)
           totalbufsize += PyString_GET_SIZE(src);
         }
       
-      result = Py_BuildValue("iiOi", w, h, str, 1);
+      result = Py_BuildValue("iiOi", w, h, str, -1);
       Py_DECREF(str);
 
     finally:
@@ -562,7 +565,7 @@ static PyObject* display_putppm1(DisplayObject* self, PyObject* args)
 {
   if (self->shmmode)
     {
-      int x,y,w,h, compactformat, original_w;
+      int x,y,w,h, srcoffset, original_w;
       int data_scanline;
       int clipx=0, clipy=0, clipw=65536, cliph=65536;
       code_t* src;
@@ -570,7 +573,7 @@ static PyObject* display_putppm1(DisplayObject* self, PyObject* args)
       unsigned int bytes_per_pixel = self->plane.m_shm_image->bits_per_pixel/8;
       unsigned char* data = get_dpy_data(self);
       if (!PyArg_ParseTuple(args, "ii(iis#i)|(iiii)",
-                            &x, &y, &w, &h, &src, &length, &compactformat,
+                            &x, &y, &w, &h, &src, &length, &srcoffset,
                             &clipx, &clipy, &clipw, &cliph) || !data)
         return NULL;
 
@@ -594,7 +597,7 @@ static PyObject* display_putppm1(DisplayObject* self, PyObject* args)
           data += bytes_per_pixel*(x+y*self->width);
           data_scanline = bytes_per_pixel*self->width;
 
-          if (compactformat)
+          if (srcoffset < 0)
             {
               /* Format of the data pointed to by 'src':
 
@@ -662,8 +665,9 @@ static PyObject* display_putppm1(DisplayObject* self, PyObject* args)
             }
           else
             {
-              int scanline = bytes_per_pixel*original_w;
+              int scanline = (bytes_per_pixel*original_w + 3)&~3;
               int bytes_per_line = bytes_per_pixel*w;
+              src += srcoffset;
               src += firstcol*bytes_per_pixel;
               src += firstline*scanline;
               while (h>0)
@@ -717,34 +721,35 @@ static PyObject* display_getppm1(DisplayObject* self, PyObject* args)
       int bytes_per_line, data_scanline;
       int clipx=0, clipy=0, clipw=self->width, cliph=self->height;
       unsigned char* dst;
-      int length;
+      int length, dstoffset;
       PyObject* ignored;
       PyObject* result;
       PyObject* str;
+      int original_w, original_h;
       unsigned int bytes_per_pixel = self->plane.m_shm_image->bits_per_pixel/8;
       unsigned char* data = get_dpy_data(self);
       if (!PyArg_ParseTuple(args, "(iiii)|O", &x, &y, &w, &h,
                             &ignored) || !data)
         return NULL;
 
-      scanline = bytes_per_pixel*w;
-      length = scanline*h;
+      scanline = (bytes_per_pixel*w + 3)&~3;
+      length = scanline*h + 3;
       str = PyString_FromStringAndSize(NULL, length);
       if (!str)
         return NULL;
-      result = Py_BuildValue("iiOi", w, h, str, 0);
-      Py_DECREF(str);  /* one ref left in 'result' */
-      if (!result)
-        return NULL;
       dst = (unsigned char*) PyString_AS_STRING(str);
-
+      original_w = w;
+      original_h = h;
+      
       if (x<clipx) { dst+=(clipx-x)*bytes_per_pixel; w+=x-clipx; x=clipx; }
       if (y<clipy) { dst+=(clipy-y)*scanline; h+=y-clipy; y=clipy; }
       if (x+w > clipw) w = clipw-x;
       if (y+h > cliph) h = cliph-y;
+      data += bytes_per_pixel*(x+y*self->width);
+      dstoffset = (((long)data) - ((long)dst)) & 3;
       if (w > 0)
         {
-          data += bytes_per_pixel*(x+y*self->width);
+          dst += dstoffset;
           bytes_per_line = w*bytes_per_pixel;
           data_scanline = bytes_per_pixel*self->width;
           while (h>0)
@@ -755,6 +760,8 @@ static PyObject* display_getppm1(DisplayObject* self, PyObject* args)
               h--;
             }
         }
+      result = Py_BuildValue("iiOi", original_w, original_h, str, dstoffset);
+      Py_DECREF(str);  /* one ref left in 'result' */
       return result;
     }
   else
