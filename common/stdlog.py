@@ -12,7 +12,8 @@ class LogFile:
             filename += '.log'
         if not self._open(filename, limitsize):
             import tempfile
-            filename = tempfile.mktemp(suffix='.log')
+            filename = os.path.join(tempfile.gettempdir(),
+                                    os.path.basename(filename))
             if not self._open(filename, limitsize):
                 self.f = self.filename = None
         self.lasttime = None
