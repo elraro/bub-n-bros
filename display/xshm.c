@@ -318,6 +318,7 @@ static PyObject* display_pixmap1(DisplayObject* self, PyObject* args)
       int x, y;
       int bytes_per_pixel = self->plane.m_shm_image->bits_per_pixel/8;
       char* sp;
+      code_t** sp_table;
       PyObject* result = NULL;
       PyObject* lines = NULL;
       code_t* buffer = NULL;
@@ -350,7 +351,7 @@ static PyObject* display_pixmap1(DisplayObject* self, PyObject* args)
          See display_putppm1() for a description of the format.
       */
 
-      totalbufsize = h * sizeof(int);
+      totalbufsize = h * sizeof(code_t*);
       for (y=0; y<h; y++)
         {
           code_t state = 0;
@@ -413,14 +414,14 @@ static PyObject* display_pixmap1(DisplayObject* self, PyObject* args)
         goto finally;
 
       sp = PyString_AS_STRING(str);
-      totalbufsize = h * sizeof(int);
+      sp_table = (code_t**) sp;
+      sp += h * sizeof(code_t*);
       for (y=0; y<h; y++)
         {
           PyObject* src = PyList_GET_ITEM(lines, y);
-          ((int*)sp)[y] = totalbufsize;
-          memcpy(sp + totalbufsize, PyString_AS_STRING(src),
-                                    PyString_GET_SIZE(src));
-          totalbufsize += PyString_GET_SIZE(src);
+          sp_table[y] = sp;
+          memcpy(sp, PyString_AS_STRING(src), PyString_GET_SIZE(src));
+          sp += PyString_GET_SIZE(src);
         }
       
       result = Py_BuildValue("iiOi", w, h, str, -1);
@@ -601,9 +602,9 @@ static PyObject* display_putppm1(DisplayObject* self, PyObject* args)
             {
               /* Format of the data pointed to by 'src':
 
-              [INT] offset to the beginning of the data for line 0
-              [INT] offset to the beginning of the data for line 1
-              [INT] offset to the beginning of the data for line 2
+              [DATA*] ptr to the beginning of the data for line 0
+              [DATA*] ptr to the beginning of the data for line 1
+              [DATA*] ptr to the beginning of the data for line 2
               ...
               [DATA]
 
@@ -616,7 +617,7 @@ static PyObject* display_putppm1(DisplayObject* self, PyObject* args)
               [n*BYTE] pixel data (only for header 1)
               */
 
-              int* src_offsettable = ((int*) src) + firstline;
+              code_t** src_table = ((code_t**) src) + firstline;
 
               firstcol *= bytes_per_pixel;   /* byte offset within a line */
               w *= bytes_per_pixel;          /* byte offset from firstcol */
@@ -626,7 +627,7 @@ static PyObject* display_putppm1(DisplayObject* self, PyObject* args)
                   code_t header;
                   int pixelbytes;
                   int remainingbytes;
-                  code_t* source = src + src_offsettable[y];
+                  code_t* source = src_table[y];
                   unsigned char* target = data;
                   data += data_scanline;
 
