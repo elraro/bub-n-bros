@@ -1186,7 +1186,7 @@ Classes = [c for c in globals().values()
 Classes.remove(RandomBonus)
 Classes.remove(TemporaryBonus)
 Cheat = []
-#Classes = [Sheep]  # CHEAT
+Classes = [Sheep]  # CHEAT
 
 AllOutcomes = ([(c,) for c in Classes if c is not Fruits] +
                2 * [(MonsterBonus, lvl)
