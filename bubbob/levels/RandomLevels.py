@@ -238,7 +238,7 @@ if __name__ == '__main__':
 else:
     print 'generating levels',
     rnglevel = {}
-    execfile('levels/rnglevel.py', rnglevel)
+    execfile('levels/rnglevel', rnglevel)
     RandomLevel = rnglevel['RandomLevel']
     Levels = []
     for s in makeshapes():

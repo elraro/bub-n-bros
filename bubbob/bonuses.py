@@ -1166,13 +1166,19 @@ class Sheep(RandomBonus):
         images.Snd.Yippee.play()
         slist = []
         ico = images.sprget('sheep-big')
-        for d in BubPlayer.DragonList[:]:
-            dx = (d.ico.w - ico.w) // 2
-            dy = (d.ico.h - ico.h) // 2
-            s = ActiveSprite(ico, d.x + dx, d.y + dy)
-            s.gen.append(s.parabolic([d.dir, -2.0]))
-            slist.append(s)
-            d.kill()
+        for p in BubPlayer.PlayerList:
+            if p.isplaying() and p.dragons:
+                d = random.choice(p.dragons)
+                dx = (d.ico.w - ico.w) // 2
+                dy = (d.ico.h - ico.h) // 2
+                s = ActiveSprite(ico, d.x + dx, d.y + dy)
+                dir = getattr(d, 'dir', None)
+                if dir not in [-1, 1]:
+                    dir = random.choice([-1, 1])
+                s.gen.append(s.parabolic([dir, -2.0]))
+                slist.append(s)
+                for d in p.dragons[:]:
+                    d.kill()
         delta = {}
         for p in BubPlayer.PlayerList:
             if p.points or p.isplaying():
