@@ -546,9 +546,10 @@ def run():
     global curboard
     import boards
     from boards import curboard
-    
+    boards.replace_boardgen(Pacman().bgen())
+
+def setup():
     for key, (filename, rect) in localmap.items():
         filename = os.path.join(LocalDir, filename)
         images.sprmap[key] = (filename, rect)
-
-    boards.replace_boardgen(Pacman().bgen())
+setup()

@@ -396,11 +396,9 @@ def loadmodules(force=0):
                     del sys.modules[m]
 
     # Clear
-    gamesrv.clearsprites()
-    import images, player
-    del images.ActiveSprites[:]
-    images.SpritesByLoc.clear()
-    
+    clearallsprites()
+
+    import player
     for p in playerlist:
         player.upgrade(p)
     for n in range(len(playerlist), player.MAX):
@@ -425,6 +423,78 @@ def loadmodules(force=0):
             levels = binboards.load(levelfilename)
         boards.register(levels)
     return reload
+
+def clearallsprites():
+    gamesrv.clearsprites()
+    import images
+    del images.ActiveSprites[:]
+    images.SpritesByLoc.clear()
+
+def wait_for_one_player():
+    from player import BubPlayer
+    clearallsprites()
+    nimages = None
+    while not [p for p in BubPlayer.PlayerList if p.isplaying()]:
+        yield 3
+        if not nimages:
+            desc = getattr(gamesrv.game, 'FnDesc', '?')
+            host, port = getattr(gamesrv.game, 'address', ('?', '?'))
+            images.writestrlines([
+                "Welcome to",
+                desc.upper(),
+                "at %s:%s" % (host.lower(), port),
+                None,
+                "Click on your Favorite Color's Dragon",
+                "Choose four keys: Right, Left, Jump, Shoot",
+                "and Let's Go!",
+                None,
+                "Click again for more than one player",
+                "on the same machine.",
+                ])
+            
+            from mnstrmap import PlayerBubbles
+            nimages = [PlayerBubbles.bubble[0],
+                       PlayerBubbles.bubble[1],
+                       PlayerBubbles.bubble[1],
+                       PlayerBubbles.bubble[0],
+                       PlayerBubbles.bubble[2],
+                       PlayerBubbles.bubble[2]]
+            screenwidth = bwidth + 9*CELL
+            screenheight = bheight
+
+            def welcomebubbling(self):
+                fx = self.x
+                dx = (random.random() - 0.5) * 1.9
+                for y in range(self.y-3, -self.ico.h, -3):
+                    fx += dx
+                    self.move(int(fx), y)
+                    yield None
+                self.kill()
+
+            yield 10
+            gamesrv.set_musics([], [images.music_game2], reset=0)
+        
+        if not images.ActiveSprites or random.random() < 0.06:
+            # make sure the extension's images are loaded too
+            # NB. this is also needed for import auto-detection
+            import ext1; import ext2; import ext3; import ext4; import ext5
+            
+            ico = images.sprget(nimages[0])
+            s = images.ActiveSprite(ico,
+                                    random.randrange(0, screenwidth-ico.w),
+                                    screenheight)
+            s.gen = [welcomebubbling(s)]
+            s.setimages(s.cyclic(nimages, speed=1))
+            if random.random() > 0.4:
+                try:
+                    key, (filename, (x, y, w, h)) = random.choice(
+                        images.sprmap.items())
+                except:
+                    w = h = 0
+                if w == h == 32:
+                    s2 = images.ActiveSprite(images.sprget(key), -32, 0)
+                    s2.gen = [s2.following(s, (s.ico.w-32)//2, (s.ico.h-32)//2)]
+        images.action(images.ActiveSprites[:])
 
 def patget(n, keycol=None):
     bitmap, rect = loadpattern(n, keycol)
@@ -458,8 +528,8 @@ def next_board(num=0, complete=1):
         del BubPlayer.MonsterList[:]
 
     # wait for at least one player
-    while not [p for p in BubPlayer.PlayerList if p.isplaying()]:
-        yield 10
+    for t in wait_for_one_player():
+        yield t
 
     # reload modules if changed
     if not inplace and loadmodules():

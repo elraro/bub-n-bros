@@ -397,6 +397,17 @@ def writestr(x, y, text):
             x += 7
     return result
 
+def writestrlines(lines):
+    import boards
+    width = boards.bwidth + 9*boards.CELL
+    y = 50
+    for text in lines:
+        if text:
+            writestr((width - 7*len(text)) // 2, y, text)
+            y += 28
+        else:
+            y += 14
+
 
 def getsample(fn, freq):
     return gamesrv.getsample(os.path.join('sounds', fn), freq)

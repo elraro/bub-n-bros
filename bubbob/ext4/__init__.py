@@ -418,8 +418,10 @@ def run():
     global curboard
     import boards
     from boards import curboard
-    from player import BubPlayer
+    boards.replace_boardgen(Tetris().bgen())
 
+def setup():
+    from player import BubPlayer
     for key, (filename, rect) in localmap.items():
         filename = os.path.join(LocalDir, filename)
         if filename.find('%d') >= 0:
@@ -427,5 +429,4 @@ def run():
                 images.sprmap[key, p.pn] = (filename % p.pn, rect)
         else:
             images.sprmap[key] = (filename, rect)
-    
-    boards.replace_boardgen(Tetris().bgen())
+setup()

@@ -277,9 +277,10 @@ class Lemmings:
 def run():
     global curboard
     from boards import curboard
+    boards.replace_boardgen(Lemmings().bgen())
 
+def setup():
     for key, (filename, rect) in localmap.items():
         filename = os.path.join(LocalDir, filename)
         images.sprmap[key] = (filename, rect)
-
-    boards.replace_boardgen(Lemmings().bgen())
+setup()

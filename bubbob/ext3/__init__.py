@@ -339,7 +339,9 @@ class Galaga:
 def run():
     global curboard
     from boards import curboard
+    boards.replace_boardgen(Galaga().bgen())
 
+def setup():
     for key, (filename, rect) in localmap.items():
         filename = os.path.join(LocalDir, filename)
         if filename.find('%d') >= 0:
@@ -347,5 +349,4 @@ def run():
                 images.sprmap[key, p.pn] = (filename % p.pn, rect)
         else:
             images.sprmap[key] = (filename, rect)
-
-    boards.replace_boardgen(Galaga().bgen())
+setup()
