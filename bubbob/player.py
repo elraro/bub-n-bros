@@ -367,6 +367,7 @@ class BubPlayer(gamesrv.Player):
         'BaseFrametime': 1.0,
         'LeaveBonus': None,
         'Moebius': 0,
+        'OverridePlayerIcon': None,
         }
     TRANSIENT_DATA = ('_client', 'key_left', 'key_right',
                       'key_jump', 'key_fire', 'pn',
@@ -663,7 +664,7 @@ def scoreboard(reset=0, inplace=0):
                 mode = 0
             else:
                 mode = 11
-            ico = p.icons[mode, -1]
+            ico = BubPlayer.OverridePlayerIcon or p.icons[mode, -1]
             lst.append((x0+7*CELL, y0-2*CELL, ico))
         #if boards.curboard.wastingplay is None:
         for l in range(6):

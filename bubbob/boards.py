@@ -218,6 +218,14 @@ class Board:
                     p.zarkoff()
             yield 4
 
+    def clean_gen_state(self):
+        while len(BoardGen) > 1:
+            yield force_singlegen()
+            for key, value in self.sprites.items():
+                if isinstance(key, tuple) and key[:1] == ('flood',):
+                    for s in value:
+                        s.kill()
+                    del self.sprites[key]
 
 def bget(x, y):
     if 0 <= x < curboard.width:
@@ -438,6 +446,9 @@ def replace_boardgen(gen, force=0):
 def force_singlegen():
     del BoardGen[1:]
     return 0
+
+def has_singlegen():
+    return len(BoardGen) <= 1
 
 def normal_frame():
     from player import BubPlayer
@@ -667,9 +678,10 @@ def exit_board(delay=8, music=None):
         if ((isinstance(s, Monster) and s.still_playing())
             or isinstance(s, RandomBonus)):
             s.kill()
+    music = music or []
     if BubPlayer.MegaBonus:
-        music = [images.music_modern]
-    if music is not None:
+        music[:1] = [images.music_modern]
+    if music:
         gamesrv.set_musics(music, [])
     for i in range(delay):
         yield normal_frame()

@@ -466,8 +466,8 @@ class FireDrop(ActiveSprite):
             self.move(self.x, (self.y + 8) & ~7)
             yield None
         y0 = self.y//CELL
-        if bget(x0-1, y0) == ' ':
-            FireFlame(x0, y0, self.poplist, [-1, 1], 5)
+        #if bget(x0-1, y0) == ' ':
+        FireFlame(x0, y0, self.poplist, [-1, 1], 5)
         self.kill()
 
 class FireBubble(BonusBubble):
@@ -482,124 +482,105 @@ class FireBubble(BonusBubble):
         return 10
 
 class WaterCell(ActiveSprite):
-    TESTLIST = [(-1,0), (1,0), (0,1), (0,-1)]
-    ICONS = [Water.v_flow,
-             Water.start_left,
-             Water.start_right,
-             Water.h_flow,
-             Water.top,
-             Water.tr_corner,
-             Water.tl_corner,
-             Water.h_flow,
-             
-             Water.bottom,
-             Water.br_corner,
-             Water.bl_corner,
-             Water.h_flow,
-             Water.v_flow,
-             Water.v_flow,
-             Water.v_flow,
-             Water.v_flow]
-    def __init__(self, x, y, dir, cells, cells2, delay, poplist):
-        self.dir = dir
-        self.ping = 0
-        self.cells = cells
-        self.cells2 = cells2
-        self.poplist = poplist
+    ICONS = {
+        ( 0,1, None) : Water.bottom,
+        ( 1,0, None) : Water.start_left,
+        (-1,0, None) : Water.start_right,
+        ( 0,0, None) : Water.bottom,
+        
+        (0,1,   0,1) : Water.v_flow,
+        (0,1,   1,0) : Water.bl_corner,
+        (0,1,  -1,0) : Water.br_corner,
+
+        (-1,0,  0,1) : Water.tl_corner,
+        (-1,0,  1,0) : Water.start_right,
+       #(-1,0, -1,0) : Water.h_flow,
+
+        (1,0,   0,1) : Water.tr_corner,
+       #(1,0,   1,0) : Water.h_flow,
+        (1,0,  -1,0) : Water.start_left,
+
+        (0,0,   0,1) : Water.top,
+        (0,0,   1,0) : Water.top,
+        (0,0,  -1,0) : Water.top,
+
+        (None,  0,1) : Water.top,
+        (None, -1,0) : Water.start_left,
+        (None,  1,0) : Water.start_right,
+        (None,  0,0) : Water.top,
+        }
+    
+    def __init__(self, x, y):
         ActiveSprite.__init__(self, images.sprget(Water.top), x, y)
-        key = x//CELL, y//CELL
-        cells[key] = cells.get(key, 0) + 1
-        cells2.append(self)
-        self.take_with_me = []
-        self.pending = 1
-        self.gen.append(self.waiting(delay))
-    def waiting(self, delay):
-        for i in range(delay):
-            yield None
-        self.pending = 0
-        self.gen.append(self.flooding())
-    def onestep(self):
+        self.touchable = 1
+        
+    def ready(self, celllist):
+        self.gen.append(self.flooding(celllist))
+
+    def flooding(self, celllist):
+        from monsters import Monster
         x0 = self.x // 16
         y0 = self.y // 16
-        self.cells[x0, y0] -= 1
-        if bget(x0, y0+1) == ' ':
-            dx, dy = 0, 1
-            if self.y + 16 > boards.bheight:
-                self.kill()
-                self.pending = -1
-                return
-            self.ping = 0
-        elif bget(x0+self.dir, y0) == ' ':
-            dx, dy = self.dir, 0
-        elif bget(x0-self.dir, y0) == ' ':
-            self.ping += 1
-            if self.ping == 3:
-                self.kill()
-                self.pending = -1
-                return
-            self.dir = -self.dir
-            dx, dy = self.dir, 0
-        else:
-            self.kill()
-            self.pending = -1
-            return
-        x0 += dx
-        y0 += dy
-        self.cells[x0, y0] = self.cells.get((x0, y0), 0) + 1
-        self.pending = x0, y0
-    def flooding(self):
-        from monsters import Monster
-        self.touchable = 1
-        while self.pending != -1:
-            if self.pending == 0:
-                for c in self.cells2:
-                    if c.pending == 0:
-                        c.onestep()
-            #l = [(k,v) for k,v in self.cells.items() if v]
-            #l.sort()
-            #print (self.x//CELL, self.y//CELL), l
-            if self.pending == -1:
-                break
-            x0, y0 = self.pending
-            self.pending = 0
-            flag = 0
-            for k in range(4):
-                dx, dy = self.TESTLIST[k]
-                if self.cells.get((x0+dx, y0+dy)):
-                    flag += 1<<k
-            ico = images.sprget(self.ICONS[flag])
-            x0 *= 16
-            y0 *= 16
-            for s in self.touching(0):
-                if isinstance(s, Monster):
-                    s.untouchable()
-                    s.gen = []
-                    self.take_with_me.append(s)
-                elif isinstance(s, Bubble):
-                    s.pop(self.poplist)
-            for s in self.take_with_me:
-                if s.alive:
-                    s.move(x2bounds(x0-8), y0-16)
-            self.move(x0, y0, ico)
-            yield None
-        self.cells2.remove(self)
-    def kill(self):
-        from monsters import Monster
-        for s in self.take_with_me[:]:
-            if isinstance(s, Monster) and s.alive:
-                s.argh(self.poplist, onplace=1)
-        del self.take_with_me[:]
-        ActiveSprite.kill(self)
+        ping = 0
+        dir = random.choice([-1, 1])
+        take_with_us = [[] for cell in celllist]
+        poplist = [None]
+        icons = {}
+        for key, value in self.ICONS.items():
+            icons[key] = images.sprget(value)
+        icodef = images.sprget(Water.h_flow)
+        stop = 0
+        while not stop:
+            dx = dy = 0
+            if bget(x0, y0+1) == ' ':
+                dy = y0*16 < boards.bheight
+                ping = 0
+            elif bget(x0+dir, y0) == ' ':
+                dx = dir
+            elif bget(x0-dir, y0) == ' ':
+                ping += 1
+                if ping < 3:
+                    dir = -dir
+                    dx = dir
+            # change the head icon
+            head = celllist[0]
+            second = celllist[1]
+            head.seticon(icons.get((x0-second.x//16, y0-second.y//16,
+                                    dx, dy), icodef))
+            # move the tail to the new head position
+            x0 += dx
+            y0 += dy
+            newhead = celllist.pop()
+            celllist.insert(0, newhead)
+            newhead.move(x0*16, y0*16, icons.get((dx,dy, None), icodef))
+            # change the new tail icon
+            tail = celllist[-1]
+            second = celllist[-2]
+            tail.seticon(icons.get((None, (second.x-tail.x)//16,
+                                          (second.y-tail.y)//16), icodef))
+            # take monsters with us
+            for i in range(0, len(celllist), 3):
+                for s in celllist[i].touching(0):
+                    if isinstance(s, Monster):
+                        s.untouchable()
+                        s.gen = []
+                        take_with_us[i].append(s)
+                    elif isinstance(s, Bubble):
+                        s.pop(poplist)
+            yield 0
+            stop = dx == dy == 0
+            for cell, takelist in zip(celllist, take_with_us):
+                stop &= cell.x == newhead.x and cell.y == newhead.y
+                for s in takelist:
+                    if s.alive:
+                        s.move(x2bounds(cell.x-8), cell.y-16)
+                        if stop:
+                            s.argh(poplist, onplace=1)
+        for c in celllist:
+            c.kill()
     def touched(self, dragon):
-        #self.untouchable()
-        #self.take(player)
         dragon.watermove(x2bounds(self.x-HALFCELL), self.y-CELL+1)
         return 1
-    #def take(self, s):
-    #    for c in self.cells2:
-    #        if s in c.take_with_me:
-    #            return
-    #    self.take_with_me.append(s)
 
 class WaterBubble(BonusBubble):
     max = 4
@@ -619,12 +600,8 @@ class WaterBubble(BonusBubble):
                         x0 += 1
                 else:
                     x0 += 1
-            cells = {}
-            cells2 = []
-            dir = random.choice([-1, 1])
-            poplist = [None]
-            for i in range(20):
-                WaterCell(x0*CELL, y0*CELL, dir, cells, cells2, i, poplist)
+            celllist = [WaterCell(x0*CELL, y0*CELL) for i in range(20)]
+            celllist[0].ready(celllist)
         return 10
 
 class FiredLightning(ActiveSprite):

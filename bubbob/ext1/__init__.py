@@ -1,15 +1,22 @@
 from __future__ import generators
 import os, math, random
-import images
+import images, gamesrv
 from images import ActiveSprite
 from boards import CELL, HALFCELL, FRAME_TIME
 from mnstrmap import GreenAndBlue
 from bubbles import BubblingEyes
+from bonuses import Bonus
+
+LocalDir = os.path.abspath(os.path.dirname(__file__) or os.curdir)
 
 
 localmap = {
     'ark-paddle':  ('image1-%d.ppm', (0, 0, 96, 32)),
     }
+
+music = gamesrv.getmusic(os.path.join(LocalDir, 'music.wav'))
+snd_wall  = gamesrv.getsample(os.path.join(LocalDir, 'wall.wav'))
+snd_brick = gamesrv.getsample(os.path.join(LocalDir, 'brick.wav'))
 
 
 def aget(x, y):
@@ -35,7 +42,7 @@ class PaddleEyes(BubblingEyes):
         self.deltay = (paddle.ico.h - self.ico.h) // 2
         self.step(self.deltax, self.deltay)
 
-    def playing_bubble(self, paddle, accel=0.4, vmax=4.0):
+    def playing_bubble(self, paddle, accel=0.75, vmax=4.5):
         import boards
         dx = self.deltax
         dy = self.deltay
@@ -89,7 +96,7 @@ class Paddle(ActiveSprite):
         self.bubber = bubber
         self.timeleft = None
         self.gen.append(self.bounce_down())
-        self.gen.append(self.order())
+        self.gen.append(self.bkgndstuff())
         self.arkanoid.paddles.append(self)
 
     def bounce_down(self):
@@ -112,7 +119,7 @@ class Paddle(ActiveSprite):
         self.gen.append(self.wait_and_shoot())
 
     def wait_and_shoot(self):
-        timeout = 40
+        timeout = 30
         while timeout > 0:
             timeout -= self.arkanoid.ready
             yield None
@@ -127,14 +134,15 @@ class Paddle(ActiveSprite):
                 #if -1.25 <= self.timeleft <= 0.5:
                 if -12 <= deltay <= 1:
                     ball.bouncepad(self.arkanoid.paddles)
-            else:
-                self.timeleft = None
             yield None
+            self.timeleft = None
         if ball.missed:
             self.kill()
 
     def kill(self):
         from bubbles import Bubble
+        images.Snd.Pop.play(1.0, pad=0.0)
+        images.Snd.Pop.play(1.0, pad=1.0)
         ico = images.sprget(Bubble.exploding_bubbles[0])
         for i in range(11):
             s = ActiveSprite(ico,
@@ -147,15 +155,21 @@ class Paddle(ActiveSprite):
             pass
         ActiveSprite.kill(self)
 
-    def order(self):
+    def bkgndstuff(self):
         while 1:
             if self.timeleft is not None:
                 self.arkanoid.order.append((self.timeleft, self))
             yield None
+            touching = images.touching(self.x+1, self.y+1,
+                                       self.ico.w-2, self.ico.h-2)
+            touching.reverse()
+            for s in touching:
+                if isinstance(s, Bonus):
+                    s.touched(self)
 
-    def score(self):
-        self.arkanoid.bricks[self.bubber] += 1
-        self.bubber.givepoints(50)
+    def score(self, hits):
+        self.arkanoid.bricks[self.bubber] += hits
+        self.bubber.givepoints(125*(2**hits))
 
 
 class Ball(ActiveSprite):
@@ -167,11 +181,11 @@ class Ball(ActiveSprite):
         self.paddle = paddle
         imglist1 = GreenAndBlue.new_bubbles[paddle.bubber.pn]
         ActiveSprite.__init__(self, images.sprget(imglist1[0]),
-                              paddle.x + CELL,
+                              paddle.x + paddle.ico.w//2,
                               paddle.y - Ball.Y_MARGIN)
         self.missed = 0
         self.setimages(self.imgseq(imglist1[1:], 6))
-        self.bounceangle(-0.375)
+        self.bounceangle(0.2)
         self.gen.append(self.flying())
 
     def bouncepad(self, paddles):
@@ -180,12 +194,14 @@ class Ball(ActiveSprite):
             dxmax = paddle.ico.w//2
             angle = float(dx) / dxmax
             if 0.0 <= angle <= 1.0:
-                self.bounceangle(angle * 1.111 + 0.07)
-                return 1
-            if -1.0 <= angle <= 0.0:
-                self.bounceangle(angle * 1.111 - 0.07)
-                return -1
-        return 0
+                angle = angle * 1.111 + 0.07
+            elif -1.0 <= angle <= 0.0:
+                angle = angle * 1.111 - 0.07
+            else:
+                continue
+            self.bounceangle(angle)
+            self.play(snd_wall)
+            break
 
     def bounceangle(self, angle):
         self.vx = math.sin(angle) * self.SPEED
@@ -200,27 +216,39 @@ class Ball(ActiveSprite):
             fy += self.vy
             self.move(int(fx), int(fy))
             yield None
-            cx = (self.x+HALFCELL) // CELL
-            cy = (self.y+HALFCELL) // CELL
+            cx = self.x // CELL + 1
+            cy = self.y // CELL + 1
             dx = sign(self.vx)
             dy = sign(self.vy)
+            hits = 0.0
+            if aget(cx, cy) == '#':
+                hits += self.ahit(cx, cy, 0, 0)
             if aget(cx+dx, cy) == '#':
-                self.ahit(cx+dx, cy, 0, dy)
+                hits += self.ahit(cx+dx, cy, 0, dy)
                 self.vx = -self.vx
             if aget(cx, cy+dy) == '#':
-                self.ahit(cx, cy+dy, dx, 0)
+                hits += self.ahit(cx, cy+dy, dx, 0)
                 self.vy = -self.vy
+            if hits:
+                hits = int(hits)
+                if hits:
+                    self.paddle.score(hits)
+                    self.play(snd_brick)
+                else:
+                    self.play(snd_wall)
         self.missed = 1
         self.kill()
 
     def ahit(self, cx, cy, dx, dy):
+        total = 0.01
         for i in (-1, 0, 1):
             x = cx + i*dx
             y = cy + i*dy
             if (2 <= x < curboard.width - 2 and 0 <= y < curboard.height and
                 aget(x, y) == '#'):
                 curboard.killwall(x, y)
-                self.paddle.score()
+                total += 1.0
+        return total
 
     def pop(self):
         from bubbles import Bubble
@@ -234,9 +262,10 @@ class Arkanoid:
         import boards
         from player import BubPlayer
 
-        for t in boards.exit_board(0):
+        for t in boards.exit_board(0, music=[music, music]):
             yield t
-        yield boards.force_singlegen()
+        for t in curboard.clean_gen_state():
+            yield t
 
         tc = boards.TimeCounter(limittime)
         self.ready = 0
@@ -256,11 +285,15 @@ class Arkanoid:
                     break
             else:
                 finish = 0
-            if self.ready:
-                tc.update(t)
-                if tc.time == 0.0:
-                    break
+            tc.update(t)
+            if tc.time == 0.0:
+                break
+            if (BubPlayer.FrameCounter & 15) == 7:
+                for s in images.ActiveSprites:
+                    if isinstance(s, Bonus):
+                        s.timeout = 0   # bonuses stay
 
+        tc.restore()
         self.ready = 0
         for s in images.ActiveSprites[:]:
             if isinstance(s, Ball):
@@ -269,7 +302,6 @@ class Arkanoid:
             self.build_paddles()
             yield t
         self.remove_paddles()
-        tc.restore()
 
     def frame(self):
         for y in range(curboard.height-1, curboard.height//2, -1):
@@ -279,7 +311,7 @@ class Arkanoid:
                 if aget(x, y) == '#':
                     curboard.killwall(x, y)
         brickline = curboard.width-4
-        expected = brickline * (curboard.height//4)
+        expected = (brickline * curboard.height) // 5
         y = curboard.height//2
         nbbricks = 0
         while y>=0 and nbbricks + (y+1)*brickline >= expected:
@@ -331,7 +363,7 @@ class Arkanoid:
         del self.order[:]
 
     def remove_paddles(self):
-        killclasses = (Paddle, PaddleEyes, Ball)
+        killclasses = (Paddle, PaddleEyes, Ball, Bonus)
         for s in images.ActiveSprites[:]:
             if isinstance(s, killclasses):
                 s.kill()
@@ -344,8 +376,7 @@ def run():
     from player import BubPlayer
 
     for key, (filename, rect) in localmap.items():
-        filename = os.path.join(os.path.dirname(__file__), filename)
-        filename = os.path.abspath(filename)
+        filename = os.path.join(LocalDir, filename)
         if filename.find('%d') >= 0:
             for p in BubPlayer.PlayerList:
                 images.sprmap[key, p.pn] = (filename % p.pn, rect)

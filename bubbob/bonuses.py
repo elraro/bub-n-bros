@@ -57,7 +57,8 @@ class Bonus(ActiveSprite):
     def timeouter(self):
         for i in range(self.timeout):
             yield None
-        self.kill()
+        if self.timeout:
+            self.kill()
 
     def touched(self, dragon):
         if (dragon.x + dragon.ico.w > self.x + 10   and
@@ -72,6 +73,7 @@ class Bonus(ActiveSprite):
                 self.taken_by.append(dragon)
 
     def taking(self, follow_dragons=0, delay=1):
+        from player import Dragon
         for t in range(delay):
             yield None   # time to be taken by several dragons
         if self.points:
@@ -81,7 +83,8 @@ class Bonus(ActiveSprite):
                 else:
                     s = self
                 points(s.x + s.ico.w//2, s.y + s.ico.h//2 - CELL, p, self.points)
-        if self.taken1(self.taken_by) != -1:
+        dragons = [d for d in self.taken_by if isinstance(d, Dragon)]
+        if self.taken1(dragons) != -1:
             self.kill()
 
     def taken1(self, dragons):
@@ -199,6 +202,7 @@ class Parabolic(ActiveSprite):
                 (nx, ny), moebius = boards.vertical_warp(nx, ny)
             self.move(nx, ny)
             yield None
+        self.move(nx, ny)
         self.build()
         self.kill()
 
@@ -438,9 +442,15 @@ class Potion(RandomBonus):
                      [(PotionBonuses.flower, 1000), (PotionBonuses.trefle, 2000)]),
                (Bonuses.yellow_potion, 550,
                      [(PotionBonuses.green_note, 2000), (PotionBonuses.blue_note, 3000)]),
-               ('potion4',             750,   None),
                ]
-    Extensions = ['ext1']
+    LocalDir = os.path.dirname(__file__) or os.curdir
+    Extensions = [s for s in os.listdir(LocalDir)
+                    if s.startswith('ext') and
+                       os.path.isdir(os.path.join(LocalDir, s))]
+    if Extensions:
+        #del Potions[:] # CHEAT
+        Potions.append(('potion4',     750,   None))
+
     def __init__(self, x, y):
         self.mode = random.choice(Potion.Potions)
         RandomBonus.__init__(self, x, y, *self.mode[:2])
@@ -450,7 +460,7 @@ class Potion(RandomBonus):
             if random.random() < 0.6:
                 blist = [random.choice(blist)]
             boards.replace_boardgen(boards.potion_fill(blist))
-        elif Potion.Extensions:
+        else:
             ext = random.choice(Potion.Extensions)
             ext = __import__(ext, globals(), locals(), ['run'])
             ext.run()
@@ -615,11 +625,8 @@ def fire_rain(x, poplist):
 
 def water_rain(x, poplist):
     from bubbles import WaterCell
-    cells = {}
-    cells2 = []
-    dir = random.choice([-1, 1])
-    for i in range(5):
-        WaterCell(x, 0, dir, cells, cells2, i, poplist)
+    celllist = [WaterCell(x, 0) for i in range(5)]
+    celllist[0].ready(celllist)
 
 def ball_rain(x, poplist):
     from bubbles import SpinningBall
@@ -1120,6 +1127,8 @@ class Sheep(RandomBonus):
         BubPlayer.LeaveBonus = self.boardleave()
 
     def boardleave(self):
+        from player import BubPlayer
+        BubPlayer.OverridePlayerIcon = images.sprget(self.nimage)
         gamesrv.set_musics([], [])
         images.Snd.Yippee.play()
         slist = []
@@ -1205,7 +1214,7 @@ Classes = [c for c in globals().values()
 Classes.remove(RandomBonus)
 Classes.remove(TemporaryBonus)
 Cheat = []
-#Classes = [Potion]  # CHEAT
+#Classes = [Sheep]  # CHEAT
 
 AllOutcomes = ([(c,) for c in Classes if c is not Fruits] +
                2 * [(MonsterBonus, lvl)

@@ -352,8 +352,8 @@ class Monster(ActiveSprite):
             yield None
             yield None
         self.resetimages()
+        self.timeoutgen = self.back_to_dragon()
         self.gen.append(self.playing_monster())
-        self.gen.append(self.back_to_dragon())
 
     def back_to_dragon(self):
         for t in range(259):
@@ -369,6 +369,8 @@ class Monster(ActiveSprite):
         self.kill()
 
     def playing_monster(self):
+        if self.timeoutgen not in self.gen:
+            self.gen.append(self.timeoutgen)
         bubber = self.bubber
         if self.vy:
             # flying monster
