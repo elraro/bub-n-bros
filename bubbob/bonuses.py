@@ -1166,13 +1166,21 @@ class Carrot(RandomBonus):
     "Angry Monster. Turns all free monsters angry."
     nimage = Bonuses.carrot
     points = 950
-    bigbonus = {'multiply': 2}
+    ghost = 0
+    bigbonus = {'ghost': 1}
     def taken1(self, dragons):
         from monsters import Monster
-        for s in images.ActiveSprites:
-            if isinstance(s, Monster) and s.regular():
-                s.angry = [s.genangry()] * self.multiply
-                s.resetimages()
+        lst = [s for s in images.ActiveSprites
+               if isinstance(s, Monster) and s.regular()]
+        if lst:
+            if self.ghost:
+                images.Snd.Hell.play()
+                for s in lst:
+                    s.become_ghost()
+            else:
+                for s in lst:
+                    s.angry = [s.genangry()]
+                    s.resetimages()
 
 class Egg(RandomBonus):
     "Teleporter. Exchange yourself with somebody else."
