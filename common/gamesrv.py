@@ -6,15 +6,6 @@ from time import time, ctime
 from msgstruct import *
 from errno import EWOULDBLOCK
 
-try:
-  from localmsg import PORTS
-except ImportError:
-  PORTS = {}
-try:
-  from localmsg import HOSTNAME
-except ImportError:
-  HOSTNAME = gethostname()
-
 
 SERVER_TIMEOUT = 600   # 10 minutes without any connection or port activity
 

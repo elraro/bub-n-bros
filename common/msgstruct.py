@@ -1,5 +1,15 @@
 from struct import pack, unpack, calcsize
 
+try:
+    from localmsg import PORTS
+except ImportError:
+    PORTS = {}
+try:
+    from localmsg import HOSTNAME
+except ImportError:
+    from socket import gethostname
+    HOSTNAME = gethostname()
+
 
 MSG_WELCOME = "Welcome to gamesrv.py(3) !\n"
 MSG_BROADCAST_PORT= "*"
