@@ -6,6 +6,9 @@ from weakref import WeakValueDictionary
 from metastruct import *
 import httpserver, stdlog
 
+if __name__ == '__main__':
+    os.chdir(os.path.dirname(sys.argv[0]))
+
 META_SERVER_HTTP_PORT = 8050
 META_SERVER_PORT = 8055
 IMAGE_DIR = "../bubbob/doc/images"
@@ -288,7 +291,6 @@ def mainloop():
 
 
 if __name__ == '__main__':
-    os.chdir(os.path.dirname(sys.argv[0]))
     metaserver = MetaServer()
     if sys.argv[1:2] == ['-f']:
         metaserver.detach()
