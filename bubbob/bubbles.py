@@ -329,7 +329,7 @@ class BubblingEyes(ActiveSprite):
         self.setimages(self.cyclic(GreenAndBlue.comming[bubber.pn], 2))
         dxy = [(random.random()-0.5) * 9.0,
                (random.random()+0.5) * (-5.0)]
-        for n in self.parabolic(dxy):
+        for n in self.parabolic(dxy, 1):
             yield n
             if dxy[1] >= 4.0:
                 break

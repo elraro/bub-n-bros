@@ -1,5 +1,5 @@
 from __future__ import generators
-import random, math
+import random, math, time
 import gamesrv
 import images
 import boards
@@ -10,6 +10,7 @@ from mnstrmap import GreenAndBlue, LetterBubbles, PlayerBubbles
 from mnstrmap import DigitsMisc
 
 MAX = 7
+KEEPALIVE = 5*60   # seconds
 CheatDontDie = 0
 ExtraLifeEvery = 50000
 
@@ -299,6 +300,10 @@ class Dragon(ActiveSprite):
                     s.gen.append(s.die([None], speed=10))
                     angryticks = 6
                 angryticks -= 1
+            #if BubPlayer.Moebius and BubPlayer.FrameCounter % 5 == 0:
+            #    s = ActiveSprite(icons[11, -self.dir],
+            #                     boards.bwidth - 2*CELL - self.x, self.y)
+            #    s.gen.append(s.die([None], speed=2))
 
     def bottom_up(self):
         return self.dcap['gravity'] < 0.0
@@ -354,7 +359,7 @@ class BubPlayer(gamesrv.Player):
 
     INIT_BOARD_CAP = {
         'FrameCounter': 0,
-        'LatestLetsGo': -999,
+        #'LatestLetsGo': -999,
         'BubblesBecome': None,
         'MegaBonus': None,
         'BaseFrametime': 1.0,
@@ -406,6 +411,7 @@ class BubPlayer(gamesrv.Player):
         #self.badpoints = 0
         self.pcap = {}
         self.dragons = []
+        self.keepalive = None
 
     def loadicons(self, icons, fn):
         for key, value in self.iconnames.items():
@@ -413,10 +419,14 @@ class BubPlayer(gamesrv.Player):
 
     def playerjoin(self):
         n = self.pn
-        print 'New player is at position #%d.' % n
         if not self.icons:
             self.loadicons(self.icons, images.sprget)
-        self.reset()
+        self.keepalive = None
+        if self.points or self.letters:
+            print 'New player continues at position #%d.' % n
+        else:
+            print 'New player is at position #%d.' % n
+            self.reset()
         self.key_left  = KeyOff
         self.key_right = KeyOff
         self.key_jump  = KeyOff
@@ -425,13 +435,15 @@ class BubPlayer(gamesrv.Player):
                    if p.isplaying() and p is not self]
         self.enterboard(players)
         scoreboard()
-        if BubPlayer.LatestLetsGo < BubPlayer.FrameCounter - 30:
-            images.Snd.LetsGo.play()
-            BubPlayer.LatestLetsGo = BubPlayer.FrameCounter
+        #if BubPlayer.LatestLetsGo < BubPlayer.FrameCounter - 30:
+        images.Snd.LetsGo.play()
+        #BubPlayer.LatestLetsGo = BubPlayer.FrameCounter
 
     def playerleaves(self):
         print 'Closing position #%d.' % self.pn
+        self.savecaps()
         self.zarkoff()
+        self.keepalive = time.time() + KEEPALIVE
         scoreboard()
 
     def enterboard(self, players):
@@ -600,7 +612,15 @@ def scoreboard(reset=0):
         return
     lst = []
     bubblesshown = {}
-    plist = [(p.points, p) for p in BubPlayer.PlayerList if p.isplaying()]
+    plist = []
+    for p in BubPlayer.PlayerList:
+        if not p.isplaying():
+            if not p.keepalive:
+                continue
+            if p.keepalive < time.time():
+                p.reset()
+                continue
+        plist.append((p.points, p))
     plist.sort()
     x0 = boards.bwidth
     y0 = boards.bheight
@@ -608,8 +628,12 @@ def scoreboard(reset=0):
         if p.lives == 0:
             ico = images.sprget(GreenAndBlue.gameover[p.pn][0])
             lst.append((x0+9*CELL-ico.w, y0-ico.h, ico))
-        else:
-            ico = images.sprget(GreenAndBlue.players[p.pn][0])
+        elif p.icons:
+            if p.isplaying():
+                mode = 0
+            else:
+                mode = 11
+            ico = p.icons[mode, -1]
             lst.append((x0+7*CELL, y0-2*CELL, ico))
         #if boards.curboard.wastingplay is None:
         for l in range(6):

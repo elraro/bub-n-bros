@@ -125,7 +125,7 @@ class ActiveSprite(gamesrv.Sprite):
                 yield None
         self.kill()
 
-    def parabolic(self, dxy):
+    def parabolic(self, dxy, warp=0):
         import boards
         from boards import CELL
         nx = self.x
@@ -141,6 +141,11 @@ class ActiveSprite(gamesrv.Sprite):
             elif nx >= boards.bwidth - 4*CELL:
                 nx = boards.bwidth - 4*CELL
                 dx = -abs(dx)
+            if warp and (ny < -2*CELL or ny >= boards.bheight):
+                (nx, ny), moebius = boards.vertical_warp(nx, ny)
+                if moebius:
+                    self.moebius()
+                    dx = -dx
             self.move(int(nx), int(ny))
             dxy[:] = [dx, dy]
             yield None

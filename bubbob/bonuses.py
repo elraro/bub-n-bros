@@ -173,7 +173,7 @@ class Parabolic(ActiveSprite):
     def moving(self, y_amplitude = -8.0):
         dxy = [(random.random()-0.5) * 15.0,
                (random.random()+0.5) * y_amplitude]
-        for n in self.parabolic(dxy):
+        for n in self.parabolic(dxy, self.fallstraight):
             yield n
             if dxy[1] >= 4.0 and self.fallstraight:
                 self.gen.append(self.falling())
@@ -883,13 +883,14 @@ else:
             # called from BoardGen
             ps = []
             for p1 in BubPlayer.PlayerList:
-                if p1.isplaying():
-                    d = p1.__dict__.copy()
-                    for key in BubPlayer.TRANSIENT_DATA:
+                #if p1.isplaying():
+                d = p1.__dict__.copy()
+                for key in BubPlayer.TRANSIENT_DATA:
+                    if key in d:
                         del d[key]
-                    ps.append(d)
-                else:
-                    ps.append(None)
+                ps.append(d)
+                #else:
+                #    ps.append(None)
             topstate = (
                 [g for g in boards.BoardGen if not g.gi_running],
                 boards.curboard,
@@ -956,10 +957,10 @@ else:
              ) = savedstate
 
             for p, d in zip(BubPlayer.PlayerList, ps):
-                if d is None:
-                    p.reset()
-                else:
-                    p.__dict__.update(d)
+                #if d is None:
+                #    p.reset()
+                #else:
+                p.__dict__.update(d)
                 if not p.isplaying():
                     p.zarkoff()
             scoreboard()
@@ -1091,8 +1092,7 @@ class Sheep(RandomBonus):
     def taken1(self, dragons):
         self.points0 = {}
         for p in BubPlayer.PlayerList:
-            if p.isplaying():
-                self.points0[p] = p.points
+            self.points0[p] = p.points
         BubPlayer.LeaveBonus = self.boardleave()
 
     def boardleave(self):
@@ -1109,20 +1109,21 @@ class Sheep(RandomBonus):
             d.kill()
         delta = {}
         for p in BubPlayer.PlayerList:
-            if p.isplaying():
-                delta[p] = (self.points0.get(p, 0) - p.points) // 10
+            if p.points or p.isplaying():
+                delta[p] = 2 * (self.points0[p] - p.points)
         vy = 0
-        for i in range(20):
+        while delta or slist:
+            ndelta = {}
             for p, dp in delta.items():
-                p.givepoints(dp)
-            for j in range(4):
-                for s in slist:
-                    s.action()
-                yield 1
-        while slist:
-            slist = [s for s in slist if s.y < boards.bheight]
+                if dp:
+                    d1 = max(-250, min(250, dp))
+                    p.givepoints(d1)
+                    if p.points > 0:
+                        ndelta[p] = dp - d1
+            delta = ndelta
             for s in slist:
                 s.action()
+            slist = [s for s in slist if s.y < boards.bheight]
             yield 1
 
 class Moebius(RandomBonus):
@@ -1169,7 +1170,7 @@ Classes = [c for c in globals().values()
 Classes.remove(RandomBonus)
 Classes.remove(TemporaryBonus)
 Cheat = [] #[Book, Door, Bomb, Ham]
-#Classes = [Fruits]  # CHEAT
+#Classes = [Sheep]  # CHEAT
 
 AllOutcomes = ([(c,) for c in Classes if c is not Fruits] +
                2 * [(MonsterBonus, lvl)

@@ -582,7 +582,7 @@ def game_over():
     from player import BubPlayer
     images.Snd.Extralife.play()
     gamesrv.set_musics([], [images.music_potion])
-    players = [(p.points, p) for p in BubPlayer.PlayerList if p.isplaying()]
+    players = [(p.points, p) for p in BubPlayer.PlayerList if p.points]
     players.sort()
     maximum = BubPlayer.LimitScore or (players and players[-1][0]) or 1
     ranking = []
