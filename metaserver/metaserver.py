@@ -79,10 +79,10 @@ class MetaServer:
                 print '-', key
 
     def makelist(self):
-        items = []
+        items = {}
         for srv in self.ServersList:
-            items.append(encodedict(srv.serverinfo))
-        return encodelist(items)
+            items[srv.serverkey] = encodedict(srv.serverinfo)
+        return encodedict(items)
 
     def getserver(self, key):
         return self.ServersDict[key]
@@ -128,7 +128,7 @@ class Connexion(MessageSocket):
         metaserver.unpublish(self)
 
     def msg_list(self, *rest):
-        self.s.sendall(metaserver.makelist())
+        self.s.sendall(message(RMSG_LIST, metaserver.makelist()))
 
     def msg_route(self, targetkey, *rest):
         try:

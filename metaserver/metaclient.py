@@ -4,8 +4,8 @@ from metastruct import *
 
 METASERVER = ('codespeak.net', 8055)
 METASERVER_URL = 'http://codespeak.net:8050/bub-n-bros.html'
-#METASERVER = ('127.0.0.1', 8055)
-#METASERVER_URL = 'http://127.0.0.1:8050/bub-n-bros.html'
+METASERVER = ('127.0.0.1', 8055)
+METASERVER_URL = 'http://127.0.0.1:8050/bub-n-bros.html'
 
 def connect(failure=[]):
     if len(failure) >= 2:
@@ -344,3 +344,29 @@ def meta_connect(serverkey, backconnectport=None):
     s = c.run()
     c.done()
     return s
+
+
+if __name__ == '__main__':
+    s = connect()
+    if s is not None:
+        s.sendall(message(MMSG_LIST))
+        buffer = ""
+        while decodemessage(buffer)[0] is None:
+            buffer += s.recv(8192)
+        s.close()
+        msg = decodemessage(buffer)[0]
+        assert msg[0] == RMSG_LIST
+        entries = decodedict(msg[1])
+        if not entries:
+            print >> sys.stderr, 'No registered server.'
+        else:
+            print
+            print ' %-25s | %-30s | %s' % (
+                'server', 'game', 'players')
+            print '-'*27+'+'+'-'*32+'+'+'-'*11
+            for key, value in entries.items():
+                value = decodedict(value)
+                print ' %-25s | %-30s | %s' % (
+                    key, value.get('desc', '<no description>'),
+                    value.get('extradesc', ''))
+            print

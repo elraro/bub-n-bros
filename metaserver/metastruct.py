@@ -17,6 +17,7 @@ RMSG_PING     = 'p'
 RMSG_PONG     = 'o'
 RMSG_SYNC     = 'y'
 RMSG_CONNECT  = 'c'
+RMSG_LIST     = 'l'
 
 
 def encodedict(dict):
@@ -38,7 +39,7 @@ def decodedict(buffer):
     return result
 
 def decodelist(buffer):
-    msg = decodemessage(buffer)
+    msg, buffer = decodemessage(buffer)
     assert msg[0] == '['
     return list(msg[1:])
 
