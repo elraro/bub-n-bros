@@ -820,6 +820,8 @@ def scoreboard(reset=0, inplace=0):
             if isinstance(s, ActiveSprite) and s not in bubblesshown:
                 p.letters[name] = 2
                 s.kill()
+    compressable = len(lst)
+    ymin = 0
     #if BubPlayer.HighScoreColor is not None:
     #    x = xyiconumber(GreenAndBlue.digits[BubPlayer.HighScoreColor],
     #                    x0+2*CELL, HALFCELL, BubPlayer.HighScore, lst)
@@ -839,8 +841,19 @@ def scoreboard(reset=0, inplace=0):
         lst.append((x0+6*CELL, HALFCELL, ico))
         ico = images.sprget(DigitsMisc.digits_white[seconds % 10])
         lst.append((x0+6*CELL+ico.w, HALFCELL, ico))
+        ymin = HALFCELL + ico.h
     if not brd.bonuslevel:
         xyiconumber(DigitsMisc.digits_white, 2, 2, brd.num+1, lst, width=2)
+
+    # compress the scoreboard vertically if it doesn't fit
+    ymin += HALFCELL
+    if y0 < ymin:
+        factor = float(boards.bheight-ymin) / (boards.bheight-y0)
+        shift = ymin - y0*factor + 0.5
+        for i in range(compressable):
+            x, y, ico = lst[i]
+            lst[i] = x, int((y+ico.h)*factor+shift)-ico.h, ico
+
     brd.writesprites('scoreboard', lst)
 
     if gamesrv.game.End in (0, 1):

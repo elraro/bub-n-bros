@@ -58,14 +58,15 @@ class Board(Copyable):
     def writesprites(self, name, xyicolist):
         sprlist = self.sprites.setdefault(name, [])
         xyicolist = xyicolist[:]
+        xyicolist.reverse()
         for s in sprlist[:]:
             if xyicolist:
-                s.move(*xyicolist.pop(0))
+                s.move(*xyicolist.pop())
             else:
                 s.kill()
                 sprlist.remove(s)
         while xyicolist:
-            x, y, ico = xyicolist.pop(0)
+            x, y, ico = xyicolist.pop()
             sprlist.append(gamesrv.Sprite(ico, x, y))
 
     def enter(self, complete=1, inplace=0):
