@@ -1,7 +1,7 @@
 from socket import *
 from msgstruct import *
-from fcntl import ioctl
-from termios import TIOCOUTQ
+#from fcntl import ioctl
+#from termios import TIOCOUTQ
 from zlib import compressobj, Z_SYNC_FLUSH
 import struct
 

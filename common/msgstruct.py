@@ -1,4 +1,4 @@
-import struct
+from struct import pack, unpack, calcsize
 
 
 MSG_WELCOME = "Welcome to gamesrv.py(3) !\n"
@@ -17,9 +17,12 @@ MSG_PLAYER_ICON   = "i"
 MSG_PING          = "g"
 MSG_PONG          = "G"
 MSG_INLINE_FRAME  = "\\"
-#MSG_LOAD_PREFIX   = "F"
+MSG_PATCH_FILE    = MSG_DEF_MUSIC
+MSG_ZPATCH_FILE   = "P"
+MSG_MD5_FILE      = "M"
 MSG_RECORDED      = "\x00"
 
+CMSG_PROTO_VERSION= "v"
 CMSG_KEY          = "k"
 CMSG_ADD_PLAYER   = "+"
 CMSG_REMOVE_PLAYER= "-"
@@ -28,7 +31,9 @@ CMSG_ENABLE_SOUND = "s"
 CMSG_ENABLE_MUSIC = "m"
 CMSG_PING         = "g"
 CMSG_PONG         = "G"
-#CMSG_DEF_FILE     = "F"
+CMSG_DATA_REQUEST = "M"
+
+BROADCAST_MESSAGE = "game!"   # less than 6 bytes
 
 
 def message(tp, *values):
@@ -43,15 +48,15 @@ def message(tp, *values):
             typecodes.append('l')
     typecodes = ''.join(typecodes)
     assert len(typecodes) < 256
-    return struct.pack(("!B%dsc" % len(typecodes)) + typecodes,
-                       len(typecodes), typecodes, tp, *values)
+    return pack(("!B%dsc" % len(typecodes)) + typecodes,
+                len(typecodes), typecodes, tp, *values)
 
 def decodemessage(data):
     if data:
         limit = ord(data[0]) + 1
         if len(data) >= limit:
             typecodes = "!c" + data[1:limit]
-            end = limit + struct.calcsize(typecodes)
+            end = limit + calcsize(typecodes)
             if len(data) >= end:
-                return struct.unpack(typecodes, data[limit:end]), data[end:]
+                return unpack(typecodes, data[limit:end]), data[end:]
     return None, data

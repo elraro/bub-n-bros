@@ -252,6 +252,8 @@ extramap = {
     'flower':       ('extra1.ppm', (0, 96, 32, 32)),
     'flower2':      ('extra1.ppm', (0, 128, 32, 32)),
     'potion4':      ('extra1.ppm', (0, 160, 32, 32)),
+    ('glasses', -1):('extra1.ppm', (0, 192, 32, 16)),
+    ('glasses', +1):('extra1.ppm', (0, 208, 32, 16)),
     'questionmark3':('extra2.ppm', (0, 0, 16, 16)),
     'questionmark1':('extra2.ppm', (0, 16, 16, 16)),
     'questionmark5':('extra2.ppm', (0, 32, 16, 16)),

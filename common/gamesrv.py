@@ -1,15 +1,24 @@
 from socket import *
 from select import select
 from struct import pack, unpack
-import zlib, os, random, struct
+import zlib, os, random, struct, md5
 from time import time, ctime
 from msgstruct import *
-import hostchooser
 from errno import EWOULDBLOCK
 
 #LOGFILE = None
 LOGFILE = 'gamesrv.log'
 LOGFILE_LIMIT = 16384  # bytes
+
+
+def protofilepath(filename):
+  path = []
+  while filename:
+    filename, component = os.path.split(filename)
+    assert component, "invalid file path"
+    path.insert(0, component)
+  path.insert(0, game.FnBasePath)
+  return '/'.join(path)
 
 
 class Icon:
@@ -24,22 +33,56 @@ class Icon:
     #print "Icon(%d, %d, %d,%d,%d,%d)" % (bmpcode, code, x,y,w,h)
 
 
-class Bitmap:
+class DataChunk:
+  
+  def __init__(self):
+    for c in clients:
+      if c.initialized == 2:
+        self.defall(c)
 
-  def __init__(self, code, filename, colorkey=None, data=None):
+  def read(self, slice=None):
+    f = open(self.filename, "rb")
+    data = f.read()
+    f.close()
+    if slice:
+      start, length = slice
+      data = data[start:start+length]
+    return data
+
+  def defall(self, client):
+    if client.proto == 1 or not self.filename:
+      # protocol 1
+      try:
+        msgdef = self.msgdef
+      except AttributeError:
+        data = zlib.compress(self.read())
+        msgdef = self.msgdef = self.getmsgdef(data)
+    else:
+      # protocol 2
+      try:
+        msgdef = self.sendmsgdef
+      except AttributeError:
+        fileid = len(filereaders)
+        filereaders[fileid] = self.read
+        data = self.read()
+        msgdef = self.sendmsgdef = (self.getmd5def(fileid, data) +
+                                    self.getmsgdef(fileid))
+    client.msgl.append(msgdef)
+
+  def getmd5def(self, fileid, data, offset=0):
+    checksum = md5.new(data).digest()
+    return message(MSG_MD5_FILE, fileid, protofilepath(self.filename),
+                   offset, len(data), checksum)
+
+
+class Bitmap(DataChunk):
+
+  def __init__(self, code, filename, colorkey=None):
     self.code = code
     self.filename = filename
     self.icons = {}
-    if data is None:
-      f = open(filename, "rb")
-      data = f.read()
-      f.close()
-    data = zlib.compress(data)
-    if colorkey is not None:
-      self.msgdef = message(MSG_DEF_BITMAP, code, data, colorkey)
-    else:
-      self.msgdef = message(MSG_DEF_BITMAP, code, data)
-    framemsgappend(self.msgdef)
+    self.colorkey = colorkey
+    DataChunk.__init__(self)
 
   def geticon(self, x,y,w,h):
     rect = (x,y,w,h)
@@ -54,35 +97,68 @@ class Bitmap:
   def geticonlist(self, w, h, count):
     return map(lambda i, fn=self.geticon, w=w, h=h: fn(i*w, 0, w, h), range(count))
 
-  def defall(self):
-    return [self.msgdef] + [i.msgdef for i in self.icons.values()]
+  def getmsgdef(self, data):
+    if self.colorkey is not None:
+      return message(MSG_DEF_BITMAP, self.code, data, self.colorkey)
+    else:
+      return message(MSG_DEF_BITMAP, self.code, data)
+
+  def defall(self, client):
+    DataChunk.defall(self, client)
+    for i in self.icons.values():
+      client.msgl.append(i.msgdef)
 
 
 class MemoryBitmap(Bitmap):
   
   def __init__(self, code, data, colorkey=None):
-    Bitmap.__init__(self, code, None, colorkey, data)
+    self.data = data
+    Bitmap.__init__(self, code, None, colorkey)
+
+  def read(self, slice=None):
+    data = self.data
+    if slice:
+      start, length = slice
+      data = data[start:start+length]
+    return data
 
 
-class Sample:
+class Sample(DataChunk):
 
   def __init__(self, code, filename, freqfactor=1):
     self.code = code
     self.filename = filename
     self.freqfactor = freqfactor
-    data = zlib.compress(self.read())
-    self.msgdef = message(MSG_DEF_SAMPLE, code, data)
-    sndframemsgappend(self.msgdef)
+    DataChunk.__init__(self)
 
-  def read(self):
+  def defall(self, client):
+    if client.has_sound > 0:
+      DataChunk.defall(self, client)
+
+  def getmsgdef(self, data):
+    return message(MSG_DEF_SAMPLE, self.code, data)
+
+  def read(self, slice=None):
     f = open(self.filename, "rb")
     data = f.read()
     f.close()
     if self.freqfactor != 1:
       freq, = unpack("<i", data[24:28])
       freq = int(freq * self.freqfactor)
-      data = data[:24] + struct.pack("<i", freq) + data[28:]
+      data = data[:24] + pack("<i", freq) + data[28:]
+    if slice:
+      start, length = slice
+      data = data[start:start+length]
     return data
+
+  def getmd5def(self, fileid, data):
+    if self.freqfactor == 1:
+      return DataChunk.getmd5def(self, fileid, data)
+    else:
+      datahead = data[:28]
+      datatail = data[28:]
+      return (message(MSG_PATCH_FILE, fileid, 0, datahead) +
+              DataChunk.getmd5def(self, fileid, datatail, offset=28))
 
   def play(self, lvolume=1.0, rvolume=None, pad=0.5, singleclient=None):
     if rvolume is None:
@@ -103,23 +179,27 @@ class Sample:
     else:
       clist = [singleclient]
     for c in clist:
-      if c.sounds is not None:
+      if c.has_sound:
         c.sounds.setdefault(message, 4)
 
-  def defall(self):
-    return [self.msgdef]
 
+class Music(DataChunk):
 
-class Music:
-
-  def __init__(self, code, filename, filerate=44100):
-    self.code = code
+  def __init__(self, filename, filerate=44100):
     self.filename = filename
     self.filerate = filerate
     self.f = open(filename, 'rb')
     self.f.seek(0, 2)
     filesize = self.f.tell()
     self.endpos = max(self.filerate, filesize - self.filerate)
+    self.fileid = len(filereaders)
+    filereaders[self.fileid] = self.read
+    self.md5msgs = {}
+    DataChunk.__init__(self)
+
+  def read(self, (start, length)):
+    self.f.seek(start)
+    return self.f.read(length)
 
   def msgblock(self, position, limited=1):
     blocksize = self.filerate
@@ -127,8 +207,17 @@ class Music:
       blocksize = self.endpos-position
       if blocksize <= 0:
         return ''
-    self.f.seek(position)
-    return message(MSG_DEF_MUSIC, self.code, position, self.f.read(blocksize))
+    #self.f.seek(position)
+    #return message(MSG_DEF_MUSIC, self.code, position, self.f.read(blocksize))
+    try:
+      msg = self.md5msgs[position]
+    except KeyError:
+      data = self.read((position, blocksize))
+      checksum = md5.new(data).digest()
+      msg = message(MSG_MD5_FILE, self.fileid, protofilepath(self.filename),
+                    position, blocksize, checksum)
+      self.md5msgs[position] = msg
+    return msg
 
   def clientsend(self, clientpos):
     msg = self.msgblock(clientpos)
@@ -141,8 +230,8 @@ class Music:
   def initialsend(self, c):
     return [self.msgblock(0), self.msgblock(self.endpos, 0)], self.filerate
 
-  def defall(self):
-    return []
+  def defall(self, client):
+    pass
 
 
 def clearsprites():
@@ -189,8 +278,8 @@ class Sprite:
     self.y = y
     self.ico = ico
     self.alive = len(sprites)
-    if (-ico.w < x < playfield.width and
-        -ico.h < y < playfield.height):
+    if (-ico.w < x < game.width and
+        -ico.h < y < game.height):
       sprites.append(pack("!hhh", x, y, ico.code))
     else:
       sprites.append('')  # starts off-screen
@@ -295,60 +384,55 @@ class Player:
     return hasattr(self, "_client")
 
 
-def deffieldmsg():
-  msg = message(MSG_DEF_PLAYFIELD,
-                playfield.width, playfield.height, playfield.backcolor)
-  if not clients:
-    framemsgappend(msg)  # for recording
-  return msg
-
-
 class Client:
   SEND_BOUND_PER_FRAME = 0x6000   # bytes
   KEEP_ALIVE           = 2.2      # seconds
 
-  def __init__(self, socket, addr, broadcast_port):
+  def __init__(self, socket, addr):
     socket.setblocking(0)
     self.socket = socket
     self.addr = addr
     self.udpsocket = None
     self.udpsockcounter = 0
-##    if FnPath:
-##      desc = '%s [%s]' % (FnDesc, FnPath)
-##    else:
-##      desc = FnDesc
-    self.initialdata = MSG_WELCOME + FnDesc + '\n'
-    if broadcast_port is not None:
-      self.initialdata += message(MSG_BROADCAST_PORT, broadcast_port)
-    self.initialdata += deffieldmsg()
+    self.initialdata = MSG_WELCOME
     self.initialized = 0
     self.msgl = [message(MSG_PING)]
-##    self.known_files = { }
+    self.buf = ""
     self.players = { }
     self.sounds = None
+    self.has_sound = 0
     self.has_music = 0
+    self.musicpos = { }
+    self.proto = 1
+    addsocket('CLIENT', self.socket, self.input_handler)
+    clients.append(self)
+    self.log('connected')
+    self.send_buffer(self.initialdata)
+
+  def opengame(self, game):
+    if self.initialized == 0:
+      self.initialdata += game.FnDesc + '\n'
+      self.initialized = 1
+    if self.initialized == 1:
+      if game.broadcast_port:
+        self.initialdata += message(MSG_BROADCAST_PORT, game.broadcast_port)
+        game.trigger_broadcast()
+      self.initialdata += game.deffieldmsg()
+    else:
+      self.msgl.append(game.deffieldmsg())
     self.activity = self.last_ping = time()
     self.force_ping_delay = 0.6
-    self.musicpos = { }
-    for b in bitmaps.values():
-      self.msgl += b.defall()
     for c in clients:
       for id in c.players.keys():
         self.msgl.append(message(MSG_PLAYER_JOIN, id, 0))
-    self.finishinit()
-    for id, p in FnPlayers().items():
-      if p.standardplayericon is not None:
-        self.msgl.append(message(MSG_PLAYER_ICON, id, p.standardplayericon.code))
-    self.log('connected')
 
-  def emit(self, udpdata):
+  def emit(self, udpdata, broadcast_extras):
     if self.initialdata:
       self.send_buffer(self.initialdata)
-    else:
-      if self.initialized:
-        buffer = ''.join(self.msgl)
-        if buffer:
-          self.send_buffer(buffer)
+    elif self.initialized == 2:
+      buffer = ''.join(self.msgl)
+      if buffer:
+        self.send_buffer(buffer)
       if self.udpsocket is not None:
         if self.sounds:
           if broadcast_extras is None or self not in broadcast_clients:
@@ -401,25 +485,50 @@ class Client:
     else:
       self.msgl = []
 
-  def init(self):
-    self.buf = ""
-    return 1
-
   def receive(self, data):
     #print "receive:", `data`
-    data = self.buf + data
-    while data:
-      values, data = decodemessage(data)
-      if not values:
-        break  # incomplete message
-      fn = self.MESSAGES.get(values[0])
-      if fn:
-        fn(self, *values[1:])
+    try:
+      data = self.buf + data
+      while data:
+        values, data = decodemessage(data)
+        if not values:
+          break  # incomplete message
+        fn = self.MESSAGES.get(values[0])
+        if fn:
+          fn(self, *values[1:])
+        else:
+          print "unknown message from", self.addr, ":", values
+      self.buf = data
+    except struct.error:
+      self.socket.send('\n\n<h1>Protocol Error</h1>\n')
+      hs = findsocket('HTTP')
+      if hs is not None:
+        url = 'http://%s:%s' % (gethostname(), displaysockport(hs))
+        self.socket.send('''
+If you meant to point your web browser to this server,
+then use the following address:
+
+<a href="%s">%s</a>
+''' % (url, url))
+      self.disconnect('protocol error', 'receive')
+
+  def input_handler(self):
+    try:
+      data = self.socket.recv(2048)
+    except error, e:
+      self.disconnect(e, "socket.recv")
+    else:
+      if data:
+        self.activity = NOW
+        self.receive(data)
       else:
-        print "unknown message from", self.addr, ":", values
-    self.buf = data
+        # safecheck that this means disconnected
+        iwtd, owtd, ewtd = select([self.socket], [], [], 0.0)
+        if self.socket in iwtd:
+          self.disconnect('end of data', 'socket.recv')
 
   def disconnect(self, err=None, infn=None):
+    removesocket('CLIENT', self.socket)
     if err:
       extra = ": " + str(err)
     else:
@@ -440,8 +549,8 @@ class Client:
     except:
       pass
     self.socket = None
-    if not clients:
-      FnDisconnected()
+    if not clients and game is not None:
+      game.FnDisconnected()
 
   def killplayer(self, player):
     for id, p in self.players.items():
@@ -453,7 +562,9 @@ class Client:
     if self.players.has_key(id):
       print "Note: player %s is already playing" % (self.addr+(id,),)
       return
-    p = FnPlayers()[id]
+    if game is None:
+      return   # refusing new player before the game starts
+    p = game.FnPlayers()[id]
     if p is None:
       print "Too many players. New player %s refused." % (self.addr+(id,),)
       self.msgl.append(message(MSG_PLAYER_KILL, id))
@@ -491,11 +602,13 @@ class Client:
       self.udpsocket.connect((self.addr[0], port))
       self.log('set_udp_port: %d' % port)
 
-  def enable_sound(self, *rest):
+  def enable_sound(self, sound_mode=1, *rest):
     self.sounds = {}
-    for snd in samples.values():
-      self.msgl += snd.defall()
-    self.log('enable_sound')
+    self.has_sound = sound_mode
+    if self.has_sound > 0:
+      for snd in samples.values():
+        snd.defall(self)
+    self.log('enable_sound %s' % sound_mode)
 
   def enable_music(self, mode, *rest):
     self.has_music = mode
@@ -521,10 +634,18 @@ class Client:
         return
 
   def ping(self, *rest):
-    self.initialized = 1
+    if self.initialized < 2:
+      # send all current bitmap data
+      self.initialized = 2
+      for b in bitmaps.values():
+        b.defall(self)
+      self.finishinit(game)
+      for id, p in game.FnPlayers().items():
+        if p.standardplayericon is not None:
+          self.msgl.append(message(MSG_PLAYER_ICON, id, p.standardplayericon.code))
     self.msgl.append(message(MSG_PONG, *rest))
 
-  def finishinit(self):
+  def finishinit(self, game):
     pass
 
   def pong(self, *rest):
@@ -536,6 +657,14 @@ class Client:
       print >> f, ctime(), self.addr, message
       f.close()
 
+  def protocol_version(self, version, *rest):
+    self.proto = version
+
+  def md5_data_request(self, fileid, position, size, *rest):
+    data = filereaders[fileid]((position, size))
+    data = zlib.compress(data)
+    self.msgl.append(message(MSG_ZPATCH_FILE, fileid, position, data))
+
 ##  def def_file(self, filename, md5sum):
 ##    fnp = []
 ##    while filename:
@@ -546,6 +675,7 @@ class Client:
 ##      self.known_files[filename] = md5sum
 
   MESSAGES = {
+    CMSG_PROTO_VERSION: protocol_version,
     CMSG_ADD_PLAYER   : joinplayer,
     CMSG_REMOVE_PLAYER: remove_player,
     CMSG_UDP_PORT     : set_udp_port,
@@ -553,27 +683,29 @@ class Client:
     CMSG_ENABLE_MUSIC : enable_music,
     CMSG_PING         : ping,
     CMSG_PONG         : pong,
+    CMSG_DATA_REQUEST : md5_data_request,
 ##    CMSG_DEF_FILE     : def_file,
     }
 
 
 class SimpleClient(Client):
 
-  def finishinit(self):
+  def finishinit(self, game):
     num = 0
-    for keyname, icolist, fn in FnKeys:
+    for keyname, icolist, fn in game.FnKeys:
       self.msgl.append(message(MSG_DEF_KEY, keyname, num,
                                *[ico.code for ico in icolist]))
       num += 1
   
   def cmsg_key(self, pid, keynum):
-    try:
-      player = self.players[pid]
-      fn = FnKeys[keynum][2]
-    except (KeyError, IndexError):
-      FnUnknown()
-    else:
-      getattr(player, fn) ()
+    if game is not None:
+      try:
+        player = self.players[pid]
+        fn = game.FnKeys[keynum][2]
+      except (KeyError, IndexError):
+        game.FnUnknown()
+      else:
+        getattr(player, fn) ()
 
   MESSAGES = Client.MESSAGES.copy()
   MESSAGES.update({
@@ -584,7 +716,7 @@ def logfile():
   global LOGFILE
   if LOGFILE:
     try:
-      f = open(LOGFILE, 'r+')
+      f = open(LOGFILE, 'a+')
     except IOError:
       import tempfile
       name = os.path.join(tempfile.gettempdir(), os.path.basename(LOGFILE))
@@ -607,46 +739,34 @@ def logfile():
     return None
 
 
-class playfield:
-  width     = 640
-  height    = 480
-  backcolor = 0xFFFFFF
-
-
-FnDesc    = "NoName"
-FnPath    = None
-FnBasePath= []
-FnFrame   = lambda:1.0
-FnClient  = SimpleClient
-FnUnknown = lambda:None
-FnExcHandler=lambda k: 0
-FnPlayers = lambda:{}
-FnKeys    = []
-FnHttpPort= None
-
 MAX_CLIENTS = 32
 
 clients = []
+FnClient = SimpleClient
 broadcast_clients = {}
-broadcast_extras = None
+filereaders = {}
 bitmaps = {}
 samples = {}
 music_by_id = {}
 currentmusics = [0]
 sprites = ['']
 sprites_by_n = {}
-recording = None
+#recording = None
+game = None
+serversockets = {}
+socketsbyrole = {}
+socketports   = {}
 
 def framemsgappend(msg):
   for c in clients:
     c.msgl.append(msg)
-  if recording:
-    recording[0].write(msg)
+  #if recording:
+  #  recording[0].write(msg)
 
-def sndframemsgappend(msg):
-  for c in clients:
-    if c.sounds is not None:
-      c.msgl.append(msg)
+##def sndframemsgappend(msg):
+##  for c in clients:
+##    if c.has_sound:
+##      c.msgl.append(msg)
 
 def set_udp_port(port):
   hostchooser.UDP_PORT = port
@@ -659,14 +779,17 @@ def set_musics(musics_intro, musics_loop, reset=1):
   loop_from = len(musics_intro)
   mlist.append(loop_from)
   for m in musics_intro + musics_loop:
-    mlist.append(m.code)
+    mlist.append(m.fileid)
   if reset or mlist != currentmusics:
     currentmusics[:] = mlist
     for c in clients:
       c.startmusic()
 
 def fadeout(time=1.0):
-  sndframemsgappend(message(MSG_FADEOUT, int(time*1000)))
+  msg = message(MSG_FADEOUT, int(time*1000))
+  for c in clients:
+    if c.has_music > 1:
+      c.msgl.append(msg)
   currentmusics[:] = [0]
 
 
@@ -690,9 +813,9 @@ def getmusic(filename, filerate=44100):
   try:
     return samples[filename]
   except:
-    mus = Music(len(samples), filename, filerate)
+    mus = Music(filename, filerate)
     samples[filename] = mus
-    music_by_id[mus.code] = mus
+    music_by_id[mus.fileid] = mus
     return mus
 
 def newbitmap(data, colorkey=None):
@@ -701,181 +824,318 @@ def newbitmap(data, colorkey=None):
   return bmp
 
 
-def FnReady():
-  import sys
-  if hasattr(sys, 'AUTO_RUN'):
-    import os
-    os.system('start ' + sys.AUTO_RUN)
-
-def FnDisconnected():
-  import sys
-  if hasattr(sys, 'AUTO_RUN'):
-    raise SystemExit
-
-def RecordFile(filename, sampling=1.0 / 10):
-  import gzip, atexit
-  global recording
-  f = gzip.open(filename, 'wb')
-  atexit.register(f.close)
-  recording = [f, sampling, time() + sampling]
-
-def recordudpdata(now, udpdata):
-  recfile, recsampling, recnext = recording
-  while now >= recnext:
-    recnext += recsampling
-  recording[2] = recnext
-  recfile.write(message(MSG_RECORDED, udpdata))
+#def RecordFile(filename, sampling=1.0 / 10):
+#  import gzip, atexit
+#  global recording
+#  f = gzip.open(filename, 'wb')
+#  atexit.register(f.close)
+#  recording = [f, sampling, time() + sampling]
+#
+#def recordudpdata(now, udpdata):
+#  recfile, recsampling, recnext = recording
+#  while now >= recnext:
+#    recnext += recsampling
+#  recording[2] = recnext
+#  recfile.write(message(MSG_RECORDED, udpdata))
 
 
-def Run():
-  global broadcast_extras, NOW
+def addsocket(role, socket, handler=None, port=None):
+  if handler is not None:
+    serversockets[socket] = handler
+  socketsbyrole.setdefault(role, []).append(socket)
+  if port is None:
+    host, port = socket.getsockname()
+  socketports[socket] = port
 
-  s = socket(AF_INET, SOCK_STREAM)
-  try:
-    s.listen(1)
-  except error:
-    for PORT in range(12345, 12355):
-      try:
-        s.bind(('', PORT))
-        s.listen(1)
-      except error:
-        pass
-      else:
-        break
-    else:
-      print "Server cannot find a free TCP socket port."
-      return
-  HOST, PORT = s.getsockname()
-  FnReady()
-  pss, UDP_PORT = hostchooser.serverside_ping()
+def findsockets(role):
+  return socketsbyrole.get(role, [])
 
-  HOSTNAME = gethostname()
-  extramsg = ''
-  jfileno = []
-  if FnHttpPort:
-    import javaserver
-    jsetup = javaserver.setup(httpport=FnHttpPort, title=FnDesc, gameport=PORT,
-                              width=playfield.width, height=playfield.height)
-    if jsetup:
-      jfileno.append(jsetup[0])
-      extramsg = 'HTTP Java server: http://%s:%d' % (HOSTNAME, FnHttpPort)
-    else:
-      extramsg = 'Cannot start HTTP Java server on port %d' % FnHttpPort
-
-  broadcast_next  = None
-  broadcast_port = random.choice(hostchooser.BROADCAST_PORT_RANGE)
-  try:
-    broadcast_socket = socket(AF_INET, SOCK_DGRAM)
-    #broadcast_socket.setblocking(0)
-    broadcast_socket.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
-    #broadcast_socket.connect(('255.255.255.255', broadcast_port))
-  except error, e:
-    print "Cannot broadcast", str(e)
-    broadcast_socket = None
-    broadcast_port = None
-    
-  print '%s server at %s:%d, Broadcast %d, UDP %d' % (
-    FnDesc, HOSTNAME, PORT, broadcast_port, UDP_PORT)
-  if extramsg:
-    print extramsg
-
-  try:
-    from localmsg import autonotify
-  except ImportError:
-    pass
+def findsocket(role):
+  l = findsockets(role)
+  if l:
+    return l[-1]
   else:
-    autonotify(FnDesc, HOSTNAME, PORT)
+    return None
 
-  nextframe = time()
-
+def removesocket(role, socket=None):
+  if socket is None:
+    for socket in socketsbyrole.get(role, [])[:]:
+      removesocket(role, socket)
+    return
   try:
-    while 1:
-      try:
-        NOW = time()
-        delay = nextframe - NOW
-        if delay<=0.0:
-          nextframe = nextframe + FnFrame()
-          sprites[0] = ''
-          udpdata = ''.join(sprites)
-          if len(broadcast_clients) >= 2:
-            broadcast_extras = {}
-          for c in clients[:]:
-            c.emit(udpdata)
-          if broadcast_extras is not None:
-            udpdata = ''.join(broadcast_extras.keys() + [udpdata])
-            broadcast_extras = None
-            try:
-              broadcast_socket.sendto(udpdata,
-                                      ('255.255.255.255', broadcast_port))
-              #print "Broadcast UDP data"
-            except error:
-              pass  # ignore failed broadcasts
-          NOW = time()
-          if recording and NOW >= recording[2]:
-            recordudpdata(NOW, udpdata)
-          delay = nextframe - NOW
-          if delay<0.0:
-            nextframe = NOW
-            delay = 0.0
+    del serversockets[socket]
+  except KeyError:
+    pass
+  try:
+    socketsbyrole.get(role, []).remove(socket)
+  except ValueError:
+    pass
+  try:
+    del socketports[socket]
+  except KeyError:
+    pass
 
-        if broadcast_next is not None and NOW >= broadcast_next:
-          if broadcast_socket is None or not clients:
-            broadcast_next = None
-          else:
-            try:
-              broadcast_socket.sendto(hostchooser.BROADCAST_MESSAGE,
-                                      ('255.255.255.255', broadcast_port))
-              #print "Broadcast ping"
-            except error:
-              pass  # ignore failed broadcasts
-            broadcast_next = time() + broadcast_delay
-            broadcast_delay *= hostchooser.BROADCAST_DELAY_INCR
-        
-        iwtd = [s, pss] + [c.socket for c in clients] + jfileno
+def opentcpsocket(port=INADDR_ANY):
+  s = findsocket('LISTEN')
+  if s is None:
+    s = socket(AF_INET, SOCK_STREAM)
+    try:
+      s.bind(('', port))
+      s.listen(1)
+    except error:
+      for i in range(10):
+        port = random.choice(xrange(8000, 12000))
+        try:
+          s.bind(('', port))
+          s.listen(1)
+        except error:
+          pass
+        else:
+          break
+      else:
+        raise error, "server cannot find a free TCP socket port"
+
+    def tcpsocket_handler(s=s):
+      conn, addr = s.accept()
+      if len(clients)==MAX_CLIENTS:
+        print "Too many connections; refusing new connection from", addr
+        conn.close()
+      else:
+        try:
+          addrname = (gethostbyaddr(addr[0])[0],) + addr[1:]
+        except:
+          addrname = addr
+        print 'Connected by', addrname
+        c = FnClient(conn, addrname)
+        if game is not None:
+          c.opengame(game)
+    
+    addsocket('LISTEN', s, tcpsocket_handler)
+  return s
+
+def openpingsocket(port=None):
+  s = findsocket('PING')
+  if s is None:
+    import hostchooser
+    s = hostchooser.serverside_ping(port)
+    def pingsocket_handler(s=s):
+      import hostchooser
+      hs = findsocket('HTTP')
+      hostchooser.answer_ping(s, game.FnDesc, game.address,
+                              game.FnExtraDesc(),
+                              displaysockport(hs))
+    addsocket('PING', s, pingsocket_handler)
+  return s
+
+def openhttpsocket(ServerClass=None, HandlerClass=None, port=8000):
+  s = findsocket('HTTP')
+  if s is None:
+    if ServerClass is None:
+      from BaseHTTPServer import HTTPServer as ServerClass
+    if HandlerClass is None:
+      import javaserver
+      from httpserver import MiniHandler as HandlerClass
+    server_address = ('', port)
+    try:
+      httpd = ServerClass(server_address, HandlerClass)
+    except error:
+      server_address = ('', INADDR_ANY)
+      try:
+        httpd = ServerClass(server_address, HandlerClass)
+      except error:
+        print >> sys.stderr, "cannot start HTTP server", str(e)
+        return None
+    s = httpd.socket
+    addsocket('HTTP', s, httpd.handle_request)
+  return s
+
+BROADCAST_PORT_RANGE = xrange(18000, 19000)
+#BROADCAST_MESSAGE comes from msgstruct
+BROADCAST_DELAY      = 0.6180
+BROADCAST_DELAY_INCR = 2.7183
+
+def openbroadcastsocket(broadcastport=None):
+  s = findsocket('BROADCAST')
+  if s is None:
+    try:
+      s = socket(AF_INET, SOCK_DGRAM)
+      s.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
+    except error, e:
+      print >> sys.stderr, "Cannot broadcast", str(e)
+      return None
+    port = broadcastport or random.choice(BROADCAST_PORT_RANGE)
+    addsocket('BROADCAST', s, port=port)
+  return s
+
+def displaysockport(s):
+  return socketports.get(s, 'off')
+
+
+class Game:
+  width     = 640
+  height    = 480
+  backcolor = 0x000000
+
+  FnDesc    = "NoName"
+  FnFrame   = lambda self: 1.0
+  FnExcHandler=lambda self, k: 0
+  FnPlayers = lambda self: {}
+  FnKeys    = []
+  FnUnknown = lambda self: None
+  FnDisconnected = lambda self: None
+  
+  def __init__(self):
+    global game
+    game = self
+
+  def openserver(self):
+    s = opentcpsocket()
+    self.address = gethostname(), socketports[s]
+    ps = openpingsocket()
+    bs = self.broadcast_s = openbroadcastsocket()
+    self.broadcast_port = socketports.get(bs)
+    self.broadcast_next = None
+
+    print '%s server at %s:%d, Broadcast %d, UDP %d' % (
+      self.FnDesc, self.address[0], self.address[1],
+      displaysockport(bs), displaysockport(ps))
+
+    hs = openhttpsocket()
+    if hs:
+      print 'HTTP server: http://%s:%d' % (
+        self.address[0], displaysockport(hs))
+
+    try:
+      from localmsg import autonotify
+    except ImportError:
+      pass
+    else:
+      autonotify(self.FnDesc, *self.address)
+
+    if clients:
+      for c in clients:
+        c.opengame(self)
+    #else:
+    #  framemsgappend(self.deffieldmsg())   # for recording
+    self.nextframe = time()
+
+  def trigger_broadcast(self):
+    assert self.broadcast_s is not None
+    game.broadcast_delay = BROADCAST_DELAY
+    game.broadcast_next  = time() + self.broadcast_delay
+
+  def deffieldmsg(self):
+    return message(MSG_DEF_PLAYFIELD,
+                   self.width, self.height, self.backcolor,
+                   self.FnDesc)
+
+  def socketerrors(self, ewtd):
+    for c in clients[:]:
+      if c.socket in ewtd:
+        del ewtd[c.socket]
+        c.disconnect("error", "select")
+
+  def mainstep(self):
+    global NOW
+    NOW = time()
+    delay = self.nextframe - NOW
+    if delay<=0.0:
+      self.nextframe += self.FnFrame()
+      sprites[0] = ''
+      udpdata = ''.join(sprites)
+      if len(broadcast_clients) >= 2:
+        broadcast_extras = {}
+      else:
+        broadcast_extras = None
+      for c in clients[:]:
+        c.emit(udpdata, broadcast_extras)
+      if broadcast_extras is not None:
+        udpdata = ''.join(broadcast_extras.keys() + [udpdata])
+        try:
+          broadcast_socket.sendto(udpdata,
+                                  ('255.255.255.255', broadcast_port))
+          #print "Broadcast UDP data"
+        except error:
+          pass  # ignore failed broadcasts
+      NOW = time()
+      #if recording and NOW >= recording[2]:
+      #  recordudpdata(NOW, udpdata)
+      delay = self.nextframe - NOW
+      if delay<0.0:
+        self.nextframe = NOW
+        delay = 0.0
+    if self.broadcast_next is not None and NOW >= self.broadcast_next:
+      if not clients:
+        self.broadcast_next = None
+      else:
+        try:
+          self.broadcast_s.sendto(BROADCAST_MESSAGE,
+                                  ('255.255.255.255', self.broadcast_port))
+          #print "Broadcast ping"
+        except error:
+          pass  # ignore failed broadcasts
+        self.broadcast_next = time() + self.broadcast_delay
+        self.broadcast_delay *= BROADCAST_DELAY_INCR
+    return delay
+
+  def FnExtraDesc(self):
+    players = 0
+    for c in clients:
+      players += len(c.players)
+    if players == 0:
+      return 'no player'
+    elif players == 1:
+      return 'one player'
+    else:
+      return '%d players' % players
+
+
+def recursiveloop(endtime, extra_sockets):
+  global game
+  timediff = 1
+  while timediff:
+    if game is not None:
+      delay = game.mainstep()
+    else:
+      delay = 5.0
+    iwtd = extra_sockets + serversockets.keys()
+    timediff = max(0.0, endtime - time())
+    iwtd, owtd, ewtd = select(iwtd, [], iwtd, min(delay, timediff))
+    if ewtd:
+      if game:
+        game.socketerrors(ewtd)
+      if ewtd:
+        print >> sys.stderr, "Unexpected socket error reported"
+    for s in iwtd:
+      if s in serversockets:
+        serversockets[s]()    # call handler
+      elif s in extra_sockets:
+        return s
+    if not extra_sockets:
+      return 1
+  return None
+
+def mainloop():
+  global game
+  try:
+    while serversockets:
+      try:
+        if game is not None:
+          delay = game.mainstep()
+        else:
+          delay = 5.0
+        iwtd = serversockets.keys()
         iwtd, owtd, ewtd = select(iwtd, [], iwtd, delay)
         if ewtd:
-          for c in clients[:]:
-            if c.socket in ewtd:
-              c.disconnect("error", "select")
-          if s in ewtd:
-            print "Error reported on listening socket"
-        if iwtd:
-          for c in clients[:]:
-            if c.socket in iwtd:
-              try:
-                data = c.socket.recv(2048)
-              except error, e:
-                c.disconnect(e, "socket.recv")
-              else:
-                if data:
-                  c.activity = NOW
-                  c.receive(data)
-          if s in iwtd:
-            conn, addr = s.accept()
-            if len(clients)==MAX_CLIENTS:
-              print "Too many connections; refusing new connection from", addr
-              conn.close()
-            else:
-              try:
-                addrname = (gethostbyaddr(addr[0])[0],) + addr[1:]
-              except:
-                addrname = addr
-              print 'Connected by', addrname
-              c = FnClient(conn, addr, broadcast_port)
-              if c.init():
-                clients.append(c)
-                broadcast_delay = hostchooser.BROADCAST_DELAY
-                broadcast_next  = time() + broadcast_delay
-              else:
-                print 'Connection refused.'
-                conn.close()
-          if pss in iwtd:
-            hostchooser.answer_ping(pss, FnDesc, (HOSTNAME, PORT))
-          for sock in jfileno:
-            if sock in iwtd:
-              jsetup[1]()
+          if game:
+            game.socketerrors(ewtd)
+          if ewtd:
+            print >> sys.stderr, "Unexpected socket error reported"
+        for s in iwtd:
+          if s in serversockets:
+            serversockets[s]()    # call handler
       except KeyboardInterrupt:
-        if not FnExcHandler(1):
+        if game is None or not game.FnExcHandler(1):
           raise
       except:
         f = logfile()
@@ -883,10 +1143,11 @@ def Run():
           import traceback
           traceback.print_exc(file=f)
           f.close()
-        if not FnExcHandler(0):
+        if game is None or not game.FnExcHandler(0):
           raise
   finally:
-    s.close()
+    removesocket('LISTEN')
+    removesocket('PING')
     if clients:
       print "Server crash -- waiting for clients to terminate..."
       while clients:
@@ -904,3 +1165,6 @@ def Run():
               if not data:
                 c.disconnect("end of data")
     print "Server closed."
+
+def closeeverything():
+  serversockets.clear()

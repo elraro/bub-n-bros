@@ -438,7 +438,8 @@ class Book(RandomBonus):
 
 class Potion(RandomBonus):
     "Potions. Clear the level and fill its top with bonuses."
-    nimages = [Bonuses.red_potion, Bonuses.green_potion, Bonuses.yellow_potion]
+    nimages = [Bonuses.red_potion, Bonuses.green_potion, Bonuses.yellow_potion,
+               'potion4']
     Potions = [(Bonuses.red_potion,    150,  [(PotionBonuses.coin,        350),
                                               (PotionBonuses.rainbow,     600)]),
                (Bonuses.green_potion,  350,  [(PotionBonuses.flower,     1000),
@@ -480,6 +481,8 @@ class Potion(RandomBonus):
             ext = Potion.Extensions.pop()
             ext = __import__(ext, globals(), locals(), ['run'])
             ext.run()
+    def _import_note():
+        import ext1; import ext2; import ext3  # for import auto-detection
 
 class FireBubble(RandomBonus):
     "Fire Bubbles. Makes you fire napalm bubbles."
@@ -576,13 +579,15 @@ class Lollipop(TemporaryBonus):
     def endaction(self, dragon):
         dragon.dcap['left2right'] = -dragon.dcap['left2right']
 
-class Chickpea(RandomBonus):
+class Chickpea(TemporaryBonus):
     "Basilik. Allows you to touch the monsters."
     nimage = Bonuses.chickpea
     points = 800
+    capname = 'overlayglasses'
+    captime = 230
     def taken(self, dragon):
-        dragon.dcap['shield'] = 200
-        dragon.carrybonus(self, 200)
+        TemporaryBonus.taken(self, dragon)
+        dragon.dcap['shield'] = 250
 
 class IceCream(RandomBonus):
     "Icecream. An icecream which is so good you'll always want more."
@@ -1097,7 +1102,7 @@ class Pear(RandomBonus):
 class Megalightning(ActiveSprite):
     def __init__(self, x1, y1, dragon):
         ActiveSprite.__init__(self, images.sprget(BigImages.blitz),
-                              gamesrv.playfield.width, gamesrv.playfield.height)
+                              gamesrv.game.width, gamesrv.game.height)
         self.gen.append(self.moving_to(x1, y1, dragon))
     def moving_to(self, x1, y1, dragon):
         from monsters import Monster
@@ -1233,7 +1238,7 @@ Classes = [c for c in globals().values()
            if type(c)==type(RandomBonus) and issubclass(c, RandomBonus)]
 Classes.remove(RandomBonus)
 Classes.remove(TemporaryBonus)
-Cheat = []
+Cheat = [Chickpea]
 #Classes = [Sheep]  # CHEAT
 
 AllOutcomes = ([(c,) for c in Classes if c is not Fruits] +

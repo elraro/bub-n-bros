@@ -630,7 +630,7 @@ class DownShot(MonsterShot):
 ##                self.kill()
 
 ##    def blocked(self):
-##        return self.x < -self.ico.w or self.x >= gamesrv.playfield.width
+##        return self.x < -self.ico.w or self.x >= gamesrv.game.width
 ##        #return self.x < CELL or self.x >= boards.bwidth - 3*CELL
 
 

@@ -10,6 +10,7 @@ from common.pixmap import decodepixmap
 from common import hostchooser
 import modes
 from modes import KeyPressed, KeyReleased
+import caching
 
 #import psyco; psyco.full()
 
@@ -38,10 +39,61 @@ def loadpixmap(dpy, data, colorkey=None):
     return dpy.pixmap(w, h, data, colorkey)
 
 class Icon:
-    def __init__(self, bitmap, (x, y, w, h)):
-        self.rect = x, y, w, h
-        self.size = w, h
-        self.bitmap = bitmap
+    def __init__(self, playfield):
+        self.playfield = playfield
+        self.size = 0, 0
+    def __getattr__(self, attr):
+        if attr == 'pixmap':
+            self.pixmap = self.playfield.getpixmap(self.bmpcode)
+            return self.pixmap
+        elif attr in ('bmpcode', 'rect'):
+            raise KeyError, attr
+        raise AttributeError, attr
+    def clear(self):
+        if self.__dict__.has_key('pixmap'):
+            del self.pixmap
+
+class DataChunk(caching.Data):
+    SOURCEDIR = os.path.abspath(os.path.join(os.path.dirname(caching.__file__),
+                                             os.pardir))
+    CACHEDIR  = os.path.join(SOURCEDIR, 'cache')
+    TOTAL = 0
+
+    def __init__(self, fileid):
+        caching.Data.__init__(self)
+        self.fileid = fileid
+        self.pending = []
+        self.progresshook = None
+
+    def server_md5(self, playfield, filename, position, length, checksum):
+        if not self.loadfrom(filename, position, length, checksum):
+            self.pending.append((0, position))
+            playfield.s.sendall(message(CMSG_DATA_REQUEST, self.fileid,
+                                        position, length))
+
+    def server_patch(self, position, data, lendata):
+        #print 'server_patch', self.fileid, position, len(data)
+        prev = DataChunk.TOTAL >> 10
+        DataChunk.TOTAL += lendata
+        total = DataChunk.TOTAL >> 10
+        if total != prev:
+            print "downloaded %dkb of data from server" % total
+        self.store(position, data)
+        try:
+            self.pending.remove((0, position))
+        except ValueError:
+            pass
+        else:
+            while self.pending and self.pending[0][0]:
+                callback = self.pending[0][1]
+                del self.pending[0]
+                callback(self)
+
+    def when_ready(self, callback):
+        if self.pending:
+            self.pending.append((1, callback))
+        else:
+            callback(self)
 
 
 class Playfield:
@@ -66,22 +118,27 @@ class Playfield:
 ##                self.gameident, self.datapath = (self.gameident[:i].strip(),
 ##                                                 self.gameident[i+1:-1])
         print "connected to %r." % self.gameident
+        self.s.sendall(message(CMSG_PROTO_VERSION, 2))
 
     def run(self, mode, udp_over_tcp='auto'):
         self.playing = {}   # 0, 1, or 'l' for local
         self.keys = {}
         self.keycodes = {}
         self.dpy = None
-        self.bitmaps = {}
-        self.flippedbitmaps = {}
+        self.snd = None
+        self.pixmaps = {}   # {bmpcode: dpy_pixmap}
+        self.bitmaps = {}   # {bmpcode: (fileid_or_data, colorkey)}
         self.icons = {}
         self.sounds = {}
-        self.musics = {}
+        self.currentmusic = None
+        self.fileids = {}
         self.sprites = []
         self.playingsounds = {}
         self.playericons = {}
         self.screenmode = mode
         self.initlevel = 0
+        if mode[-1].has_key('udp_over_tcp'):
+            udp_over_tcp = mode[-1]['udp_over_tcp']
         
         self.udpsock = None
         self.udpsock_low = None
@@ -96,20 +153,20 @@ class Playfield:
             if udp_over_tcp == 'auto':
                 self.udpsock_low = 0
         
-        pss, pss_port = hostchooser.serverside_ping()
+        pss = hostchooser.serverside_ping()
         self.initial_iwtd = [self.s, pss]
         self.iwtd = self.initial_iwtd[:]
         inbuf = ""
-        delay = 0.0
+        self.animdelay = 0.0
         while 1:
             if self.dpy:
                 self.processkeys()
-            iwtd, owtd, ewtd = select(self.iwtd, [], [], delay)
-            delay = 0.5
+            iwtd, owtd, ewtd = select(self.iwtd, [], [], self.animdelay)
+            self.animdelay = 0.5
             if self.dpy:
                 self.processkeys()
             if self.s in iwtd:
-                while self.s in iwtd:
+                #while self.s in iwtd:
                     inputdata = self.s.recv(0x6000)
                     self.tcpbytecounter += len(inputdata)
                     ##import os; logfn='/tmp/log%d'%os.getpid()
@@ -128,7 +185,7 @@ class Playfield:
 
                         fn = Playfield.MESSAGES.get(values[0], self.msg_unknown)
                         fn(self, *values[1:])
-                    iwtd, owtd, ewtd = select(self.iwtd, [], [], 0)
+                    #iwtd, owtd, ewtd = select(self.iwtd, [], [], 0)
             if self.dpy:
                 if self.udpsock in iwtd:
                     while self.udpsock in iwtd:
@@ -140,7 +197,7 @@ class Playfield:
                     while self.udpsock2 in iwtd:
                         udpdata = self.udpsock2.recv(65535)
                         self.udpbytecounter += len(udpdata)
-                        if udpdata == hostchooser.BROADCAST_MESSAGE:
+                        if udpdata == BROADCAST_MESSAGE:
                             if not self.accepted_broadcast:
                                 self.s.sendall(message(CMSG_UDP_PORT, '*'))
                                 self.accepted_broadcast = 1
@@ -152,15 +209,40 @@ class Playfield:
                 if self.udp_over_tcp:
                     self.update_sprites(self.udp_over_tcp)
                     self.udp_over_tcp = ''
-                if self.taskbarmode:
-                    self.taskbaranim = 0
-                    self.flip_with_taskbar()
-                    if self.taskbaranim:
-                        delay = 0.04
-                else:
-                    self.dpy.flip()
+                erasetb = self.taskbarmode and self.draw_taskbar()
+                d = self.dpy.flip()
+                if d:
+                    self.animdelay = min(self.animdelay, d)
+                if self.snd:
+                    d = self.snd.flop()
+                    if d:
+                        self.animdelay = min(self.animdelay, d)
+                if erasetb:
+                    self.erase_taskbar(erasetb)
             if pss in iwtd:
                 hostchooser.answer_ping(pss, self.gameident, self.sockaddr)
+
+    def geticon(self, icocode):
+        try:
+            return self.icons[icocode]
+        except KeyError:
+            ico = self.icons[icocode] = Icon(self)
+            return ico
+
+    def getpixmap(self, bmpcode):
+        try:
+            return self.pixmaps[bmpcode]
+        except KeyError:
+            data, colorkey = self.bitmaps[bmpcode]
+            if type(data) is type(''):
+                data = zlib.decompress(data)
+            else:
+                if data.pending:
+                    raise KeyError
+                data = data.read()
+            pixmap = loadpixmap(self.dpy, data, colorkey)
+            self.pixmaps[bmpcode] = pixmap
+            return pixmap
 
     def update_sprites(self, udpdata):
         sprites = self.sprites
@@ -178,8 +260,8 @@ class Playfield:
                 n = self.playingsounds.get(key)
                 if n:
                     currentsounds[key] = n-1
-                else:
-                    self.dpy.play(snd,
+                elif self.snd:
+                    self.snd.play(snd,
                                   lvol / 255.0,
                                   rvol / 255.0)
                     currentsounds[key] = 4
@@ -205,7 +287,7 @@ class Playfield:
             try:
                 ico = self.icons[icocode]
                 sprites.append((info, (x, y, getter((x, y) + ico.size))))
-                setter(x, y, ico.bitmap, ico.rect)
+                setter(x, y, ico.pixmap, ico.rect)
             except KeyError:
                 #print "bad ico code", icocode
                 pass  # ignore sprites with bad ico (probably not defined yet)
@@ -223,14 +305,9 @@ class Playfield:
             n = 0
         self.painttimes = t0, n
 
-    def flip_with_taskbar(self, (cx,cy)=(-1,0)):
-        clic_id = None
+    def get_taskbar(self):
         y0 = self.height - self.TASKBAR_HEIGHT
-        if cy < y0:
-            cx = -1
-        rect = (0, y0, self.width, self.TASKBAR_HEIGHT)
-        bkgnd = self.dpy.getppm(rect)
-        self.dpy.taskbar(rect)
+        iconlist = []
         f = 1.5 * time.time()
         f = f-int(f)
         pi = self.playericons.items()
@@ -242,15 +319,12 @@ class Playfield:
                 xpos += int(w * 5 / 3)
                 if not self.playing.get(id):
                     y = self.height - h
-                    if xpos-w <= cx < xpos:
-                        clic_id = id
                     if self.keydefinition and id == self.keydefinition[0]:
                         num, icons = self.keys[self.nextkeyname()]
                         ico = icons[int(f*len(icons))-1]
                         y = y0 + int((self.TASKBAR_HEIGHT-ico.size[1])/2)
-                        self.taskbaranim = 1
-                    self.dpy.putppm(xpos-w, y,
-                                    ico.bitmap, ico.rect)
+                        self.animdelay = 0.04
+                    iconlist.append((xpos-w, y, ico, id))
         pi.reverse()
         f = f * (1.0-f) * 4.0
         xpos = self.width
@@ -260,13 +334,32 @@ class Playfield:
                 xpos -= int(w * 5 / 3)
                 dy = self.TASKBAR_HEIGHT - h - 1
                 y = self.height - h - int(dy*f)
-                if xpos <= cx < xpos+w:
-                    clic_id = id
-                self.dpy.putppm(xpos, y, ico.bitmap, ico.rect)
-                self.taskbaranim = 1
-        self.dpy.flip()
+                iconlist.append((xpos, y, ico, id))
+                self.animdelay = 0.04
+        return y0, iconlist
+
+    def clic_taskbar(self, (cx,cy)):
+        y0, icons = self.get_taskbar()
+        if cy >= y0:
+            for x, y, ico, id in icons:
+                if x <= cx < x+ico.size[0]:
+                    return id
+        return None
+
+    def draw_taskbar(self):
+        y0, icons = self.get_taskbar()
+        rect = (0, y0, self.width, self.TASKBAR_HEIGHT)
+        bkgnd = self.dpy.getppm(rect)
+        self.dpy.taskbar(rect)
+        for x, y, ico, id in icons:
+            try:
+                self.dpy.putppm(x, y, ico.pixmap, ico.rect)
+            except KeyError:
+                pass
+        return y0, bkgnd
+
+    def erase_taskbar(self, (y0, bkgnd)):
         self.dpy.putppm(0, y0, bkgnd)
-        return clic_id
 
     def nextkeyname(self):
         pid, df = self.keydefinition
@@ -287,7 +380,7 @@ class Playfield:
             host, port = self.udpsock.getsockname()
             self.iwtd.append(self.udpsock)
         self.s.sendall(message(CMSG_UDP_PORT, port))
-        if self.dpy.has_sound():
+        if self.snd and self.snd.has_music:
             self.s.sendall(message(CMSG_ENABLE_MUSIC, 1))
             self.s.sendall(message(CMSG_PING))
 
@@ -329,7 +422,7 @@ class Playfield:
         if mouseevents:
             self.keydefinition = None
             for clic in mouseevents:
-                clic_id = self.flip_with_taskbar(clic)
+                clic_id = self.clic_taskbar(clic)
                 if clic_id is not None:
                     if self.playing.get(clic_id) == 'l':
                         self.s.sendall(message(CMSG_REMOVE_PLAYER, clic_id))
@@ -404,15 +497,21 @@ class Playfield:
             self.iwtd.append(self.udpsock2)
             self.initial_iwtd.append(self.udpsock2)
 
-    def msg_def_playfield(self, width, height, *rest):
+    def msg_def_playfield(self, width, height, backcolor=None,
+                          gameident=None, *rest):
         if self.dpy is not None:
+            # clear all pixmaps
+            for ico in self.icons.values():
+                ico.clear()
+            self.pixmaps.clear()
             self.dpy.close()
         self.width = width
         self.height = height
+        if gameident:
+            self.gameident = gameident
         self.dpy = modes.open_dpy(self.screenmode, width, height, self.gameident)
-##        if self.datapath and PARSE_FILES:
-##            self.parsefiles()
-        if self.dpy.has_sound():
+        self.snd = self.snd or modes.open_snd(self.screenmode)
+        if self.snd:
             self.s.sendall(message(CMSG_ENABLE_SOUND))
         self.iwtd = self.dpy.selectlist() + self.initial_iwtd
         self.dpy.clear()   # backcolor is ignored
@@ -420,36 +519,10 @@ class Playfield:
         self.s.sendall(message(CMSG_PING))
         self.taskbarmode = 0
         self.taskbarfree = 0
-        self.taskbaranim = 0
         self.keydefinition = None
 
-##    def parsefiles(self):
-##        try:
-##            import md5, glob
-##        except ImportError:
-##            return
-##        cwd = os.getcwd()
-##        try:
-##            os.chdir(os.path.join(os.path.dirname(__file__), os.pardir))
-##            for path in self.datapath.split(':'):
-##                if path:
-##                    for filename in glob.glob(path):
-##                        #print filename
-##                        chksum = md5.md5()
-##                        f = open(filename, 'rb')
-##                        while 1:
-##                            data = f.read(65536)
-##                            if not data: break
-##                            chksum.update(data)
-##                        del data
-##                        f.close()
-##                        self.s.sendall(message(CMSG_DEF_FILE, filename.lower(),
-##                                               chksum.digest()))
-##        finally:
-##            os.chdir(cwd)
-
     def msg_def_key(self, name, num, *icons):
-        self.keys[name] = num, [self.icons[ico] for ico in icons]
+        self.keys[name] = num, [self.geticon(ico) for ico in icons]
 
     def msg_def_icon(self, bmpcode, icocode, x, y, w, h, *rest):
 ##        if h<0:
@@ -461,52 +534,66 @@ class Playfield:
 ##            y = height - y
 ##            h = - h
 ##        else:
-        bitmap = self.bitmaps[bmpcode]
-        self.icons[icocode] = Icon(bitmap, (x, y, w, h))
-        #print >> sys.stderr, "def_icon  ", bmpcode, (x,y,w,h), '->', icocode
+        ico = self.geticon(icocode)
+        ico.bmpcode = bmpcode
+        ico.rect = x, y, w, h
+        ico.size = w, h
 
     def msg_def_bitmap(self, bmpcode, data, colorkey=None, *rest):
-##        if isinstance(data, str):
-        data = zlib.decompress(data)
-##        else:
-##            data = data.read()
-        self.bitmaps[bmpcode] = loadpixmap(self.dpy, data, colorkey)
-        #print >> sys.stderr, "def_bitmap", bmpcode
+        if type(data) is not type(''):
+            data = self.fileids[data]
+        self.bitmaps[bmpcode] = data, colorkey
 
     def msg_def_sample(self, smpcode, data, *rest):
-##        if isinstance(data, str):
-        data = zlib.decompress(data)
-##        else:
-##            data = data.read()
-        self.sounds[smpcode] = self.dpy.sound(data)
+        def ready(f, self=self, smpcode=smpcode):
+            if self.snd:
+                self.sounds[smpcode] = self.snd.sound(f)
+            f.clear()
+        if type(data) is type(''):
+            data = zlib.decompress(data)
+            f = DataChunk(None)
+            f.store(0, data)
+            ready(f)
+        else:
+            f = self.fileids[data]
+            f.when_ready(ready)
 
-    def msg_def_music(self, code, position, data, *rest):
-##        if isinstance(data, str):
-##            pass
-##        else:
-##            data = data.read()
-        try:
-            m = self.musics[code]
-        except KeyError:
-            m = self.musics[code] = self.dpy.Music()
-        m.write(position, data)
+    def msg_patch_file(self, fileid, position, data, lendata=None, *rest):
+        if self.fileids.has_key(fileid):
+            f = self.fileids[fileid]
+        else:
+            f = self.fileids[fileid] = DataChunk(fileid)
+        f.server_patch(position, data, lendata or len(data))
 
-##    def msg_load_prefix(self, filename, dataindex, *rest):
-##        basepath = os.path.join(os.path.dirname(__file__), os.pardir)
-##        print basepath, filename
-##        f = open(os.path.join(basepath, filename), 'rb')
-##        rest = rest[:dataindex] + (f,) + rest[dataindex:]
-##        self.MESSAGES[rest[0]](self, *rest[1:])
-##        f.close()
+    def msg_zpatch_file(self, fileid, position, data, *rest):
+        data1 = zlib.decompress(data)
+        self.msg_patch_file(fileid, position, data1, len(data), *rest)
+
+    def msg_md5_file(self, fileid, filename, position, length, checksum, *rest):
+        if self.fileids.has_key(fileid):
+            f = self.fileids[fileid]
+        else:
+            f = self.fileids[fileid] = DataChunk(fileid)
+        f.server_md5(self, filename, position, length, checksum)
 
     def msg_play_music(self, loop_from, *codes):
-        self.dpy.play_musics([self.musics[c] for c in codes], loop_from)
+        codes = [self.fileids[c] for c in codes]
+        self.currentmusic = loop_from, codes, list(codes)
+        self.activate_music()
+
+    def activate_music(self, f=None):
+        loop_from, codes, checkcodes = self.currentmusic
+        if checkcodes:
+            checkcodes.pop().when_ready(self.activate_music)
+        elif self.snd:
+            self.snd.play_musics(codes, loop_from)
 
     def msg_fadeout(self, time, *rest):
-        self.dpy.fadeout(time)
+        if self.snd:
+            self.snd.fadeout(time)
 
     def msg_player_icon(self, pid, icocode, *rest):
-        self.playericons[pid] = self.icons[icocode]
+        self.playericons[pid] = self.geticon(icocode)
 
     def msg_ping(self, *rest):
         self.s.sendall(message(CMSG_PONG, *rest))
@@ -535,7 +622,7 @@ class Playfield:
             self.startplaying()
             self.initlevel = 1
         elif self.initlevel == 1:
-            if self.dpy.has_sound():
+            if self.snd and self.snd.has_music:
                 self.s.sendall(message(CMSG_ENABLE_MUSIC, 2))
             self.initlevel = 2
         if not self.taskbarfree and not self.taskbarmode:
@@ -553,7 +640,6 @@ class Playfield:
         MSG_DEF_ICON     : msg_def_icon,
         MSG_DEF_BITMAP   : msg_def_bitmap,
         MSG_DEF_SAMPLE   : msg_def_sample,
-        MSG_DEF_MUSIC    : msg_def_music,
         MSG_PLAY_MUSIC   : msg_play_music,
         MSG_FADEOUT      : msg_fadeout,
         MSG_PLAYER_JOIN  : msg_player_join,
@@ -562,6 +648,9 @@ class Playfield:
         MSG_PING         : msg_ping,
         MSG_PONG         : msg_pong,
         MSG_INLINE_FRAME : msg_inline_frame,
+        MSG_PATCH_FILE   : msg_patch_file,
+        MSG_ZPATCH_FILE  : msg_zpatch_file,
+        MSG_MD5_FILE     : msg_md5_file,
 ##        MSG_LOAD_PREFIX  : msg_load_prefix,
         }
 
@@ -574,35 +663,3 @@ def run(server, *args, **kw):
     else:
         psyco.bind(Playfield.update_sprites)
     Playfield(server).run(*args, **kw)
-
-def usage():
-    print >> sys.stderr, "usage:"
-    print >> sys.stderr, "  python pclient.py [-X | -shm] [host:port]"
-    sys.exit(2)
-
-def main():
-    mode = 'pygame'
-    argv = sys.argv[1:]
-    if argv and argv[0][:1] == '-':
-        opt = argv[0].upper()
-        if opt == '-X':
-            mode = 'X'
-        elif opt == '-SHM':
-            mode = 'shm'
-        else:
-            usage()
-        del argv[0]
-    if len(argv) != 1:
-        usage()
-    hosts = argv[0].split(':')
-    if len(hosts) != 2:
-        usage()
-    host, port = hosts
-    try:
-        port = int(port)
-    except:
-        usage()
-    run((host, port), mode)
-
-if __name__ == '__main__':
-    main()

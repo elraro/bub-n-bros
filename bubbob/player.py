@@ -12,7 +12,6 @@ from mnstrmap import DigitsMisc
 MAX = 7
 KEEPALIVE = 5*60   # seconds
 CheatDontDie = 0
-ExtraLifeEvery = 50000
 
 
 class Dragon(ActiveSprite):
@@ -38,6 +37,7 @@ class Dragon(ActiveSprite):
         'lookforward': 1,
         'fly': 0,
         'flower': 1,
+        'overlayglasses': 0,
         'carrying': (),
         }
     SAVE_CAP = ['hspeed', 'firerate', 'shootthrust']
@@ -54,6 +54,8 @@ class Dragon(ActiveSprite):
         self.dcap.update(self.bubber.pcap)
         BubPlayer.DragonList.append(self)
         self.gen.append(self.normal_movements())
+        self.overlaysprite = None
+        self.overlayyoffset = 4
 
     def kill(self):
         try:
@@ -264,7 +266,10 @@ class Dragon(ActiveSprite):
                 if self.dcap['infinite_shield'] and s < 20:
                     s += 4
                 s -= 1
-                if s & 2:
+                if self.dcap['overlayglasses']:
+                    self.overlayyoffset = {3: 2, 4: 0,
+                                           9: 3, 10: 5}.get(mode, 4)
+                elif s & 2:
                     mode = 11
                 self.dcap['shield'] = s
             if self.dcap['ring']:# and random.random() > 0.1:
@@ -290,6 +295,18 @@ class Dragon(ActiveSprite):
             #    s = ActiveSprite(icons[11, -self.dir],
             #                     boards.bwidth - 2*CELL - self.x, self.y)
             #    s.gen.append(s.die([None], speed=2))
+
+    def to_front(self):
+        ActiveSprite.to_front(self)
+        if self.dcap['overlayglasses']:
+            ico = images.sprget(('glasses', self.dir))
+            y = self.y + self.overlayyoffset
+            if self.overlaysprite is None or not self.overlaysprite.alive:
+                self.overlaysprite = images.ActiveSprite(ico, self.x, y)
+            else:
+                self.overlaysprite.to_front()
+                self.overlaysprite.move(self.x, y, ico)
+            self.overlaysprite.gen = [self.overlaysprite.die([None])]
 
     def bottom_up(self):
         return self.dcap['gravity'] < 0.0
@@ -412,7 +429,7 @@ class BubPlayer(gamesrv.Player):
         self.letters = {}
         #self.bonbons = 0
         self.points = 0
-        self.nextextralife = ExtraLifeEvery
+        self.nextextralife = gamesrv.game.extralife
         self.lives = boards.get_lives()
         #self.badpoints = 0
         self.pcap = {}
@@ -546,7 +563,7 @@ class BubPlayer(gamesrv.Player):
                 else:
                     images.Snd.Extralife.play()
                 self.lives += 1
-            self.nextextralife += ExtraLifeEvery
+            self.nextextralife += gamesrv.game.extralife
         if self.LimitScoreColor is not None and self.points >= self.LimitScore:
             boards.replace_boardgen(boards.game_over(), 1)
         #if self.points > BubPlayer.HighScore:

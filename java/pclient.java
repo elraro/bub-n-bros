@@ -1,4 +1,4 @@
-import java.applet.Applet;
+import java.applet.*;
 import java.awt.*;
 import java.awt.image.*;
 import java.awt.event.*;
@@ -315,10 +315,13 @@ public class pclient extends Applet {
         public Sprite[] sprites = new Sprite[0];
         public int numSprites = 0;
         public byte[] pendingBuffer = new byte[SocketDisplayer.UDP_BUF_SIZE];
+        public int pendingBufOfs = 0;
         public int pendingBufLen = 0;
         public byte[] spriteData = new byte[0];
         public int validDataLen = 0;
         public Image tbCache;
+        public AudioClip[] samples = new AudioClip[0];
+        public int[] playingSounds = new int[0];
 
         Playfield(pclient aclient, int width, int height, Color bkgnd) {
             client = aclient;
@@ -347,8 +350,41 @@ public class pclient extends Applet {
         public synchronized byte[] setSprites(byte[] buf, int buflen) {
             byte[] old = pendingBuffer;
             pendingBuffer = buf;
-            pendingBufLen = buflen;
             //System.out.println("UDP packet for "+Integer.toString(buflen/6));
+            
+            /* sound support -- no volume */
+            int base = 0;
+            int[] currentSounds = new int[samples.length];
+            while (base+6 <= buflen &&
+                   pendingBuffer[base+4] == -1 &&
+                   pendingBuffer[base+5] == -1) {
+                int key = pendingBuffer[base+1];
+                key = (key & 0xFF) | (((int) pendingBuffer[base]) << 8);
+                if (0 <= key && key <= 9999) {   /* safety bound check */
+                    if (key >= samples.length) {
+                        AudioClip[] newclip = new AudioClip[key+5];
+                        System.arraycopy(samples, 0, newclip, 0, samples.length);
+                        samples = newclip;
+                    }
+                    if (samples[key] == null) {
+                        String filename = "sample.wav?code=" +
+                            Integer.toString(key);
+                        samples[key] = getAudioClip(getCodeBase(), filename);
+                    }
+                    else if (playingSounds.length > key &&
+                             playingSounds[key] > 0) {
+                        currentSounds[key] = playingSounds[key] - 1;
+                    }
+                    else {
+                        samples[key].play();
+                        currentSounds[key] = 4;
+                    }
+                }
+                base += 6;
+            }
+            playingSounds = currentSounds;
+            pendingBufOfs = base;
+            pendingBufLen = buflen - base;
             return old;
         }
 
@@ -358,7 +394,7 @@ public class pclient extends Applet {
                 : validDataLen;
             
             for (valid=0; valid<count; valid++)
-                if (spriteData[valid] != pendingBuffer[valid])
+                if (spriteData[valid] != pendingBuffer[pendingBufOfs+valid])
                     break;
             validDataLen = valid;
             
@@ -366,7 +402,7 @@ public class pclient extends Applet {
                 spriteData = new byte[pendingBufLen+90];
                 valid = 0;
             }
-            System.arraycopy(pendingBuffer, valid,
+            System.arraycopy(pendingBuffer, pendingBufOfs+valid,
                              spriteData, valid, pendingBufLen-valid);
             return pendingBufLen;
         }
@@ -672,6 +708,9 @@ public class pclient extends Applet {
                 Color bkgnd = client.makeColor(args[2]);
                 client.playfield = new pclient.Playfield(client, width, height,
                                                          bkgnd);
+                int[] singleint = new int[1];
+                singleint[0] = -1;
+                sendMessage(CMSG_ENABLE_SOUND, singleint);
                 sendMessage(CMSG_PING, new int[0]);
                 break;
             }
@@ -730,14 +769,18 @@ public class pclient extends Applet {
             case MSG_PING: {
                 buffer[ofs+1+typecodes] = CMSG_PONG;
                 sendData(buffer, ofs, base-ofs);
-                if (nargs > 0 && client.udpsock_low >= 0.0) {
+                if (nargs > 0 && !client.udpovertcp) {
                     int udpkbytes = args[0];
-                    // switch to udp_over_tcp if the udp socket
-                    // didn't receive at least 60% of
-                    // the packets sent by the server
-                    if (udpkbytes * 1024.0 * 0.60 > client.udpbytecounter) {
+                    /* switch to udp_over_tcp if the udp socket didn't
+                       receive at least 60% of the packets sent by the server,
+                       or if the socketdisplayer thread died */
+                    if (sockdisplayer != null && !sockdisplayer.isAlive()) {
+                        showStatus("routing UDP traffic over TCP (no UDP socket)");
+                        client.start_udp_over_tcp();
+                    }
+                    else if (udpkbytes * 1024.0 * 0.60 >= client.udpbytecounter) {
                         client.udpsock_low += 1;
-                        if (udpsock_low >= 3) {
+                        if (client.udpsock_low >= 4) {
                             double inp =client.udpbytecounter/(udpkbytes*1024.0);
                             int loss = (int)(100.0*(1.0-inp));
                             showStatus("routing UDP traffic over TCP (" +
@@ -836,22 +879,23 @@ public class pclient extends Applet {
         public pclient client;
         public DatagramSocket socket;
 
-        SocketDisplayer(pclient aclient) throws IOException {
+        SocketDisplayer(pclient aclient) {
             setDaemon(true);
             client = aclient;
-            socket = new DatagramSocket();
         }
 
         public void run() {
+            /* This thread may die early, typically because of JVM
+               security restrictions. */
             byte[] buffer = new byte[UDP_BUF_SIZE];
             DatagramPacket pkt = new DatagramPacket(buffer, UDP_BUF_SIZE);
             try {
                 {
+                    socket = new DatagramSocket();
                     int[] args = new int[1];
                     args[0] = socket.getLocalPort();
                     client.socklistener.sendMessage(SocketListener.CMSG_UDP_PORT,
                                                     args);
-                    client.udpsock_low = 0;
                 }
                 try {
                     while (true) {
@@ -924,13 +968,8 @@ public class pclient extends Applet {
                      AWTEvent.MOUSE_EVENT_MASK |
                      AWTEvent.MOUSE_MOTION_EVENT_MASK);
         if (socklistener != null) {
-            try {
-                sockdisplayer = new SocketDisplayer(this);
-                sockdisplayer.start();
-            }
-            catch (IOException e) {
-                debug(e);
-            }
+            sockdisplayer = new SocketDisplayer(this);
+            sockdisplayer.start();
         }
     }
 
@@ -1085,13 +1124,14 @@ public class pclient extends Applet {
 
     // UDP-over-TCP
     public double udpbytecounter = 0.0;
-    public int udpsock_low = -1;
+    public int udpsock_low = 0;
+    public boolean udpovertcp = false;
     public Inflater uinflater = null;
         public byte[] uinflater_buffer = null;
 
     public void start_udp_over_tcp()
     {
-        udpsock_low = -1;
+        udpovertcp = true;
         int[] args = new int[1];
         args[0] = 0;
         try {

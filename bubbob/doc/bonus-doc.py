@@ -2,7 +2,8 @@
 
 import os, sys, string, struct
 os.chdir(os.pardir)
-sys.path.append(os.path.join(os.pardir, 'common'))
+sys.path.append(os.path.abspath(os.path.join(os.pardir, 'common')))
+sys.path.append(os.getcwd())
 
 from sprmap import  sprmap
 import bonuses, images
@@ -22,17 +23,23 @@ def create_image(name,source):
     c = src.readline().strip()
     data = src.read()
     src.close()
-    img = os.popen("convert -transparent '#010101' - doc/images/"+name+'.png','w')
+    img = os.popen("convert PPM:- doc/images/"+name+'.png','w')
     print >> img, 'P6'
     print >> img, source[1][2], source[1][3]
     print >> img, c
+    cx = source[1][0]+source[1][2]//2
+    cy = source[1][1]+source[1][3]*7//8
     for y in range(source[1][1],source[1][1]+source[1][3]):
         for x in range(source[1][0],source[1][0]+source[1][2]):
-            img.write(data[y*3*w+3*x:y*3*w+3*x+3])
+            rgb = data[y*3*w+3*x:y*3*w+3*x+3]
+            if rgb == '\x01\x01\x01':
+                d = (x-cx)*(x-cx)+(y-cy)*(y-cy)*6
+                rgb = chr(min(255, d))*3
+            img.write(rgb)
     img.close()
     
 def split_name(name):
-    "Split a name into it's words based on capitalisation."
+    "Split a name into its words based on capitalisation."
     words = []
     word = ''
     for c in name:

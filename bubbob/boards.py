@@ -6,7 +6,7 @@ import images
 CELL = 16    # this constant is inlined at some places, don't change
 HALFCELL = CELL//2
 FRAME_TIME = 0.025
-DEFAULT_LEVEL_FILE = 'levels/scratch.py'
+#DEFAULT_LEVEL_FILE = 'levels/scratch.py'
 
 
 class Copyable:
@@ -328,7 +328,7 @@ MODULES = ['boards', 'bonuses', 'bubbles', 'images',
            'binboards', 'macbinary', 'boarddef']
 
 def loadmodules(delete):
-    levelfilename = getattr(sys, 'ST_LVLFILE', DEFAULT_LEVEL_FILE)
+    levelfilename = gamesrv.game.levelfile
     modulefiles = {None: levelfilename}
     for m in MODULES:
         modulefiles[m] = m+'.py'
@@ -377,17 +377,8 @@ def loadmodules(delete):
 patget = images.patget
 haspat = images.haspat
 
-def set_levelfile(lvlfile):
-    sys.ST_LVLFILE = lvlfile
-
-def set_lives(lives):
-    sys.ST_LIVES = lives
-
 def get_lives():
-    return getattr(sys, 'ST_LIVES', None)
-
-def set_boardstep(boardstep):
-    sys.ST_BOARDSTEP = boardstep
+    return gamesrv.game.limitlives
 
 BoardList = []
 curboard = None
@@ -401,7 +392,7 @@ def next_board(num=0, complete=1):
         inplace = brd.bonuslevel
         num = brd.num
         if not brd.bonuslevel:
-            num += getattr(sys, 'ST_BOARDSTEP', 1)
+            num += gamesrv.game.stepboard
             if num >= len(BoardList):
                 num = len(BoardList)-1
         for t in brd.leave(inplace=inplace):
