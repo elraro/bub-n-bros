@@ -286,7 +286,7 @@ class Dragon(ActiveSprite):
                 icons = self.bubber.icons
             self.seticon(icons[mode, self.dir])
 
-            if bubber.key_left + bubber.key_right >= 1999999:
+            if bubber.key_left + bubber.key_right >= 3999999:
                 self.emotic(6)
 
             self.watermoveable = not wannajump
@@ -353,15 +353,15 @@ class Dragon(ActiveSprite):
         for i in range(7):
             angle = math.pi/6 * i
             dx, dy = -math.cos(angle), -math.sin(angle)
-            nx = random.randrange(6,12)*dx
-            ny = random.randrange(6,9)*dy - 12
+            nx = random.randrange(3,12)*dx
+            ny = random.randrange(3,9)*dy - 12
             if bottom_up:
                 dy = -dy
                 ny = -ny
             e = ActiveSprite(sprget(('emotic', i)),
                              int(self.x + 8 + nx),
                              int(self.y + 8 + ny - self.up))
-            e.gen.append(e.straightline(4*dx, 3*dy))
+            e.gen.append(e.straightline((3.3+random.random())*dx, (2.3+random.random())*dy))
             e.gen.append(e.die([None], strenght))
 
 
@@ -515,13 +515,19 @@ class BubPlayer(gamesrv.Player):
             self.pcap = {}
 
     def kLeft(self):
-        self.key_left = 1000000
+        if self.key_left <= 1:
+            self.key_left = 2000000
+        else:
+            self.key_left = 1000000
     def kmLeft(self):
-        self.key_left = (self.key_left == 1000000)
+        self.key_left = (self.key_left in (1000000, 2000000))
     def kRight(self):
-        self.key_right = 1000000
+        if self.key_right <= 1:
+            self.key_right = 2000000
+        else:
+            self.key_right = 1000000
     def kmRight(self):
-        self.key_right = (self.key_right == 1000000)
+        self.key_right = (self.key_right in (1000000, 2000000))
     def kJump(self):
         self.key_jump = 1000000
     def kmJump(self):

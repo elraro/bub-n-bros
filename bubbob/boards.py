@@ -939,3 +939,11 @@ def register(dict):
 ##    bwidth = width*CELL
 ##    bheight = height*CELL
 ##    bheightmod = len(boards[0].lines)*CELL
+
+
+#try:
+#    import psyco
+#except ImportError:
+#    pass
+#else:
+#    psyco.bind(normal_frame)
