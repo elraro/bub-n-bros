@@ -287,7 +287,7 @@ class PageServer:
         
         address = '%s:%s' % (host[0], port[0])
         nbclients = len(gamesrv.clients)
-        script = os.path.join(LOCALDIR, os.pardir, 'display', 'main.py')
+        script = os.path.join(LOCALDIR, os.pardir, 'display', 'Client.py')
         args = [script] + args + [address]
         launch(args)
         if my_server_address() == address:

@@ -22,7 +22,7 @@ def parse_cmdline(argv):
     # parse command-line
     def usage():
         print >> sys.stderr, 'usage:'
-        print >> sys.stderr, '  python main.py [-d#] [-s#] [extra options] [host[:port]]'
+        print >> sys.stderr, '  python Client.py [-d#] [-s#] [extra options] [host[:port]]'
         print >> sys.stderr
         print >> sys.stderr, 'options:'
         print >> sys.stderr, '  host              search for a game on the given machine'
@@ -60,7 +60,7 @@ def parse_cmdline(argv):
     try:
         opts, args = getopt(argv, shortopts, longopts)
     except error, e:
-        print >> sys.stderr, 'main.py: %s' % str(e)
+        print >> sys.stderr, 'Client.py: %s' % str(e)
         print >> sys.stderr
         usage()
 
