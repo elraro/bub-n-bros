@@ -690,9 +690,12 @@ class StarBubble(BonusBubble):
 ##        smallstar.gen.append(smallstar.following(self, 8, 8))
     def popped(self, dragon):
         if dragon:
-            from bonuses import BonusMaker, AllOutcomes
+            from bonuses import BonusMaker, AllOutcomes, Parabolic2
             BonusMaker(self.x, self.y, getattr(Stars, self.colorname),
                        outcome=random.choice(AllOutcomes))
+            for i in range(2):
+                Parabolic2(self.x, self.y, [('smstar', self.colorname, i)
+                                            for i in range(2)])
         return 100
 
 class MonsterBubble(BonusBubble):

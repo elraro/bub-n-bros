@@ -10,7 +10,7 @@ from mnstrmap import PotionBonuses, Fire
 from player import BubPlayer
 
 
-EXTRA_BONUSES = 0
+EXTRA_BONUSES = ['StarBubble']  # ['Moebius']
 
 
 questionmarklist = ['questionmark3',
@@ -1166,13 +1166,21 @@ class Flower2(RandomBonus):
         dragon.dcap['gravity'] *= -1.0
         dragon.carrybonus(self)
 
-if EXTRA_BONUSES:
+if 'Moebius' in EXTRA_BONUSES:
     class Moebius(RandomBonus):
         "Moebius Band.  Bottom left is top right and bottom right is top left... or vice-versa."
         nimage = 'moebius'
         points = 900
         def taken1(self, dragons):
             BubPlayer.Moebius = not BubPlayer.Moebius
+
+if 'StarBubble' in EXTRA_BONUSES:
+    class StarBubble(RandomBonus):
+        "Star Bubbles. Makes you fire bonus bubbles."
+        nimage = 'moebius'
+        def taken(self, dragon):
+            dragon.dcap['shootbubbles'] = ['StarBubble'] * 5
+            dragon.carrybonus(self)
 
 
 Classes = [c for c in globals().values()
