@@ -461,9 +461,10 @@ class BubPlayer(gamesrv.Player):
         del self.dragons[:]
 
     def zarkon(self):
-        if self.key_left + self.key_right >= 1999999:
+        if self.key_left + self.key_right >= 1999997:
             for dragon in self.dragons:
                 self.emotic(dragon, 6)
+            self.key_left = self.key_right = 900000
         if self.key_left:  self.key_left  -= 1
         if self.key_right: self.key_right -= 1
         if self.key_jump:  self.key_jump  -= 1
