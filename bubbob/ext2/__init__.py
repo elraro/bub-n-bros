@@ -6,7 +6,7 @@ from boards import CELL, HALFCELL, bget
 from mnstrmap import GreenAndBlue, Ghost
 from bonuses import Bonus
 
-LocalDir = os.path.abspath(os.path.dirname(__file__) or os.curdir)
+LocalDir = os.path.basename(os.path.dirname(__file__))
 
 
 localmap = {

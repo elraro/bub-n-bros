@@ -9,7 +9,7 @@ from bonuses import Bonus
 from player import Dragon, BubPlayer
 import monsters, bubbles
 
-LocalDir = os.path.abspath(os.path.dirname(__file__) or os.curdir)
+LocalDir = os.path.basename(os.path.dirname(__file__))
 
 localmap = {
     ('gala', 0) :  ('image1.ppm', ( 0,  0, 32, 32)),
