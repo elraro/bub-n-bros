@@ -136,7 +136,9 @@ def directconnect(sockaddr):
 
 def metaconnect(metaaddr):
     from metaserver import metaclient
-    s = metaclient.meta_connect(metaaddr)
+    import common.msgstruct
+    port = common.msgstruct.PORTS.get('BACK')
+    s = metaclient.meta_connect(metaaddr, port)
     sockaddr = s.getpeername()
     return s, sockaddr
 

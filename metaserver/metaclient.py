@@ -172,9 +172,10 @@ class Event:
 
 class MetaClientCli:
     
-    def __init__(self, serverkey):
+    def __init__(self, serverkey, backconnectport):
         self.resultsocket = None
         self.serverkey = serverkey
+        self.backconnectport = backconnectport
         self.threads = {}
 
     def run(self):
@@ -287,7 +288,7 @@ class MetaClientCli:
 
     def try_backconnect(self):
         s1 = socket(AF_INET, SOCK_STREAM)
-        s1.bind(('', INADDR_ANY))
+        s1.bind(('', self.backconnectport or INADDR_ANY))
         s1.listen(1)
         _, port = s1.getsockname()
         self.routemsg(RMSG_CONNECT, port)
@@ -310,8 +311,8 @@ class MetaClientCli:
         self.resultsocket = s
 
 
-def meta_connect(serverkey):
-    c = MetaClientCli(serverkey)
+def meta_connect(serverkey, backconnectport=None):
+    c = MetaClientCli(serverkey, backconnectport)
     s = c.run()
     c.done()
     return s

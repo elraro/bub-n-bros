@@ -1,5 +1,9 @@
 <html>
-<head><title>Settings - The Bub's Brothers</title></head>
+<head>
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Cache-Control" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>Settings - The Bub's Brothers</title></head>
 <body text="#000000" bgcolor="#FFFFFF" link="#0000EE" vlink="#000099" alink="#FF0000">
 &nbsp;
 
@@ -217,7 +221,8 @@ if java:
    <p>Client incoming UDP port (or <code>host:port</code> if redirected): <%(nameval("text", "port_CLIENT", default="", mangling=0))s><br>
       <%(nameval("radio", "datachannel", "ucp", mangling=0))s>always UDP</input>
       <%(nameval("radio", "datachannel", "tcp", mangling=0))s>no UDP, only TCP</input>
-      <%(nameval("radio", "datachannel", "auto", default="auto", mangling=0))s>Auto-detect</input></p>
+      <%(nameval("radio", "datachannel", "auto", default="auto", mangling=0))s>Auto-detect</input><br>
+      Client incoming TCP port (metaserver-directed back-connections): <%(nameval("text", "port_BACK", default="", mangling=0))s></p>
     </td>
     <td width=12></td>
     <td align="center" valign="bottom">
