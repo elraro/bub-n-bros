@@ -388,7 +388,7 @@ class Playfield:
                 x, y, icocode = unpack("!hhh", info[:6])
                 try:
                     ico = self.icons[icocode]
-                    overlay = overlayer(x, y, ico.pixmap, ico.rect)
+                    overlay = overlayer(x, y, ico.pixmap, ico.rect, ico.alpha)
                     sprites.append((info, overlay))
                 except KeyError:
                     #print "bad ico code", icocode

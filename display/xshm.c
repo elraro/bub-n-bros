@@ -5,8 +5,6 @@
 #include <X11/Xutil.h>
 #include <X11/extensions/XShm.h>
 
-#define offscreen 0
-
 typedef struct {
   XImage* m_shm_image;
   XShmSegmentInfo m_shminfo;
@@ -21,7 +19,7 @@ typedef struct {
   int width, height;
   XVisualInfo visual_info;
   GC gc, gc_and, gc_or;
-  XImage_Shm planes[1];
+  XImage_Shm plane;
   Pixmap backpixmap;
   int shmmode;
   int selectinput;
@@ -88,7 +86,7 @@ static int create_shm_image(DisplayObject* self, XImage_Shm* img,
   int image_size = 4*width*height;
 	
   if (XShmQueryExtension(self->dpy) == False)
-    // does we have the extension at all?
+    /* does we have the extension at all? */
     return 0;
 	
   img->m_shm_image = XShmCreateImage(
@@ -105,19 +103,19 @@ static int create_shm_image(DisplayObject* self, XImage_Shm* img,
   img->m_width = width;
   img->m_height = height;
 
-  // Create shared memory segment:
+  /* Create shared memory segment: */
   img->m_shminfo.shmid = shmget(IPC_PRIVATE, image_size, IPC_CREAT|0777);
   if (img->m_shminfo.shmid < 0)
     return 0;
 	
-  // Get memory address to segment:
+  /* Get memory address to segment: */
   img->m_shminfo.shmaddr = (char *) shmat(img->m_shminfo.shmid, 0, 0);
 
-  // Tell XServer that it may only read from it and attach to display:
+  /* Tell XServer that it may only read from it and attach to display: */
   img->m_shminfo.readOnly = True;
   XShmAttach (self->dpy, &img->m_shminfo);
 
-  // Fill the XImage struct:
+  /* Fill the XImage struct: */
   img->m_shm_image->data = img->m_shminfo.shmaddr;
   return 1;
 }
@@ -174,7 +172,7 @@ static PyObject* new_display(PyObject* dummy, PyObject* args)
   XMapRaised(self->dpy, self->win);
   
   self->shmmode = use_shm &&
-    create_shm_image(self, &self->planes[0], width, height);
+    create_shm_image(self, &self->plane, width, height);
   
   self->gc = XCreateGC(self->dpy, self->win, 0, 0);
   if (!self->shmmode)
@@ -240,7 +238,7 @@ static unsigned char* get_dpy_data(DisplayObject* self)
   unsigned char* result;
   if (!checkopen(self))
     return NULL;
-  result = (unsigned char*)(self->planes[0].m_shminfo.shmaddr);
+  result = (unsigned char*)(self->plane.m_shminfo.shmaddr);
   if (!result)
     PyErr_SetString(PyExc_IOError, "X11 SHM failed");
   return result;
@@ -254,7 +252,7 @@ static PyObject* display_clear1(DisplayObject* self, PyObject* args)
       if (data == NULL)
         return NULL;
       memset(data, 0,
-	     ( self->planes[0].m_shm_image->bits_per_pixel/8
+	     ( self->plane.m_shm_image->bits_per_pixel/8
 	       *self->width*self->height ) );
     }
   else
@@ -268,7 +266,7 @@ static PyObject* display_clear1(DisplayObject* self, PyObject* args)
   return Py_None;
 }
 
-static void pack_pixel(unsigned char *data, int r, int g, int b,
+inline void pack_pixel(unsigned char *data, int r, int g, int b,
 		       int depth, int bytes_per_pixel)
 {
   unsigned short pixel = 0;
@@ -304,226 +302,460 @@ static void pack_pixel(unsigned char *data, int r, int g, int b,
 static PyObject* display_pixmap1(DisplayObject* self, PyObject* args)
 {
   int w,h;
-  int length;
-  XImage* image;
-  long extent;
-  unsigned char* data = NULL;
-  unsigned char* maskdata = NULL;
   unsigned char* input = NULL;
-  int scanline, bitmap_pad;
-  XPixmapObject* pm;
+  int length;
   long keycol = -1;
-  unsigned int bytes_per_pixel = (self->visual_info.depth+7)/8;
 
   if (!checkopen(self))
     return NULL;
   if (!PyArg_ParseTuple(args, "ii|s#l", &w, &h, &input, &length, &keycol))
     return NULL;
- 
+
   if (self->shmmode)
     {
       int x, y;
-      unsigned char *dst;
-      int size;
-      long packed_keycol = keycol;
+      int bytes_per_pixel = self->plane.m_shm_image->bits_per_pixel/8;
+      int countblocks, countpixels;
       PyObject* result;
-      PyObject* str;
+      PyObject* strblocks;
+      PyObject* strpixels;
+      unsigned int* pblocks;
+      unsigned char* ppixels;
+      unsigned char* input1;
 
-      bytes_per_pixel = self->planes[0].m_shm_image->bits_per_pixel/8;
-      size = bytes_per_pixel*w*h;
-
-      if (input == NULL )
+      if (input == NULL)
         {
           Py_INCREF(Py_None);
           return Py_None;
         }
-      if( 3*w*h != length )
+      if (3*w*h != length)
 	{
-	  PyErr_SetString(PyExc_TypeError, "bad string length");
-	  return NULL;
+	  PyErr_SetString(PyExc_ValueError, "bad string length");
+          return NULL;
 	}
-      /* Create a new string and fill it with the correctly packed image */
-      str = PyString_FromStringAndSize(NULL, size);
-      if (!str)
-        return NULL;
-      if (keycol >= 0)
-	switch( self->visual_info.depth )
-	  {
-	  case 15:
-	    packed_keycol = (1 << 10) | (1 << 5) | 1;
-	    break;
-	  case 16:
-	    packed_keycol = (1 << 11) | (1 << 5) | 1;
-	    break;
-	  default:
-	    packed_keycol = keycol;
-	    break;
-	  }
-      result = Py_BuildValue("iiOl", w, h, str, packed_keycol);
-      Py_DECREF(str);  /* one ref left in 'result' */
-      if (!result)
-        return NULL;
-      dst = (unsigned char*) PyString_AS_STRING(str);
-      memset(dst,0,size);
 
-      for( y=0; y<h; y++ )
-	for( x=0; x<w; x++, input+=3, dst += bytes_per_pixel )
-	  {
-	    unsigned int r = input[0];
-	    unsigned int g = input[1];
-	    unsigned int b = input[2];
-	    if( ((r<<16)|(g<<8)|b) == keycol )
-	      for( b=0; b<bytes_per_pixel; b++ )
-		dst[b] = ((unsigned char *)&packed_keycol)[b];
-	    else
-	      pack_pixel(dst, r, g, b, self->visual_info.depth, bytes_per_pixel);
-	  }
+      /* Convert the image to our internal format.
+         See display_putppm1() for a description of the format.
+      */
+
+      countblocks = 0;
+      countpixels = 0;
+      input1 = input;
+      for (y=0; y<h; y++)
+        {
+          int opaque = 0;
+          for (x=0; x<w; x++)
+            {
+              unsigned int r = input1[0];
+              unsigned int g = input1[1];
+              unsigned int b = input1[2];
+              input1 += 3;
+              if (((r<<16)|(g<<8)|b) == keycol)
+                opaque = 0;
+              else
+                {
+                  if (!opaque)
+                    {
+                      countblocks++;  /* start a new block */
+                      opaque = 1;
+                    }
+                  countpixels++;
+                }
+            }
+          countblocks++;  /* end-of-line marker block */
+        }
+
+      /* allocate memory */
+      strblocks = PyString_FromStringAndSize(NULL,
+                                             countblocks*sizeof(int));
+      if (strblocks == NULL)
+        return NULL;
+      strpixels = PyString_FromStringAndSize(NULL,
+                                             countpixels*bytes_per_pixel);
+      if (strpixels == NULL)
+        {
+          Py_DECREF(strblocks);
+          return NULL;
+        }
+
+      /* write data */
+      pblocks = (unsigned int*) PyString_AS_STRING(strblocks);
+      ppixels = (unsigned char*) PyString_AS_STRING(strpixels);
+      for (y=0; y<h; y++)
+        {
+          int opaque = 0;
+          for (x=0; x<w; x++)
+            {
+              unsigned int r = input[0];
+              unsigned int g = input[1];
+              unsigned int b = input[2];
+              input += 3;
+              if (((r<<16)|(g<<8)|b) == keycol)
+                opaque = 0;
+              else
+                {
+                  if (!opaque)
+                    {
+                      *pblocks++ = x*bytes_per_pixel;  /* start a new block */
+                      opaque = 1;
+                    }
+                  pblocks[-1] += bytes_per_pixel<<16;  /* add pixel to block */
+                  pack_pixel(ppixels, r, g, b,
+                             self->visual_info.depth, bytes_per_pixel);
+                  ppixels += bytes_per_pixel;
+                }
+            }
+          *pblocks++ = 0;  /* end-of-line marker block */
+        }
+      
+      result = Py_BuildValue("iiOO", w, h, strblocks, strpixels);
+      Py_DECREF(strblocks);
+      Py_DECREF(strpixels);
       return result;
     }
-
-  pm = new_pixmap(self, w, h, keycol>=0);
-  if (pm == NULL)
-    return NULL;
-
-  if (input == NULL)
-    return (PyObject*) pm;   /* uninitialized pixmap */
-  
-  extent = w*h;
-  if (3*extent != length)
-    {
-      PyErr_SetString(PyExc_TypeError, "bad string length");
-      goto err;
-    }
-
-  bitmap_pad = self->visual_info.depth >= 24 ? 32 : 16;
-  scanline = ((w+bitmap_pad-1) & ~(bitmap_pad-1)) / 8;
-  /*while (scanline&3) scanline++;*/
-  data = malloc(self->visual_info.depth*scanline*h);
-  if (data == NULL)
-    {
-      PyErr_NoMemory();
-      goto err;
-    }
-  memset(data, 0, self->visual_info.depth*scanline*h);
-  maskdata = malloc(self->visual_info.depth*scanline*h);
-  if (maskdata == NULL)
-    {
-      PyErr_NoMemory();
-      goto err;
-    }
-  memset(maskdata, 0, self->visual_info.depth*scanline*h);
-
-  {
-    int key_r = keycol>>16;
-    unsigned char key_g = keycol>>8;
-    unsigned char key_b = keycol>>0;
-    unsigned char* target = data;
-    unsigned char* masktarget = maskdata;
-    int plane, color;
-
-    unsigned int p_size[3];
-    switch( self->visual_info.depth )
-      {
-      case 15:
-	p_size[0] = p_size[1] = p_size[2] = 5;
-	break;
-      case 16:
-	p_size[0] = p_size[2] = 5;
-	p_size[1] = 6;
-	break;
-      case 24:
-      case 32:
-	p_size[0] = p_size[1] = p_size[2] = 8;
-	break;
-      }
-
-    for (color=0; color<3; color++)
-      for (plane=128; plane>=(1<<(8-p_size[color])); plane/=2)
-        {
-          unsigned char* src = input;
-          int x, y;
-          for (y=0; y<h; y++, target+=scanline, masktarget+=scanline)
-            for (x=0; x<w; x++, src+=3)
-              {
-                if (src[0] == key_r && src[1] == key_g && src[2] == key_b)
-                  {
-                    /* transparent */
-                    masktarget[x/8] |= (1<<(x&7));
-                  }
-                else
-                  if (src[color] & plane)
-                    target[x/8] |= (1<<(x&7));
-              }
-        }
-  }
-
-  if (keycol < 0)
-    free(maskdata);
   else
     {
+      XImage* image;
+      long extent;
+      unsigned char* data = NULL;
+      unsigned char* maskdata = NULL;
+      int scanline, bitmap_pad;
+      XPixmapObject* pm;
+
+      pm = new_pixmap(self, w, h, keycol>=0);
+      if (pm == NULL)
+        return NULL;
+
+      if (input == NULL)
+        return (PyObject*) pm;   /* uninitialized pixmap */
+  
+      extent = w*h;
+      if (3*extent != length)
+        {
+          PyErr_SetString(PyExc_ValueError, "bad string length");
+          goto err;
+        }
+
+      bitmap_pad = self->visual_info.depth >= 24 ? 32 : 16;
+      scanline = ((w+bitmap_pad-1) & ~(bitmap_pad-1)) / 8;
+      /*while (scanline&3) scanline++;*/
+      data = malloc(self->visual_info.depth*scanline*h);
+      if (data == NULL)
+        {
+          PyErr_NoMemory();
+          goto err;
+        }
+      memset(data, 0, self->visual_info.depth*scanline*h);
+      maskdata = malloc(self->visual_info.depth*scanline*h);
+      if (maskdata == NULL)
+        {
+          PyErr_NoMemory();
+          goto err;
+        }
+      memset(maskdata, 0, self->visual_info.depth*scanline*h);
+
+      {
+        int key_r = keycol>>16;
+        unsigned char key_g = keycol>>8;
+        unsigned char key_b = keycol>>0;
+        unsigned char* target = data;
+        unsigned char* masktarget = maskdata;
+        int plane, color;
+
+        unsigned int p_size[3];
+        switch( self->visual_info.depth )
+          {
+          case 15:
+            p_size[0] = p_size[1] = p_size[2] = 5;
+            break;
+          case 16:
+            p_size[0] = p_size[2] = 5;
+            p_size[1] = 6;
+            break;
+          case 24:
+          case 32:
+            p_size[0] = p_size[1] = p_size[2] = 8;
+            break;
+          }
+
+        for (color=0; color<3; color++)
+          for (plane=128; plane>=(1<<(8-p_size[color])); plane/=2)
+            {
+              unsigned char* src = input;
+              int x, y;
+              for (y=0; y<h; y++, target+=scanline, masktarget+=scanline)
+                for (x=0; x<w; x++, src+=3)
+                  {
+                    if (src[0] == key_r && src[1] == key_g && src[2] == key_b)
+                      {
+                        /* transparent */
+                        masktarget[x/8] |= (1<<(x&7));
+                      }
+                    else
+                      if (src[color] & plane)
+                        target[x/8] |= (1<<(x&7));
+                  }
+            }
+      }
+
+      if (keycol < 0)
+        free(maskdata);
+      else
+        {
+          image = XCreateImage(self->dpy, self->visual_info.visual,
+                               self->visual_info.depth, XYPixmap, 0,
+                               maskdata, w, h,
+                               bitmap_pad, scanline);
+          if (image == NULL || image == (XImage*) -1)
+            {
+              PyErr_SetString(PyExc_IOError, "XCreateImage failed (2)");
+              goto err;
+            }
+          image->byte_order = LSBFirst;
+          image->bitmap_bit_order = LSBFirst;
+          maskdata = NULL;
+          XPutImage(self->dpy, pm->mask, self->gc, image, 0, 0, 0, 0, w, h);
+          XDestroyImage(image);
+        }
+  
       image = XCreateImage(self->dpy, self->visual_info.visual,
-			   self->visual_info.depth, XYPixmap, 0,
-                           maskdata, w, h,
-			   bitmap_pad, scanline);
+                           self->visual_info.depth, XYPixmap, 0,
+                           data, w, h,
+                           bitmap_pad, scanline);
       if (image == NULL || image == (XImage*) -1)
         {
-          PyErr_SetString(PyExc_IOError, "XCreateImage failed (2)");
+          PyErr_SetString(PyExc_IOError, "XCreateImage failed");
           goto err;
         }
       image->byte_order = LSBFirst;
       image->bitmap_bit_order = LSBFirst;
-      maskdata = NULL;
-      XPutImage(self->dpy, pm->mask, self->gc, image, 0, 0, 0, 0, w, h);
+      data = NULL;
+      XPutImage(self->dpy, pm->handle, self->gc, image, 0, 0, 0, 0, w, h);
       XDestroyImage(image);
-    }
-  
-  image = XCreateImage(self->dpy, self->visual_info.visual,
-		       self->visual_info.depth, XYPixmap, 0,
-                       data, w, h,
-                       bitmap_pad, scanline);
-  if (image == NULL || image == (XImage*) -1)
-    {
-      PyErr_SetString(PyExc_IOError, "XCreateImage failed");
-      goto err;
-    }
-  image->byte_order = LSBFirst;
-  image->bitmap_bit_order = LSBFirst;
-  data = NULL;
-  XPutImage(self->dpy, pm->handle, self->gc, image, 0, 0, 0, 0, w, h);
-  XDestroyImage(image);
 
-  return (PyObject*) pm;
+      return (PyObject*) pm;
 
- err:
-  free(maskdata);
-  free(data);
-  Py_DECREF(pm);
-  return NULL;
+    err:
+      free(maskdata);
+      free(data);
+      Py_DECREF(pm);
+      return NULL;
+    }
 }
 
-static PyObject* display_putppm1(DisplayObject* self, PyObject* args)
+static PyObject* display_get(DisplayObject* self, int x, int y, int w, int h)
 {
   if (self->shmmode)
     {
-      int x,y,w,h,scanline;
-      int bytes_per_line, data_scanline;
-      int clipx=0, clipy=0, clipw=65536, cliph=65536;
-      unsigned char* src;
-      int length;
-      long keycol;
-      unsigned int bytes_per_pixel = self->planes[0].m_shm_image->bits_per_pixel/8;
+      int clipx=0, clipy=0, clipw=self->width, cliph=self->height;
+      int original_w, original_h;
+      int firstline=0, firstcol=0;
+      unsigned int bytes_per_pixel = self->plane.m_shm_image->bits_per_pixel/8;
       unsigned char* data = get_dpy_data(self);
-      if (!PyArg_ParseTuple(args, "ii(iis#l)|(iiii)",
-                            &x, &y, &w, &h, &src, &length, &keycol,
-                            &clipx, &clipy, &clipw, &cliph) || !data)
+      if (!data)
         return NULL;
-  
-      scanline = bytes_per_pixel*w;
-      if (scanline*h != length)
-        {
-          PyErr_SetString(PyExc_TypeError, "bad string length");
+
+      original_w = w;
+      original_h = h;
+      if (x<clipx) { firstcol=clipx-x; w+=x-clipx; x=clipx; }
+      if (y<clipy) { firstline=clipy-y; h+=y-clipy; y=clipy; }
+      if (x+w > clipw) w = clipw-x;
+      if (y+h > cliph) h = cliph-y;
+
+      {
+        int countblocks = original_h + ((w>0 && h>0) ? h : 0);
+        /* end blocks + real blocks */
+        int countpixels = (w>0 && h>0) ? w * h : 0;
+        PyObject* result;
+        PyObject* strblocks;
+        PyObject* strpixels;
+        unsigned int* pblocks;
+        unsigned char* ppixels;
+        int wbytes = w * bytes_per_pixel;
+        int block = (firstcol * bytes_per_pixel) | (wbytes << 16);
+        int data_scanline = bytes_per_pixel*self->width;
+
+        /* allocate memory */
+        strblocks = PyString_FromStringAndSize(NULL,
+                                               countblocks*sizeof(int));
+        if (strblocks == NULL)
           return NULL;
-        }
+        strpixels = PyString_FromStringAndSize(NULL,
+                                               countpixels*bytes_per_pixel);
+        if (strpixels == NULL)
+          {
+            Py_DECREF(strblocks);
+            return NULL;
+          }
+          
+        /* write data */
+        pblocks = (unsigned int*) PyString_AS_STRING(strblocks);
+        ppixels = (unsigned char*) PyString_AS_STRING(strpixels);
+        data += bytes_per_pixel*(x+y*self->width);
+        for (y=0; y<original_h; y++)
+          {
+            if (y >= firstline && y < firstline+h && w > 0)
+              {
+                *pblocks++ = block;
+                memcpy(ppixels, data, wbytes);
+                ppixels += wbytes;
+                data += data_scanline;
+              }
+            *pblocks++ = 0;
+          }
+          
+        result = Py_BuildValue("iiOO", original_w, original_h,
+                               strblocks, strpixels);
+        Py_DECREF(strblocks);
+        Py_DECREF(strpixels);
+        return result;
+      }
+    }
+  else
+    {
+      XPixmapObject* pm = new_pixmap(self, w, h, 0);
+      if (pm != NULL)
+        XCopyArea(self->dpy, self->backpixmap, pm->handle, self->gc,
+                  x, y, w, h, 0, 0);
+      return (PyObject*) pm;
+    }
+}
+
+static PyObject* save_background(DisplayObject* self, int x, int y,
+                                 int w, int h, int save_bkgnd)
+{
+  if (save_bkgnd)
+    {
+      PyObject* pm = display_get(self, x, y, w, h);
+      PyObject* result;
+      if (pm == NULL)
+        return NULL;
+      result = Py_BuildValue("iiO", x, y, pm);
+      Py_DECREF(pm);
+      return result;
+    }
+  else
+    {
+      Py_INCREF(Py_None);
+      return Py_None;
+    }
+}
+
+#define ALPHAFACTOR 2
+#define ALPHABLEND(maximum, x, y)   ((maximum-y)*x/(maximum*ALPHAFACTOR) + y)
+
+static void memcpy_alpha_32(unsigned int* dst, unsigned int* src, int count)
+{
+  int i;
+  for (i=0; i<count/4; i++)
+    {
+      int x = dst[i];
+      int y = src[i];
+
+      int xr = x >> 16;
+      int xg = x & 0xff00;
+      int xb = x & 0xff;
+
+      int yr = y >> 16;
+      int yg = y & 0xff00;
+      int yb = y & 0xff;
+
+      int zr = ALPHABLEND(0xff,   xr, yr);
+      int zg = ALPHABLEND(0xff00, xg, yg);
+      int zb = ALPHABLEND(0xff,   xb, yb);
+      
+      dst[i] = (zr << 16) | (zg & 0xff00) | zb;
+    }
+}
+
+static void memcpy_alpha_24(unsigned char* dst, unsigned char* src, int count)
+{
+  int i;
+  for (i=0; i<count; i++)
+    {
+      int x = dst[i];
+      int y = src[i];
+      dst[i] = ALPHABLEND(255, x, y);
+    }
+}
+
+static void memcpy_alpha_15(unsigned short* dst, unsigned short* src, int count)
+{
+  int i;
+  for (i=0; i<count/2; i++)
+    {
+      unsigned short x = dst[i];
+      unsigned short y = src[i];
+
+      int xr = x >> 10;
+      int xg = x & 0x03e0;
+      int xb = x & 0x001f;
+
+      int yr = y >> 10;
+      int yg = y & 0x03e0;
+      int yb = y & 0x001f;
+
+      int zr = ALPHABLEND(31, xr, yr);
+      int zg = ALPHABLEND(0x3e0, xg, yg);
+      int zb = ALPHABLEND(31, xb, yb);
+
+      dst[i] = (zr << 10) | (zg & 0x03e0) | zb;
+    }
+}
+
+static void memcpy_alpha_16(unsigned short* dst, unsigned short* src, int count)
+{
+  int i;
+  for (i=0; i<count/2; i++)
+    {
+      unsigned short x = dst[i];
+      unsigned short y = src[i];
+
+      int xr = x >> 11;
+      int xg = x & 0x07e0;
+      int xb = x & 0x001f;
+
+      int yr = y >> 11;
+      int yg = y & 0x07e0;
+      int yb = y & 0x001f;
+
+      int zr = ALPHABLEND(31, xr, yr);
+      int zg = ALPHABLEND(0x7e0, xg, yg);
+      int zb = ALPHABLEND(31, xb, yb);
+
+      dst[i] = (zr << 11) | (zg & 0x07e0) | zb;
+    }
+}
+
+typedef void (*memcpy_alpha_fn) (unsigned char*, unsigned char*, int);
+
+static PyObject* display_overlay(DisplayObject* self, PyObject* args,
+                                 int save_bkgnd)
+{
+  PyObject* result;
+  
+  if (self->shmmode)
+    {
+      int x,y,w,h, original_x, original_y, original_w, original_h;
+      int data_scanline;
+      int clipx=0, clipy=0, clipw=65536, cliph=65536, alpha=255;
+      unsigned int* src;
+      unsigned char* srcdata;
+      unsigned char* original_srcdata;
+      int length1, length2, firstline=0, firstcol=0;
+      unsigned int bytes_per_pixel = self->plane.m_shm_image->bits_per_pixel/8;
+      memcpy_alpha_fn memcpy_alpha;
+      unsigned char* data = get_dpy_data(self);
+      if (!PyArg_ParseTuple(args, "ii(iis#s#)|(iiii)i",
+                            &x, &y, &w, &h, &src, &length1, &srcdata, &length2,
+                            &clipx, &clipy, &clipw, &cliph, &alpha) || !data)
+        return NULL;
+
+      original_x = x;
+      original_y = y;
+      original_w = w;
+      original_h = h;
+      original_srcdata = srcdata;
       x -= clipx;
       y -= clipy;
       clipx += x;
@@ -534,106 +766,178 @@ static PyObject* display_putppm1(DisplayObject* self, PyObject* args)
       if (clipy<0) clipy=0;
       if (clipw>self->width) clipw=self->width;
       if (cliph>self->height) cliph=self->height;
-      if (x<clipx) { src+=(clipx-x)*bytes_per_pixel; w+=x-clipx; x=clipx; }
-      if (y<clipy) { src+=(clipy-y)*scanline; h+=y-clipy; y=clipy; }
+      if (x<clipx) { firstcol = clipx-x; w+=x-clipx; x=clipx; }
+      if (y<clipy) { firstline = clipy-y; h+=y-clipy; y=clipy; }
       if (x+w > clipw) w = clipw-x;
       if (y+h > cliph) h = cliph-y;
-      if (w > 0)
+      if (w > 0 && h > 0)
         {
+          int dstoffset, blocksize;
+          unsigned int block;
           data += bytes_per_pixel*(x+y*self->width);
-          bytes_per_line = w*bytes_per_pixel;
           data_scanline = bytes_per_pixel*self->width;
-          if (keycol < 0)
+
+          memcpy_alpha = (memcpy_alpha_fn) memcpy;
+          if (alpha < 255)
+            switch (self->visual_info.depth) {
+            case 15: memcpy_alpha = (memcpy_alpha_fn) memcpy_alpha_15; break;
+            case 16: memcpy_alpha = (memcpy_alpha_fn) memcpy_alpha_16; break;
+            case 24: memcpy_alpha = (memcpy_alpha_fn) memcpy_alpha_24; break;
+            case 32: memcpy_alpha = (memcpy_alpha_fn) memcpy_alpha_32; break;
+            }
+
+          /* 'structure' points to a sequence of int-sized blocks with the
+             following meaning:
+
+             n & 0xFFFF  -- byte offset within the line
+             n >> 16     -- number of opaque bytes to copy there
+
+             n == 0 means end of line.
+          */
+          
+          /* read and ignore 'firstline' complete lines */
+          while (firstline--)
             {
-              while (h>0)
+              while ((block = *src++) != 0)
                 {
-                  memcpy(data, src, bytes_per_line);
-                  src += scanline;
-                  data += data_scanline;
-                  h--;
+                  blocksize = block >> 16;
+                  srcdata += blocksize;
+                }
+            }
+
+          if (w == original_w)
+            {
+              if (!save_bkgnd)
+                {
+                  /* common fast case: copy the whole width of the image */
+                  do
+                    {
+                      while ((block = *src++) != 0)
+                        {
+                          dstoffset = block & 0xFFFF;
+                          blocksize = block >> 16;
+                          memcpy(data + dstoffset, srcdata, blocksize);
+                          srcdata += blocksize;
+                        }
+                      data += data_scanline;
+                    }
+                  while (--h);
+                  result = Py_None;
+                  Py_INCREF(result);
+                }
+              else
+                {
+                  /* copy and save the background */
+                  PyObject* cliprect;
+                  PyObject* strblocks;
+                  PyObject* strpixels;
+                  unsigned char* ppixels;
+                  
+                  strpixels = PyString_FromStringAndSize(NULL, length2);
+                  if (strpixels == NULL)
+                    return NULL;
+                  ppixels = (unsigned char*) PyString_AS_STRING(strpixels);
+                  ppixels += srcdata - original_srcdata;
+                  
+                  do
+                    {
+                      while ((block = *src++) != 0)
+                        {
+                          dstoffset = block & 0xFFFF;
+                          blocksize = block >> 16;
+                          memcpy(ppixels, data + dstoffset, blocksize);
+                          ppixels += blocksize;
+                          memcpy_alpha(data + dstoffset, srcdata, blocksize);
+                          srcdata += blocksize;
+                        }
+                      data += data_scanline;
+                    }
+                  while (--h);
+
+                  strblocks = PyTuple_GET_ITEM(PyTuple_GET_ITEM(args, 2), 2);
+                  if (PyTuple_GET_SIZE(args) > 3)
+                    {
+                      cliprect = PyTuple_GET_ITEM(args, 3);
+                      result = Py_BuildValue("ii(iiOO)O",
+                                             original_x,
+                                             original_y,
+                                             original_w,
+                                             original_h,
+                                             strblocks,
+                                             strpixels,
+                                             cliprect);
+                    }
+                  else
+                    {
+                      result = Py_BuildValue("ii(iiOO)",
+                                             original_x,
+                                             original_y,
+                                             original_w,
+                                             original_h,
+                                             strblocks,
+                                             strpixels);
+                    }
+                  Py_DECREF(strpixels);
                 }
             }
           else
             {
-              int i;
-              unsigned char *keycol_bytes = (unsigned char *)&keycol;
-              switch(bytes_per_pixel) {
-        
-              case 2:
-                while (h>0)
-                  {
-                    unsigned char* src1  = src;
-                    unsigned char* data1 = data;
-                    for (i=0; i<w; i++, src1+=2, data1+=2)
-                      if (src1[0] != keycol_bytes[0] || src1[1] != keycol_bytes[1])
-                        {
-                          data1[0] = src1[0];
-                          data1[1] = src1[1];
-                        }
-                    src += scanline;
-                    data += data_scanline;
-                    h--;
-                  }
-                break;
+              /* byte offsets within a line */
+              unsigned char* blocksrc;
+              int skip, lastcol;
 
-              case 3:
-                while (h>0)
-                  {
-                    unsigned char* src1  = src;
-                    unsigned char* data1 = data;
-                    for (i=0; i<w; i++, src1+=3, data1+=3)
-                      if (src1[0] != keycol_bytes[0] ||
-                          src1[1] != keycol_bytes[1] ||
-                          src1[2] != keycol_bytes[2])
-                        {
-                          data1[0] = src1[0];
-                          data1[1] = src1[1];
-                          data1[2] = src1[2];
-                        }
-                    src += scanline;
-                    data += data_scanline;
-                    h--;
-                  }
-                break;
+              result = save_background(self, x, y, w, h, save_bkgnd);
 
-              case 4:
-                while (h>0)
-                  {
-                    unsigned char* src1  = src;
-                    unsigned char* data1 = data;
-                    for (i=0; i<w; i++, src1+=4, data1+=4)
-                      if (src1[0] != keycol_bytes[0] ||
-                          src1[1] != keycol_bytes[1] ||
-                          src1[2] != keycol_bytes[2])
-                        {
-                          data1[0] = src1[0];
-                          data1[1] = src1[1];
-                          data1[2] = src1[2];
-                        }
-                    src += scanline;
-                    data += data_scanline;
-                    h--;
-                  }
-                break;
-              }
+              lastcol = (firstcol + w) * bytes_per_pixel;
+              firstcol *= bytes_per_pixel;
+              
+              /* slow case: only copy a portion of the width of the image */
+              data -= firstcol;
+              do
+                {
+                  while ((block = *src++) != 0)
+                    {
+                      dstoffset = block & 0xFFFF;
+                      blocksize = block >> 16;
+                      blocksrc = srcdata;
+                      srcdata += blocksize;
+                      skip = firstcol - dstoffset;
+                      if (skip < 0)
+                        skip = 0;
+                      if (blocksize > lastcol - dstoffset)
+                        blocksize = lastcol - dstoffset;
+                      if (blocksize > skip)
+                        memcpy_alpha(data + dstoffset + skip, blocksrc + skip,
+                                     blocksize - skip);
+                    }
+                  data += data_scanline;
+                }
+              while (--h);
             }
+        }
+      else
+        {
+          result = args;
+          Py_INCREF(result);
         }
     }
   else
     {
-      int x,y, x1=0,y1=0,w1=-1,h1=-1;
+      int x,y, x1=0,y1=0,w1=-1,h1=-1,alpha;
       XPixmapObject* pm;
 
       if (!checkopen(self))
         return NULL;
-      if (!PyArg_ParseTuple(args, "iiO!|(iiii)", &x, &y, &XPixmap_Type, &pm,
-                            &x1, &y1, &w1, &h1))
+      if (!PyArg_ParseTuple(args, "iiO!|(iiii)i", &x, &y, &XPixmap_Type, &pm,
+                            &x1, &y1, &w1, &h1, &alpha))
         return NULL;
-  
+
       if (w1 < 0)
         w1 = pm->width;
       if (h1 < 0)
         h1 = pm->height;
+
+      result = save_background(self, x, y, w1, h1, save_bkgnd);
 
       if (pm->mask == (Pixmap) -1)
         {
@@ -648,80 +952,27 @@ static PyObject* display_putppm1(DisplayObject* self, PyObject* args)
                     x1, y1, w1, h1, x, y);
         }
     }
-  Py_INCREF(Py_None);
-  return Py_None;
+  return result;
+}
+
+static PyObject* display_putppm1(DisplayObject* self, PyObject* args)
+{
+  return display_overlay(self, args, 0);
+}
+
+static PyObject* display_overlayppm1(DisplayObject* self, PyObject* args)
+{
+  return display_overlay(self, args, 1);
 }
 
 static PyObject* display_getppm1(DisplayObject* self, PyObject* args)
 {
-  if (self->shmmode)
-    {
-      int x,y,w,h,scanline;
-      int bytes_per_line, data_scanline;
-      int clipx=0, clipy=0, clipw=self->width, cliph=self->height;
-      unsigned char* dst;
-      int length;
-      PyObject* ignored;
-      PyObject* result;
-      PyObject* str;
-      unsigned int bytes_per_pixel = self->planes[0].m_shm_image->bits_per_pixel/8;
-      unsigned char* data = get_dpy_data(self);
-      if (!PyArg_ParseTuple(args, "(iiii)|O", &x, &y, &w, &h,
-                            &ignored) || !data)
-        return NULL;
-
-      scanline = bytes_per_pixel*w;
-      length = scanline*h;
-      str = PyString_FromStringAndSize(NULL, length);
-      if (!str)
-        return NULL;
-      result = Py_BuildValue("iiOl", w, h, str, -1);
-      Py_DECREF(str);  /* one ref left in 'result' */
-      if (!result)
-        return NULL;
-      dst = (unsigned char*) PyString_AS_STRING(str);
-
-      if (x<clipx) { dst+=(clipx-x)*bytes_per_pixel; w+=x-clipx; x=clipx; }
-      if (y<clipy) { dst+=(clipy-y)*scanline; h+=y-clipy; y=clipy; }
-      if (x+w > clipw) w = clipw-x;
-      if (y+h > cliph) h = cliph-y;
-      if (w > 0)
-        {
-          data += bytes_per_pixel*(x+y*self->width);
-          bytes_per_line = w*bytes_per_pixel;
-          data_scanline = bytes_per_pixel*self->width;
-          while (h>0)
-            {
-              memcpy(dst, data, bytes_per_line);
-              dst += scanline;
-              data += data_scanline;
-              h--;
-            }
-        }
-      return result;
-    }
-  else
-    {
-      int x,y,w,h;
-      XPixmapObject* pm = NULL;
-      if (!checkopen(self))
-        return NULL;
-      if (!PyArg_ParseTuple(args, "(iiii)|O!", &x, &y, &w, &h,
-                            &XPixmap_Type, &pm))
-        return NULL;
-
-      if (pm == NULL)
-        {
-          pm = new_pixmap(self, w, h, 0);
-          if (pm == NULL)
-            return NULL;
-        }
-      else
-        Py_INCREF(pm);
-      XCopyArea(self->dpy, self->backpixmap, pm->handle, self->gc,
-                x, y, w, h, 0, 0);
-      return (PyObject*) pm;
-    }
+  int x, y, w, h;
+  if (!checkopen(self))
+    return NULL;
+  if (!PyArg_ParseTuple(args, "(iiii)", &x, &y, &w, &h))
+    return NULL;
+  return display_get(self, x, y, w, h);
 }
 
 static int readXevents(DisplayObject* self)
@@ -842,10 +1093,10 @@ static PyObject* display_flip1(DisplayObject* self, PyObject* args)
   if (self->shmmode)
     {
       XShmPutImage(self->dpy, self->win, self->gc,
-                   self->planes[0].m_shm_image,
+                   self->plane.m_shm_image,
                    0, 0, 0, 0,
-                   self->planes[0].m_width,
-                   self->planes[0].m_height,
+                   self->plane.m_width,
+                   self->plane.m_height,
                    False);
     }
   else
@@ -877,6 +1128,7 @@ static PyMethodDef display_methods[] = {
   {"pixmap",   (PyCFunction)display_pixmap1,   METH_VARARGS,  NULL},
   {"putppm",   (PyCFunction)display_putppm1,   METH_VARARGS,  NULL},
   {"getppm",   (PyCFunction)display_getppm1,   METH_VARARGS,  NULL},
+  {"overlayppm",(PyCFunction)display_overlayppm1, METH_VARARGS, NULL},
   {"keyevents",(PyCFunction)display_keyevents1,METH_VARARGS,  NULL},
   {"mouseevents",(PyCFunction)display_mouseevents1,METH_VARARGS,NULL},
   {"pointermotion",(PyCFunction)display_pointermotion1,METH_VARARGS,NULL},
