@@ -45,12 +45,16 @@ class Display:
         del self.events_mouse[:-8]
 
     def pixmap(self, w, h, data, colorkey=-1):
-        img = pygame.image.fromstring(data, (w, h), "RGB").convert()
+        img = pygame.image.fromstring(data, (w, h), "RGB")
         if colorkey >= 0:
             r = colorkey & 0xFF
             g = (colorkey >> 8) & 0xFF
             b = (colorkey >> 16) & 0xFF
-            img.set_colorkey([r, g, b], RLEACCEL)
+            img.set_colorkey([r, g, b])
+            img = img.convert_alpha(self.offscreen)
+            img.set_alpha(255, RLEACCEL)
+        else:
+            img = img.convert(self.offscreen)
         return img
 
 ##    def vflipppm(self, img):
