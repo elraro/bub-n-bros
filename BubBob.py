@@ -30,30 +30,39 @@ TAGFILENAME = 'BubBob-%s%s.url' % (socket.gethostname(), username)
 TAGFILENAME = os.path.join(tempfile.gettempdir(), TAGFILENAME)
 
 
-def look_for_local_server():
-    # Look for a running local web server
+def load_url_file():
     try:
         url = open(TAGFILENAME, 'r').readline().strip()
     except (OSError, IOError):
-        return None
+        return None, None
     if not url.startswith('http://127.0.0.1:'):
-        return None
+        return None, None
     url1 = url[len('http://127.0.0.1:'):]
     try:
         port = int(url1[:url1.index('/')])
     except ValueError:
+        return None, None
+    return url, port
+
+def look_for_local_server():
+    # Look for a running local web server
+    url, port = load_url_file()
+    if port is None:
         return None
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
         s.connect(('127.0.0.1', port))
-    except socket.error:
+    except socket.error, e:
         return None
     try:
         s.shutdown(2)
         s.close()
-    except:
+    except Exception, e:
         pass
-    return url
+    url2, port2 = load_url_file()
+    if port2 != port:
+        return None
+    return url2
 
 def start_local_server():
     MAINSCRIPT = os.path.join(LOCALDIR, 'bubbob', 'bb.py')

@@ -168,6 +168,11 @@ Please <a href="%s">click here</a> to continue.
             self.copyfile(f, self.wfile)
             f.close()
 
+    def parse_request(self):
+        if self.raw_requestline == '':
+            return False
+        else:
+            return SimpleHTTPRequestHandler.parse_request(self)
 
 def my_host():
     import gamesrv

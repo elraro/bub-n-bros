@@ -1235,6 +1235,8 @@ def recursiveloop(endtime, extra_sockets):
       return 1
   return None
 
+SERVER_SHUTDOWN = 0.0
+
 def mainloop():
   global game
   servertimeout = None
@@ -1244,7 +1246,7 @@ def mainloop():
         if game is not None:
           delay = game.mainstep()
         else:
-          delay = 5.0
+          delay = SERVER_SHUTDOWN or 5.0
         iwtd = serversockets.keys()
         iwtd, owtd, ewtd = select(iwtd, [], iwtd, delay)
         if ewtd:
@@ -1258,6 +1260,8 @@ def mainloop():
             if s in serversockets:
               serversockets[s]()    # call handler
           servertimeout = None
+        elif SERVER_SHUTDOWN and not ewtd and not owtd:
+          raise SystemExit, "Server shutdown requested."
         elif clients or getattr(game, 'autoreset', 0):
           servertimeout = None
         elif servertimeout is None:
@@ -1294,7 +1298,8 @@ def mainloop():
     print "Server closed."
 
 def closeeverything():
-  serversockets.clear()
+  global SERVER_SHUTDOWN
+  SERVER_SHUTDOWN = 2.5
 
 # ____________________________________________________________
 

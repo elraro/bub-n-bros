@@ -282,7 +282,7 @@ class PageServer:
                 'self': self,
                 #'metaserver': METASERVER,
                 #'metapublish': gamesrv.game and my_server_meta_address(),
-                'localdir': LOCALDIR,
+                #'localdir': LOCALDIR,
                 }
             gamesrv.closeeverything()
             return httpserver.load(os.path.join(LOCALDIR, 'data', 'stop.html'),
