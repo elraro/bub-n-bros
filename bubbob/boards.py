@@ -401,7 +401,7 @@ def loadmodules(force=0):
     import player
     for p in playerlist:
         player.upgrade(p)
-    for n in range(len(playerlist), player.MAX):
+    for n in range(len(playerlist), images.MAX):
         playerlist.append(player.BubPlayer(n))
     player.BubPlayer.PlayerList = playerlist
     if reload:

@@ -9,7 +9,6 @@ from images import ActiveSprite
 from mnstrmap import GreenAndBlue, LetterBubbles, PlayerBubbles
 from mnstrmap import DigitsMisc
 
-MAX = 7
 KEEPALIVE = 5*60   # seconds
 CheatDontDie = 0
 

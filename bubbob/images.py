@@ -5,6 +5,7 @@ from patmap import patmap
 import mnstrmap
 
 KEYCOL = 0x010101
+MAX = 10
 
 ActiveSprites = []
 SpritesByLoc = {}
@@ -358,7 +359,11 @@ hatmap = {
     }
 sprmap = {}
 for n, (filename, rect) in original_sprmap.items() + extramap.items() + hatmap.items():
-    sprmap[n] = os.path.join('images', filename), rect
+    if filename.find('%d') >= 0:
+        for i in range(MAX):
+            sprmap[n+1000*i] = (os.path.join('images',filename % i), rect)
+    else:
+        sprmap[n] = (os.path.join('images', filename), rect)
 del n, filename, rect
 
 transparency = {
@@ -407,6 +412,7 @@ def writestrlines(lines):
             y += 28
         else:
             y += 14
+
 
 
 def getsample(fn, freq):
