@@ -22,6 +22,28 @@ def connect():
 sys.setcheckinterval(4096)
 
 
+def float2str(f):
+    # don't trust locale issues and write a string with a '.'
+    s = str(long(f*1000000.0))
+    return s[:-6] + '.' + s[-6:]
+
+def str2float(s):
+    try:
+        return float(s)
+    except:
+        # locale issues may prevent float() from decoding the string
+        s = s.strip()
+        try:
+            i = s.index('.')
+        except ValueError:
+            try:
+                i = s.index(',')
+            except ValueError:
+                i = len(s)
+        frac = s[i+1:]
+        return float(s[:i] or '0') + float(frac or '0')/(10**len(frac))
+
+
 # ____________________________________________________________
 # Game Servers
 
@@ -89,7 +111,7 @@ class MetaClientSrv(MessageSocket):
     def msg_ping(self, origin, *rest):
         # ping time1  -->  pong time2 time1
         self.s.sendall(message(MMSG_ROUTE, origin,
-                               RMSG_PONG, str(time.time()), *rest))
+                               RMSG_PONG, float2str(time.time()), *rest))
 
     def msg_sync(self, origin, clientport, time3, time2, time1, *rest):
         time4 = time.time()
@@ -99,7 +121,7 @@ class MetaClientSrv(MessageSocket):
         self.s.sendall(message(MMSG_ROUTE, origin,
                                RMSG_CONNECT, serverport, clientport))
         #print 'times:', time1, time2, time3, time4
-        doubleping = (float(time3)-float(time1)) + (time4-float(time2))
+        doubleping = (str2float(time3)-str2float(time1)) + (time4-str2float(time2))
         connecttime = time4 + doubleping / 4.0
         def connect(origin, port, connecttime, s):
             host, _ = origin.split(':')
@@ -266,7 +288,7 @@ class MetaClientCli:
                     s.bind(('', INADDR_ANY))
                     _, port = s.getsockname()
                     self.socketcache[port] = s
-                    self.routemsg(RMSG_SYNC, port, str(now), *msg[2:])
+                    self.routemsg(RMSG_SYNC, port, float2str(now), *msg[2:])
 
     def routemsg(self, *rest):
         data = message(MMSG_ROUTE, self.serverkey, *rest)
@@ -301,7 +323,7 @@ class MetaClientCli:
 
     def send_ping(self):
         sys.stderr.write('. ')
-        self.routemsg(RMSG_PING, str(time.time()))
+        self.routemsg(RMSG_PING, float2str(time.time()))
 
     def try_synconnect(self, origin, remoteport, localport, *rest):
         sys.stderr.write('+ ')
