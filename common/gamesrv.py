@@ -185,7 +185,11 @@ class Sprite:
     self.y = y
     self.ico = ico
     self.alive = len(sprites)
-    sprites.append(pack("!hhh", x, y, ico.code))
+    if (-ico.w < x < playfield.width and
+        -ico.h < y < playfield.height):
+      sprites.append(pack("!hhh", x, y, ico.code))
+    else:
+      sprites.append('')  # starts off-screen
     sprites_by_n[self.alive] = self
 
   def move(self, x,y, ico=None):
@@ -203,6 +207,9 @@ class Sprite:
   def seticon(self, ico):
     self.ico = ico
     sprites[self.alive] = pack("!hhh", self.x, self.y, ico.code)
+
+  def hide(self):
+    sprites[self.alive] = ''
 
   def kill(self):
     if self.alive:
@@ -491,7 +498,7 @@ class SimpleClient(Client):
     try:
       player = self.players[pid]
       fn = FnKeys[keynum][2]
-    except KeyError:
+    except (KeyError, IndexError):
       FnUnknown()
     else:
       getattr(player, fn) ()

@@ -67,17 +67,24 @@ class Bubble(ActiveSprite):
                        for d in dragons for i in [1,2,1,0]]
             self.setimages(self.cyclic(imglist))
             self.warp = 1
+            caught = [bonus for d in dragons
+                      for bonus in d.listcarrybonuses()
+                      if isinstance(bonus, CatchNote)]
+            random.shuffle(caught)
             if len(dragons) < 2:
                 points = 250
             else:
                 self.play(images.Snd.Extra)
                 if len(dragons) == 2:
-                    points = 5000
+                    points = 10000
                 elif len(dragons) == 3:
-                    points = 20000
+                    points = 30000
                 else:
                     points = 70000
-            bonuses.points(self.x, self.y-HALFCELL, author, points)
+            caught.insert(0, CatchNote(points))
+            for bonus in caught:
+                author.carrybonus(bonus, 111)
+                bonuses.points(self.x, self.y-HALFCELL, author, bonus.points)
             for d in dragons:
                 d.become_bubblingeyes(self)
 
@@ -159,6 +166,13 @@ class Bubble(ActiveSprite):
                              speed=2, repeat=10):
             yield n
         self.pop()
+
+
+class CatchNote:
+    def __init__(self, points):
+        self.points = points
+    def endaction(self, dragon):
+        pass
 
 
 class DragonBubble(Bubble):

@@ -80,7 +80,8 @@ class Dragon(ActiveSprite):
             #    wasting[self.bubber] = len(wasting)
 
     def dying(self):
-        lst = [bonus for timeout, bonus in self.dcap['carrying']]
+        lst = [bonus for timeout, bonus in self.dcap['carrying']
+               if hasattr(bonus, 'buildoutcome')]
                #if random.random() > 0.2]
         if lst:
             # loose some bonuses
@@ -124,6 +125,9 @@ class Dragon(ActiveSprite):
         lst.append((timeout, bonus))
         lst.sort()
         self.dcap['carrying'] = lst
+
+    def listcarrybonuses(self):
+        return [bonus for timeout, bonus in self.dcap['carrying']]
 
     def normal_movements(self):
         yfp = 0.0

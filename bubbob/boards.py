@@ -668,20 +668,13 @@ def potion_fill(blist):
     results = []
     for n, dummy, p in ranking:
         results.append((p, str(int(n*100.00001/len(all_notes))) + '%'))
-    gen = display_ranking(results, 200)
     if curboard.bonuslevel:
         play_again = bonus_play()
-        for t in play_again:
-            yield t
-            try:
-                gen.next()
-            except StopIteration:
-                replace_boardgen(next_board(), 1)
-                return
     else:
-        for t in gen:
-            yield t
-        replace_boardgen(next_board(), 1)
+        play_again = None
+    for t in display_ranking(results, 200, play_again):
+        yield t
+    replace_boardgen(next_board(), 1)
     #fadeouttime = 3.33
     #fullsoundframes = bonusframes - 10 - int(fadeouttime / FRAME_TIME)
     #for i in range(fullsoundframes):
@@ -690,7 +683,7 @@ def potion_fill(blist):
     #for i in range(fullsoundframes, 490):
     #    yield normal_frame()
 
-def display_ranking(ranking, timeleft):
+def display_ranking(ranking, timeleft, bgen=None):
     from mnstrmap import Flood
     from bonuses import Points
     from mnstrmap import DigitsMisc
@@ -757,18 +750,25 @@ def display_ranking(ranking, timeleft):
     #if timeleft is not None and timeleft < 100.0:
     #    timeleft = 100.0
     while timeleft is None or timeleft > 0.0:
-        if timeleft is None:
-            yield 2
-        else:
-            for i in range(2):
-                t = normal_frame()
-                timeleft -= t
-                yield t
         if waves:
             ico = waveicons.pop(0)
             waveicons.append(ico)
             for w in waves:
                 w.seticon(ico)
+        if timeleft is None:
+            yield 2
+        else:
+            for i in range(2):
+                if bgen is None:
+                    t = normal_frame()
+                else:
+                    try:
+                        t = bgen.next()
+                    except StopIteration:
+                        timeleft = 0.0
+                        break
+                timeleft -= t
+                yield t
     gamesrv.set_musics([], [])
 
 def extra_water_flood():
@@ -776,18 +776,21 @@ def extra_water_flood():
     from monsters import Monster
     waves_icons = [images.sprget(n) for n in Flood.waves]
     fill_icon = images.sprget(Flood.fill)
-    fill_sprites = []
+    bspr = []
+    curboard.sprites['flood', id(bspr)] = bspr
     waves_sprites = [gamesrv.Sprite(waves_icons[0], x, bheight-CELL)
                      for x in range(0, bwidth, CELL)]
+    bspr += waves_sprites
     fill_by_line = []
     poplist = [None]
     while waves_sprites[0].y > 0:
-        for i in range(2):
-            yield 0
-            waves_icons.insert(0, waves_icons.pop())
-            for s in waves_sprites:
-                s.seticon(waves_icons[0])
+        yield 0
+        waves_icons.insert(0, waves_icons.pop())
+        for s in waves_sprites:
+            s.seticon(waves_icons[0])
+        yield 0
         sprites = [gamesrv.Sprite(fill_icon, s.x, s.y) for s in waves_sprites]
+        bspr += sprites
         fill_by_line.append(sprites)
         for s in waves_sprites:
             s.step(0, -CELL)
@@ -808,6 +811,7 @@ def extra_water_flood():
             s.step(0, CELL)
     for s in waves_sprites:
         s.kill()
+    del curboard.sprites['flood', id(bspr)]
 
 def extra_walls_falling():
     walls_by_pos = curboard.walls_by_pos
