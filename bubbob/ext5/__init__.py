@@ -62,11 +62,8 @@ class Lemming(Monster):
         self.lemmings = lemmings
 
     def argh(self, *args, **kwds):
-        self.reset()
-
-    def reset(self):
-        self.gen = [self.falling()]
-        self.touchable = 1
+        self.untouchable()
+        self.gen = [self.jumpout()]
 
     def resetimages(self):
         pass
@@ -96,8 +93,11 @@ class Lemming(Monster):
         if bubble.poplist is None and bubble.y <= -2*CELL+1:
             self.leaveboard(bubble)
             return
-        # jumping out of the bubble
         self.setimages(None)
+        self.gen = [self.jumpout()]
+
+    def jumpout(self):
+        # jumping out of the bubble
         self.seticon(images.sprget(self.mdef.jailed[1]))
         dxy = [(random.random()-0.5) * 9.0,
                (random.random()+0.5) * (-5.0)]
