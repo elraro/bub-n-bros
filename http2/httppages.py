@@ -41,7 +41,7 @@ class PageServer:
         self.Game = Game
         self.seed = hex(random.randrange(0x1000, 0x10000))
         self.unique_actions = {}
-        self.localhost = socket.gethostname()
+        self.localhost = gamesrv.HOSTNAME
         self.filename = os.path.join(LOCALDIR, self.CONFIGFILE)
         data = self.loadoptionfile()
         self.globaloptions = Options(data.get('*', {}))
@@ -422,7 +422,7 @@ def my_host(headers):
 def my_server():
     if gamesrv.game:
         s = gamesrv.opentcpsocket()
-        return ((socket.gethostname(), gamesrv.displaysockport(s)),
+        return ((gamesrv.HOSTNAME, gamesrv.displaysockport(s)),
                 gamesrv.game.FnDesc)
     else:
         return None
@@ -439,7 +439,7 @@ def my_server_meta_address():
     s = gamesrv.opentcpsocket()
     ps = gamesrv.openpingsocket()
     hs = gamesrv.openhttpsocket()
-    fullname = socket.gethostname()
+    fullname = gamesrv.HOSTNAME
     try:
         fullname = socket.gethostbyaddr(fullname)[0]
     except socket.error:

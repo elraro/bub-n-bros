@@ -6,6 +6,15 @@ from time import time, ctime
 from msgstruct import *
 from errno import EWOULDBLOCK
 
+try:
+  from localmsg import PORTS
+except ImportError:
+  PORTS = {}
+try:
+  from localmsg import HOSTNAME
+except ImportError:
+  HOSTNAME = gethostname()
+
 
 SERVER_TIMEOUT = 600   # 10 minutes without any connection or port activity
 
@@ -505,7 +514,7 @@ class Client:
       self.socket.send('\n\n<h1>Protocol Error</h1>\n')
       hs = findsocket('HTTP')
       if hs is not None:
-        url = 'http://%s:%s' % (gethostname(), displaysockport(hs))
+        url = 'http://%s:%s' % (HOSTNAME, displaysockport(hs))
         self.socket.send('''
 If you meant to point your web browser to this server,
 then use the following address:
@@ -861,7 +870,7 @@ def removesocket(role, socket=None):
   except KeyError:
     pass
 
-def opentcpsocket(port=INADDR_ANY):
+def opentcpsocket(port=PORTS.get('LISTEN', INADDR_ANY)):
   s = findsocket('LISTEN')
   if s is None:
     s = socket(AF_INET, SOCK_STREAM)
@@ -869,17 +878,20 @@ def opentcpsocket(port=INADDR_ANY):
       s.bind(('', port))
       s.listen(1)
     except error:
-      for i in range(10):
-        port = random.choice(xrange(8000, 12000))
-        try:
-          s.bind(('', port))
-          s.listen(1)
-        except error:
-          pass
+      if port == INADDR_ANY:
+        for i in range(10):
+          port = random.choice(xrange(8000, 12000))
+          try:
+            s.bind(('', port))
+            s.listen(1)
+          except error:
+            pass
+          else:
+            break
         else:
-          break
+          raise error, "server cannot find a free TCP socket port"
       else:
-        raise error, "server cannot find a free TCP socket port"
+        raise
 
     def tcpsocket_handler(s=s):
       conn, addr = s.accept()
@@ -899,7 +911,7 @@ def opentcpsocket(port=INADDR_ANY):
     addsocket('LISTEN', s, tcpsocket_handler)
   return s
 
-def openpingsocket(only_port=None):
+def openpingsocket(only_port=PORTS.get('PING', None)):
   s = findsocket('PING')
   if s is None:
     import hostchooser
@@ -914,7 +926,7 @@ def openpingsocket(only_port=None):
       else:
         ts = findsocket('LISTEN')
         if ts:
-          address = gethostname(), displaysockport(ts)
+          address = HOSTNAME, displaysockport(ts)
         else:
           address = '', ''
         args = 'Not playing', address, ''
@@ -924,7 +936,8 @@ def openpingsocket(only_port=None):
     addsocket('PING', s, pingsocket_handler)
   return s
 
-def openhttpsocket(ServerClass=None, HandlerClass=None, port=8000):
+def openhttpsocket(ServerClass=None, HandlerClass=None,
+                   port=PORTS.get('HTTP', None)):
   s = findsocket('HTTP')
   if s is None:
     if ServerClass is None:
@@ -932,16 +945,19 @@ def openhttpsocket(ServerClass=None, HandlerClass=None, port=8000):
     if HandlerClass is None:
       import javaserver
       from httpserver import MiniHandler as HandlerClass
-    server_address = ('', port)
+    server_address = ('', port or 8000)
     try:
       httpd = ServerClass(server_address, HandlerClass)
     except error:
-      server_address = ('', INADDR_ANY)
-      try:
-        httpd = ServerClass(server_address, HandlerClass)
-      except error:
-        print >> sys.stderr, "cannot start HTTP server", str(e)
-        return None
+      if port is None:
+        server_address = ('', INADDR_ANY)
+        try:
+          httpd = ServerClass(server_address, HandlerClass)
+        except error:
+          print >> sys.stderr, "cannot start HTTP server", str(e)
+          return None
+      else:
+        raise
     s = httpd.socket
     addsocket('HTTP', s, httpd.handle_request)
   return s
@@ -988,7 +1004,7 @@ class Game:
 
   def openserver(self):
     s = opentcpsocket()
-    self.address = gethostname(), socketports[s]
+    self.address = HOSTNAME, socketports[s]
     ps = openpingsocket()
     bs = self.broadcast_s = openbroadcastsocket()
     self.broadcast_port = socketports.get(bs)
