@@ -14,3 +14,6 @@ magma-sync:
 
 codespeak-sync:
 	rsync --delete -avz -e ssh ${HOME}/games/metaserver ${HOME}/games/common codespeak.net:games/
+
+meta:
+	ssh codespeak.net python games/metaserver/metaserver.py -f
