@@ -520,9 +520,12 @@ def main(Game, pipe_url_to=None, quiet=0):
             sys.stdout = sys.stderr = f
     if pipe_url_to is not None:
         url = srv.indexurl
-        while url:
-            url = url[os.write(pipe_url_to, url):]
-        os.close(pipe_url_to)
+        try:
+            while url:
+                url = url[os.write(pipe_url_to, url):]
+            os.close(pipe_url_to)
+        except OSError:
+            pass
     #if webbrowser:
     #    srv.launchbrowser()
 

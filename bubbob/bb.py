@@ -189,7 +189,10 @@ def parse_cmdline(argv):
             usage()
         elif key == '--pipeurlto':
             rdside, pipe_url_to = map(int, value.split(','))
-            os.close(rdside)
+            try:
+                os.close(rdside)
+            except OSError:
+                pass
         elif key == '--quiet':
             quiet = 1
         #elif key in ('-w', '--webbrowser'):

@@ -46,7 +46,7 @@ def pick(hostlist, delay=1):
         try:
             s.sendto(PING_MESSAGE, (host, UDP_PORT))
         except error, e:
-            print >> sys.stderr, str(e)
+            print >> sys.stderr, 'send:', str(e)
             continue
         while 1:
             iwtd, owtd, ewtd = select.select([s], [], [], delay)
@@ -56,7 +56,7 @@ def pick(hostlist, delay=1):
                 data, answer_from = s.recvfrom(200)
             except error, e:
                 if e.args[0] != ETIMEDOUT:
-                    print >> sys.stderr, str(e)
+                    print >> sys.stderr, 'recv:', str(e)
                     continue
                 break
             data = data.split(':')
@@ -74,7 +74,9 @@ def pick(hostlist, delay=1):
     print >> sys.stderr, "no server found."
     raise SystemExit
 
-def find_servers(hostlist=[('127.0.0.1', None), ('255.255.255.255', None)],
+BROADCAST = '<broadcast>'
+
+def find_servers(hostlist=[('127.0.0.1', None), (BROADCAST, None)],
                  tries=2, delay=0.5, verbose=1, port_needed=1):
     import gamesrv
     if verbose:
@@ -89,12 +91,17 @@ def find_servers(hostlist=[('127.0.0.1', None), ('255.255.255.255', None)],
     for trynum in range(tries):
         for host, udpport in hostlist:
             try:
-                ipaddr = gethostbyname(host)
+                ipaddr = host
+                if host != BROADCAST:
+                    try:
+                        ipaddr = gethostbyname(host)
+                    except error, e:
+                        print >> sys.stderr, 'gethostbyname:', str(e)
                 s.sendto(PING_MESSAGE, (ipaddr, udpport or UDP_PORT))
                 hostsend, hostrecv = events.setdefault(ipaddr, ([], []))
                 hostsend.append(time.time())
             except error, e:
-                print >> sys.stderr, str(e)
+                print >> sys.stderr, 'send:', str(e)
                 continue
         endtime = time.time() + delay
         while gamesrv.recursiveloop(endtime, [s]):
@@ -102,7 +109,7 @@ def find_servers(hostlist=[('127.0.0.1', None), ('255.255.255.255', None)],
                 data, answer_from = s.recvfrom(200)
             except error, e:
                 if e.args[0] != ETIMEDOUT:
-                    print >> sys.stderr, str(e)
+                    print >> sys.stderr, 'recv:', str(e)
                     continue
                 break
             try:

@@ -90,8 +90,11 @@ if not url:
     url = start_local_server()
     if not url:
         # wait for up to 5 seconds for the server to start
-        url = look_for_local_server(tries=10, verbose=1)
-        if not url:
+        for i in range(10):
+            url = look_for_local_server(tries=1, verbose=0)
+            if url:
+                break
+        else:
             print >> sys.stderr, 'The local server is not starting, giving up.'
             sys.exit(1)
 
