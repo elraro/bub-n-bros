@@ -153,8 +153,9 @@ class Board:
             w.to_back(l[-1])
             l.append(w)
         self.walls_by_pos[y,x] = w
-        line = self.walls[y]
-        self.walls[y] = line[:x] + '#' + line[x+1:]
+        if y >= 0:
+            line = self.walls[y]
+            self.walls[y] = line[:x] + '#' + line[x+1:]
 
     def killwall(self, x, y, kill=1):
         w = self.walls_by_pos[y,x]
@@ -168,12 +169,14 @@ class Board:
         return w
 
     def reorder_walls(self):
+        walls_by_pos = self.walls_by_pos
         l = self.sprites['walls']
-        items = self.walls_by_pos.items()
+        items = walls_by_pos.items()
         items.sort()
         assert len(items) == len(l)
         for ((y,x), w1), w2 in zip(items, l):
             w2.move(x*CELL, y*CELL)
+            walls_by_pos[y,x] = w2
 
     def leave(self, inplace=0):
         global curboard
@@ -547,33 +550,46 @@ def last_monster_killed(end_delay=390, music=None):
 ##    monsters.argh_em_all()
 ##    replace_boardgen(last_monster_killed())
 
+class TimeCounter:
+    def __init__(self, limittime):
+        from player import BubPlayer
+        self.saved_time = BubPlayer.LimitTime
+        self.time = limittime / FRAME_TIME
+        self.prev = None
+    def update(self, t):
+        from player import BubPlayer, scoreboard
+        self.time -= t
+        if self.time < 0.0:
+            self.time = 0.0
+        BubPlayer.LimitTime = self.time * FRAME_TIME
+        next = int(BubPlayer.LimitTime)
+        if self.prev != next:
+            scoreboard()
+            self.prev = next
+    def restore(self):
+        from player import BubPlayer
+        BubPlayer.LimitTime = self.saved_time
+
 def bonus_play():
-    from player import BubPlayer, scoreboard
+    from player import BubPlayer
     import bubbles
     BubPlayer.MegaBonus = None
     BubPlayer.BubblesBecome = None
     Time0 = 5.0 / FRAME_TIME  # when to slow down time
-    if BubPlayer.LimitTime is None:
-        BubPlayer.LimitTime = 180.9  # 2:30
-    time = BubPlayer.LimitTime / FRAME_TIME
+    tc = TimeCounter(BubPlayer.LimitTime or 180.9)   # 3:00
     prev = None
     while not (BubPlayer.BubblesBecome or BubPlayer.MegaBonus):
         if random.random() < 0.099:
             bubbles.newbonusbubble()
         t = normal_frame()
-        time -= t
-        BubPlayer.LimitTime = time * FRAME_TIME
-        if time < Time0:
-            if time <= 0.5:
-                time = 0.5
+        tc.update(t)
+        if tc.time < Time0:
+            if tc.time <= 0.5:
+                tc.time = 0.5
                 BubPlayer.LimitTime = 0.0
-            t *= math.sqrt(Time0 / time)
-        next = int(BubPlayer.LimitTime)
-        if prev != next:
-            scoreboard()
-            prev = next
+            t *= math.sqrt(Time0 / tc.time)
         yield t
-        if time == 0.5:
+        if tc.time == 0.5:
             replace_boardgen(game_over(), 1)
             return
     # special board end
@@ -582,19 +598,19 @@ def bonus_play():
     replace_boardgen(last_monster_killed())
 
 def game_over():
-    # when a player reaches the LimitScore
     yield force_singlegen()
     from player import BubPlayer
     images.Snd.Extralife.play()
     gamesrv.set_musics([], [images.music_potion])
-    players = [(p.points, p) for p in BubPlayer.PlayerList if p.points]
-    players.sort()
-    maximum = BubPlayer.LimitScore or (players and players[-1][0]) or 1
-    ranking = []
-    for points, p in players:
-        percent = int(points*100.00001/maximum)
-        ranking.insert(0, (p, str(percent) + '%'))
-    for t in display_ranking(ranking, None):
+    maximum = 0
+    results = {}
+    for p in BubPlayer.PlayerList:
+        if p.points:
+            results[p] = p.points
+            if p.points > maximum:
+                maximum = p.points
+    maximum = BubPlayer.LimitScore or maximum
+    for t in result_ranking(results, maximum, None):
         yield t  # never ending
 
 ##def wasting_play():
@@ -699,23 +715,8 @@ def potion_fill(blist):
         for d in b.taken_by:
             bubber = d.bubber
             results[bubber] = results.get(bubber, 0) + 1
-    ranking = []
-    for p in BubPlayer.PlayerList:
-        n = results.get(p)
-        if n:
-            ranking.append((n, random.random(), p))
-    ranking.sort()
-    ranking.reverse()
-    results = []
-    for n, dummy, p in ranking:
-        results.append((p, str(int(n*100.00001/len(all_notes))) + '%'))
-    if curboard.bonuslevel:
-        play_again = bonus_play()
-    else:
-        play_again = None
-    for t in display_ranking(results, 200, play_again):
+    for t in result_ranking(results, len(all_notes)):
         yield t
-    replace_boardgen(next_board(), 1)
     #fadeouttime = 3.33
     #fullsoundframes = bonusframes - 10 - int(fadeouttime / FRAME_TIME)
     #for i in range(fullsoundframes):
@@ -723,6 +724,24 @@ def potion_fill(blist):
     #gamesrv.fadeout(fadeouttime)
     #for i in range(fullsoundframes, 490):
     #    yield normal_frame()
+
+def result_ranking(results, maximum, timeleft=200):
+    maximum = maximum or 1
+    ranking = []
+    for p, n in results.items():
+        ranking.append((n, random.random(), p))
+    ranking.sort()
+    ranking.reverse()
+    results = []
+    for n, dummy, p in ranking:
+        results.append((p, str(int(n*100.00001/maximum)) + '%'))
+    if curboard.bonuslevel and timeleft is not None:
+        play_again = bonus_play()
+    else:
+        play_again = None
+    for t in display_ranking(results, timeleft, play_again):
+        yield t
+    replace_boardgen(next_board(), 1)
 
 def display_ranking(ranking, timeleft, bgen=None):
     from mnstrmap import Flood

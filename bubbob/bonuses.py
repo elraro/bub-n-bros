@@ -1,5 +1,5 @@
 from __future__ import generators
-import random
+import random, os
 import gamesrv
 import images
 import boards
@@ -438,15 +438,22 @@ class Potion(RandomBonus):
                      [(PotionBonuses.flower, 1000), (PotionBonuses.trefle, 2000)]),
                (Bonuses.yellow_potion, 550,
                      [(PotionBonuses.green_note, 2000), (PotionBonuses.blue_note, 3000)]),
+               ('potion4',             750,   None),
                ]
+    Extensions = ['ext1']
     def __init__(self, x, y):
         self.mode = random.choice(Potion.Potions)
         RandomBonus.__init__(self, x, y, *self.mode[:2])
     def taken1(self, dragons):
         blist = self.mode[2]
-        if random.random() < 0.6:
-            blist = [random.choice(blist)]
-        boards.replace_boardgen(boards.potion_fill(blist))
+        if blist is not None:
+            if random.random() < 0.6:
+                blist = [random.choice(blist)]
+            boards.replace_boardgen(boards.potion_fill(blist))
+        elif Potion.Extensions:
+            ext = random.choice(Potion.Extensions)
+            ext = __import__(ext, globals(), locals(), ['run'])
+            ext.run()
 
 class FireBubble(RandomBonus):
     "Fire Bubbles. Makes you fire napalm bubbles."
@@ -1198,7 +1205,7 @@ Classes = [c for c in globals().values()
 Classes.remove(RandomBonus)
 Classes.remove(TemporaryBonus)
 Cheat = []
-#Classes = [Cocktail, Butterfly]  # CHEAT
+#Classes = [Potion]  # CHEAT
 
 AllOutcomes = ([(c,) for c in Classes if c is not Fruits] +
                2 * [(MonsterBonus, lvl)
