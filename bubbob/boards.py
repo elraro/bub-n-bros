@@ -527,16 +527,14 @@ def next_board(num=0, complete=1):
     BubPlayer.__dict__.update(BubPlayer.INIT_BOARD_CAP)
     if not inplace:
         del BubPlayer.MonsterList[:]
-
-    # wait for at least one player
-    for t in wait_for_one_player():
-        yield t
-
-    # reload modules if changed
-    if not inplace and loadmodules():
-        import boards
-        boards.BoardGen = [boards.next_board(num)]
-        return
+        # wait for at least one player
+        for t in wait_for_one_player():
+            yield t
+        # reload modules if changed
+        if loadmodules():
+            import boards
+            boards.BoardGen = [boards.next_board(num)]
+            return
 
     if num < 0:
         num = 0
