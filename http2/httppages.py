@@ -326,6 +326,13 @@ class PageServer:
                     raise HTTPRequestError, "Sorry, I cannot connect the Java applet to a server using this field."
             return None, 'http://%s:%s/' % (host, httpport)
 
+        # now is a good time to generate the color files if we can
+        file = os.path.join(LOCALDIR, os.pardir, 'bubbob', 'images',
+                            'buildcolors.py')
+        if os.path.exists(file):
+            g = {'__name__': '__auto__', '__file__': file}
+            execfile(file, g)
+
         if port:
             address = '%s:%s' % (host, port)
         else:

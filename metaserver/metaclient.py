@@ -307,8 +307,8 @@ class MetaClientCli:
         remotehost, _ = origin.split(':')
         remoteaddr = remotehost, remoteport
         s.connect(remoteaddr)
-        print >> sys.stderr, 'simultaneous SYN connect succeeded with %s:%d' % (
-            remoteaddr,)
+        print >> sys.stderr, ('simultaneous SYN connect succeeded with %s:%d' %
+                              remoteaddr)
         self.resultsocket = s
 
 
