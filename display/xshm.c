@@ -25,6 +25,9 @@ typedef struct {
   Pixmap backpixmap;
   int shmmode;
   int selectinput;
+  PyObject* keyevents;
+  PyObject* mouseevents;
+  PyObject* motionevent;
 } DisplayObject;
 
 typedef struct {
@@ -184,6 +187,9 @@ static PyObject* new_display(PyObject* dummy, PyObject* args)
     }
   
   self->selectinput = 0;
+  self->keyevents = NULL;
+  self->mouseevents = NULL;
+  self->motionevent = NULL;
 
   flush(self);
   return (PyObject*) self;
@@ -208,6 +214,9 @@ static void display_close(DisplayObject* self)
 static void display_dealloc(DisplayObject* self)
 {
   display_close(self);
+  Py_XDECREF(self->keyevents);
+  Py_XDECREF(self->mouseevents);
+  Py_XDECREF(self->motionevent);
   PyObject_Del(self);
 }
 
@@ -235,30 +244,6 @@ static unsigned char* get_dpy_data(DisplayObject* self)
   if (!result)
     PyErr_SetString(PyExc_IOError, "X11 SHM failed");
   return result;
-}
-
-static PyObject* display_flip1(DisplayObject* self, PyObject* args)
-{
-  if (!checkopen(self))
-    return NULL;
-
-  if (self->shmmode)
-    {
-      XShmPutImage(self->dpy, self->win, self->gc,
-                   self->planes[0].m_shm_image,
-                   0, 0, 0, 0,
-                   self->planes[0].m_width,
-                   self->planes[0].m_height,
-                   False);
-    }
-  else
-    {
-      XCopyArea(self->dpy, self->backpixmap, self->win, self->gc,
-                0, 0, self->width, self->height, 0, 0);
-    }
-  flush(self);
-  Py_INCREF(Py_None);
-  return Py_None;
 }
 
 static PyObject* display_clear1(DisplayObject* self, PyObject* args)
@@ -694,72 +679,140 @@ static PyObject* display_getppm1(DisplayObject* self, PyObject* args)
     }
 }
 
-#define INPUT_EVENTS_LOOP(e, mask)                              \
+static int readXevents(DisplayObject* self)
+{
+  while (XEventsQueued(self->dpy, QueuedAfterReading) > 0)
+    {
+      XEvent e;
+      XNextEvent(self->dpy, &e);
+      switch (e.type) {
+      case KeyPress:
+      case KeyRelease:
+        {
+	  KeySym sym;
+	  PyObject* v;
+          int err;
+          if (self->keyevents == NULL)
+            {
+              self->keyevents = PyList_New(0);
+              if (self->keyevents == NULL)
+                return 0;
+            }
+	  sym = XLookupKeysym(&e.xkey,0);
+	  v = Py_BuildValue("ii", sym, e.type);
+          if (v == NULL)
+            return 0;
+	  err = PyList_Append(self->keyevents, v);
+	  Py_DECREF(v);
+	  if (err)
+            return 0;
+          break;
+        }
+      case ButtonPress:
+        {
+	  PyObject* v;
+          int err;
+          if (self->mouseevents == NULL)
+            {
+              self->mouseevents = PyList_New(0);
+              if (self->mouseevents == NULL)
+                return 0;
+            }
+	  v = Py_BuildValue("ii", e.xbutton.x, e.xbutton.y);
+          if (v == NULL)
+            return 0;
+	  err = PyList_Append(self->mouseevents, v);
+	  Py_DECREF(v);
+	  if (err)
+            return 0;
+          break;
+        }
+      case MotionNotify:
+        {
+          Py_XDECREF(self->motionevent);
+          self->motionevent = Py_BuildValue("ii", e.xmotion.x, e.xmotion.y);
+          if (self->motionevent == NULL)
+            return 0;
+          break;
+        }
+      }
+    }
+  return 1;
+}
+
+#define ENABLE_EVENTS(mask)     do {                            \
   if (!(self->selectinput & (mask)))                            \
     {                                                           \
       self->selectinput |= (mask);                              \
       XSelectInput(self->dpy, self->win, self->selectinput);    \
     }                                                           \
-  while (XCheckMaskEvent(self->dpy, (mask), &(e)))
+} while (0)
 
 static PyObject* display_keyevents1(DisplayObject* self, PyObject* args)
 {
-  PyObject* result = PyList_New(0);
-  if (result)
-    {
-      XEvent e;
-      INPUT_EVENTS_LOOP(e, KeyPressMask|KeyReleaseMask)
-	{
-	  KeySym sym = XLookupKeysym(&e.xkey,0);
-	  PyObject* v = Py_BuildValue("ii", sym, e.type);
-	  int err = !v || PyList_Append(result, v) < 0;
-	  Py_XDECREF(v);
-	  if (err)
-	    {
-	      Py_DECREF(result);
-	      return NULL;
-	    }
-	}
-    }
+  PyObject* result;
+  ENABLE_EVENTS(KeyPressMask|KeyReleaseMask);
+  if (!readXevents(self))
+    return NULL;
+  result = self->keyevents;
+  if (result == NULL)
+    result = PyList_New(0);
+  else
+    self->keyevents = NULL;
   return result;
 }
 
 static PyObject* display_mouseevents1(DisplayObject* self, PyObject* args)
 {
-  PyObject* result = PyList_New(0);
-  if (result)
-    {
-      XEvent e;
-      INPUT_EVENTS_LOOP(e, ButtonPressMask)
-	{
-	  PyObject* v = Py_BuildValue("ii", e.xbutton.x, e.xbutton.y);
-	  int err = !v || PyList_Append(result, v) < 0;
-	  Py_XDECREF(v);
-	  if (err)
-	    {
-	      Py_DECREF(result);
-	      return NULL;
-	    }
-	}
-    }
+  PyObject* result;
+  ENABLE_EVENTS(ButtonPressMask);
+  result = self->mouseevents;
+  if (result == NULL)
+    result = PyList_New(0);
+  else
+    self->mouseevents = NULL;
   return result;
 }
 
 static PyObject* display_pointermotion1(DisplayObject* self, PyObject* args)
 {
-  XEvent e;
   PyObject* result;
-  Py_INCREF(Py_None);
-  result = Py_None;
-  
-  INPUT_EVENTS_LOOP(e, PointerMotionMask)
+  ENABLE_EVENTS(PointerMotionMask);
+  result = self->motionevent;
+  if (result == NULL)
     {
-      Py_DECREF(result);
-      result = Py_BuildValue("ii", e.xmotion.x, e.xmotion.y);
-      if (!result)
-        return NULL;
+      Py_INCREF(Py_None);
+      result = Py_None;
     }
+  else
+    self->motionevent = NULL;
   return result;
+}
+
+static PyObject* display_flip1(DisplayObject* self, PyObject* args)
+{
+  if (!checkopen(self))
+    return NULL;
+
+  if (self->shmmode)
+    {
+      XShmPutImage(self->dpy, self->win, self->gc,
+                   self->planes[0].m_shm_image,
+                   0, 0, 0, 0,
+                   self->planes[0].m_width,
+                   self->planes[0].m_height,
+                   False);
+    }
+  else
+    {
+      XCopyArea(self->dpy, self->backpixmap, self->win, self->gc,
+                0, 0, self->width, self->height, 0, 0);
+    }
+  flush(self);
+  if (!readXevents(self))
+    return NULL;
+  Py_INCREF(Py_None);
+  return Py_None;
 }
 
 static PyObject* display_fd1(DisplayObject* self, PyObject *args)
