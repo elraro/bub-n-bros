@@ -694,7 +694,7 @@ class Blitzy(Monster):
         return 0
 
     def special(self):
-        if random.random() < 0.5:
+        if random.random() < 0.3:
             self.shootcls(self)
         return 0
 

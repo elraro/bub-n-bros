@@ -268,6 +268,11 @@ class BubblingEyes(ActiveSprite):
         
     def playing_bubble(self, bubble):
         from player import Dragon
+        bottom_up = self.saved_caps['gravity'] < 0.0
+        if bottom_up:
+            sprget = images.sprget_vflip
+        else:
+            sprget = images.sprget
         timer = 0
         red = 0
         normalbub = bubble.imgsetter
@@ -308,6 +313,8 @@ class BubblingEyes(ActiveSprite):
                 dx = 0
             if bubble.x >= boards.bwidth - 7*HALFCELL and dx > 0:
                 dx = 0
+            if bottom_up:
+                dy = -dy
             nx = bubble.x + dx
             ny = bubble.y + dy
             if timer&1:
@@ -316,7 +323,7 @@ class BubblingEyes(ActiveSprite):
                 ny += dy
             (nx, ny), moebius = boards.vertical_warp(nx, ny)
             bubble.move(nx, ny)
-            self.move(nx+dx, ny+dy, images.sprget(key))
+            self.move(nx+dx, ny+dy, sprget(key))
             if moebius:
                 self.saved_caps['left2right'] *= -1
             if dx == dy == 0:
@@ -326,12 +333,18 @@ class BubblingEyes(ActiveSprite):
                 bubble.default_windless = 0, 0
             yield None
         # jumping out of the bubble
-        self.setimages(self.cyclic(GreenAndBlue.comming[bubber.pn], 2))
+        if bottom_up:
+            cyclic = self.cyclic_vflip
+            kw = {'gravity': -0.3}
+        else:
+            cyclic = self.cyclic
+            kw = {}
+        self.setimages(cyclic(GreenAndBlue.comming[bubber.pn], 2))
         dxy = [(random.random()-0.5) * 9.0,
-               (random.random()+0.5) * (-5.0)]
-        for n in self.parabolic(dxy, 1):
+               (random.random()+0.5) * (-5.0,5.0)[bottom_up]]
+        for n in self.parabolic(dxy, 1, **kw):
             yield n
-            if dxy[1] >= 4.0:
+            if dxy[1] * (1,-1)[bottom_up] >= 4.0:
                 break
         if dxy[0] < 0:
             ndir = -1

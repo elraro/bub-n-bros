@@ -10,6 +10,9 @@ from mnstrmap import PotionBonuses, Fire
 from player import BubPlayer
 
 
+EXTRA_BONUSES = 0
+
+
 questionmarklist = ['questionmark3',
                     'questionmark4',
                     'questionmark5',
@@ -171,11 +174,16 @@ class Parabolic(ActiveSprite):
     fallspeed = 4
     
     def moving(self, y_amplitude = -8.0):
+        bottom_up = self.fallspeed < 0
         dxy = [(random.random()-0.5) * 15.0,
-               (random.random()+0.5) * y_amplitude]
-        for n in self.parabolic(dxy, self.fallstraight):
+               (random.random()+0.5) * y_amplitude * (1,-1)[bottom_up]]
+        if bottom_up:
+            kw = {'gravity': -0.3}
+        else:
+            kw = {}
+        for n in self.parabolic(dxy, self.fallstraight, **kw):
             yield n
-            if dxy[1] >= 4.0 and self.fallstraight:
+            if dxy[1] * (1,-1)[bottom_up] >= 4.0 and self.fallstraight:
                 self.gen.append(self.falling())
                 return
         self.kill()
@@ -235,7 +243,7 @@ class BonusMaker(Parabolic2):
         assert outcome
         self.outcome = outcome
         if outcome == (Flower2,):
-            self.fallspeed = -4
+            self.fallspeed = -self.fallspeed
         Parabolic2.__init__(self, x, y, imglist, imgspeed, onplace)
 
     def build(self):
@@ -1126,13 +1134,6 @@ class Sheep(RandomBonus):
             slist = [s for s in slist if s.y < boards.bheight]
             yield 1
 
-class Moebius(RandomBonus):
-    "Moebius Band.  Bottom left is top right and bottom right is top left... or vice-versa."
-    nimage = 'moebius'
-    points = 900
-    def taken1(self, dragons):
-        BubPlayer.Moebius = not BubPlayer.Moebius
-
 class Flower(RandomBonus):
     "Flower.  Fire in all directions."
     nimage = 'flower'
@@ -1164,6 +1165,15 @@ class Flower2(RandomBonus):
     def taken(self, dragon):
         dragon.dcap['gravity'] *= -1.0
         dragon.carrybonus(self)
+
+if EXTRA_BONUSES:
+    class Moebius(RandomBonus):
+        "Moebius Band.  Bottom left is top right and bottom right is top left... or vice-versa."
+        nimage = 'moebius'
+        points = 900
+        def taken1(self, dragons):
+            BubPlayer.Moebius = not BubPlayer.Moebius
+
 
 Classes = [c for c in globals().values()
            if type(c)==type(RandomBonus) and issubclass(c, RandomBonus)]

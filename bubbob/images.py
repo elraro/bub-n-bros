@@ -109,6 +109,14 @@ class ActiveSprite(gamesrv.Sprite):
                 for i in range(speed):
                     yield None
 
+    def cyclic_vflip(self, nimages, speed=5):
+        images = [sprget_vflip(n) for n in nimages]
+        while 1:
+            for img in images:
+                self.seticon(img)
+                for i in range(speed):
+                    yield None
+
     def imgseq(self, nimages, speed=5, repeat=1):
         images = [sprget(n) for n in nimages]
         for r in range(repeat):
@@ -125,7 +133,7 @@ class ActiveSprite(gamesrv.Sprite):
                 yield None
         self.kill()
 
-    def parabolic(self, dxy, warp=0):
+    def parabolic(self, dxy, warp=0, gravity=0.3):
         import boards
         from boards import CELL
         nx = self.x
@@ -134,7 +142,7 @@ class ActiveSprite(gamesrv.Sprite):
         while ny < boards.bheight:
             nx += dx
             ny += dy
-            dy += 0.3
+            dy += gravity
             if nx < 2*CELL:
                 nx = 2*CELL
                 dx = abs(dx)
