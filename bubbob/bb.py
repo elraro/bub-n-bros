@@ -36,12 +36,16 @@ class BubBobGame(gamesrv.Game):
         self.openboard()
         self.openserver()
 
-    def openboard(self):
+    def openboard(self, num=None):
+        if num is None:
+            num = self.beginboard-1
         import boards
-        boards.loadmodules(0)
+        boards.loadmodules(force=1)
+        import boards   # possibly re-import
         self.width = boards.bwidth + 9*boards.CELL
         self.height = boards.bheight
-        boards.BoardGen = [boards.next_board(self.beginboard-1)]
+        boards.curboard = None
+        boards.BoardGen = [boards.next_board(num)]
 
     def FnPlayers(self):
         from player import BubPlayer
@@ -71,14 +75,10 @@ class BubBobGame(gamesrv.Game):
         traceback.print_exc()
         print "-"*60
         import boards
-        num = getattr(boards.curboard, 'num', 0)
-        print "Correct the problem and leave pdb to restart board %d..." % num
+        num = getattr(boards.curboard, 'num', None)
+        print "Correct the problem and leave pdb to restart board %s..." % num
         import pdb; pdb.post_mortem(sys.exc_info()[2])
-        boards.loadmodules(1)
-        import boards   # re-import
-        boards.curboard = None
-        boards.BoardGen = [boards.next_board(num)]
-        frametime = 20
+        self.openboard(num)
         return 1
 
     def FnListBoards():

@@ -327,7 +327,7 @@ MODULES = ['boards', 'bonuses', 'bubbles', 'images',
            'mnstrmap', 'monsters', 'player',
            'binboards', 'macbinary', 'boarddef']
 
-def loadmodules(delete):
+def loadmodules(force=0):
     levelfilename = gamesrv.game.levelfile
     modulefiles = {None: levelfilename}
     for m in MODULES:
@@ -335,10 +335,11 @@ def loadmodules(delete):
     mtimes = {}
     for m, mfile in modulefiles.items():
         mtimes[m] = os.stat(mfile).st_mtime
-    reload = mtimes != getattr(sys, 'ST_MTIMES', None)
+    reload = force or (mtimes != getattr(sys, 'ST_MTIMES', None))
     import player
     playerlist = player.BubPlayer.PlayerList
     if reload:
+        delete = hasattr(sys, 'ST_MTIMES')
         sys.ST_MTIMES = mtimes
         if delete:
             print "Reloading modules."
@@ -409,7 +410,7 @@ def next_board(num=0, complete=1):
         yield 10
 
     # reload modules if changed
-    if not inplace and loadmodules(1):
+    if not inplace and loadmodules():
         import boards
         boards.BoardGen = [boards.next_board(num)]
         return

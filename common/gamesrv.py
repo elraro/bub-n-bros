@@ -987,6 +987,7 @@ class Game:
   def __init__(self):
     global game
     game = self
+    clearsprites()
 
   def openserver(self):
     s = opentcpsocket()
