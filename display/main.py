@@ -6,6 +6,7 @@ else:
     LOCALDIR = __file__
 LOCALDIR = os.path.abspath(os.path.dirname(LOCALDIR))
 
+sys.path.append(os.path.abspath(LOCALDIR))
 sys.path.append(os.path.abspath(os.path.join(LOCALDIR, os.pardir)))
 import common
 import pclient

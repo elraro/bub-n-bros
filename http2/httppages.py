@@ -78,20 +78,6 @@ class PageServer:
         print self.Game.FnDesc, 'server is ready at', self.indexurl
         return 1
 
-##    def launchbrowser(self):
-##        import webbrowser
-##        browser = webbrowser.get()
-##        name = getattr(browser, 'name', browser.__class__.__name__)
-##        print "Trying to display the above URL with '%s'..." % name
-##        if hasattr(os, 'fork'):
-##            if os.fork() == 0:
-##                browser.open(self.indexurl)
-##                raise SystemExit
-##        else:
-##            os.spawnv(os.P_NOWAITO, sys.executable,
-##                      [sys.executable, os.path.join(LOCALDIR, 'httppages.py'),
-##                       self.indexurl])
-
     def getlocalservers(self):
         if self.localservers is None:
             self.searchlocalservers()
@@ -302,12 +288,7 @@ class PageServer:
         nbclients = len(gamesrv.clients)
         script = os.path.join(LOCALDIR, os.pardir, 'display', 'main.py')
         args = [script] + args + [address]
-        if sys.platform == 'darwin':   # must start as a UI process
-            args = ['/usr/bin/open', '-a', 'Python.app'] + args
-        else:
-            args.insert(0, sys.executable)
-        print '*', ' '.join(args)
-        os.spawnv(os.P_NOWAITO, args[0], args)
+        launch(args)
         if my_server_address() == address:
             endtime = time.time() + 3.0
             while gamesrv.recursiveloop(endtime, []):
@@ -536,8 +517,46 @@ def main(Game, pipe_url_to=None, quiet=0):
     #    srv.launchbrowser()
 
 
-##if __name__ == '__main__':
-##    # helper for launchbrowser() above
-##    import webbrowser
-##    browser = webbrowser.get()
-##    browser.open(sys.argv[1])
+def launch(args):
+    # platform-specific hacks
+    if sys.platform == 'darwin':   # must start as a UI process
+        import tempfile
+        cmdname = tempfile.mktemp(prefix='BubBob_', suffix='.command')
+        f = open(cmdname, 'w')
+        print >> f, "#!", sys.executable
+        print >> f, "import os, sys"
+        print >> f, "try: os.unlink(%r)" % cmdname
+        print >> f, "except OSError: pass"
+        print >> f, "sys.argv[:] = %r" % (args,)
+        print >> f, "__file__ = %r" % args[0]
+        print >> f, "execfile(%r)" % args[0]
+        f.close()
+        os.chmod(cmdname, 0700)
+        args = ['/usr/bin/open', cmdname]
+    else:
+        args.insert(0, sys.executable)
+    print '*', ' '.join(args)
+    # try to close the open fds first
+    if hasattr(os, 'fork'):
+        try:
+            from resource import getrlimit, RLIMIT_NOFILE, error
+        except ImportError:
+            pass
+        else:
+            try:
+                soft, hard = getrlimit(RLIMIT_NOFILE)
+            except error:
+                pass
+            else:
+                if os.fork():
+                    return # in parent -- done, continue
+                # in child
+                for fd in range(3, hard):
+                    try:
+                        os.close(fd)
+                    except OSError:
+                        pass
+                os.execv(args[0], args)
+                # this point should never be reached
+    # fall-back
+    os.spawnv(os.P_NOWAITO, args[0], args)
