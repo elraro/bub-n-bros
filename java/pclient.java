@@ -1048,6 +1048,11 @@ public class pclient extends Applet {
     }
 
     protected void processMouseEvent(MouseEvent e) {
+        if (e.getID() != MouseEvent.MOUSE_PRESSED) {
+            e.consume();
+            return;
+        }
+        requestFocus();
         keydefinition_k = null;
         Playfield pf = playfield;
         if (pf != null && e.getY() >= pf.pfheight - pf.TASKBAR_HEIGHT) {
