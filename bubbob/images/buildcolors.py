@@ -53,7 +53,7 @@ def pixelmap(r, g, b):
     return r*255.1, g*255.1, b*255.1
 
 def specialpixelmap(r, g, b):
-    return r * 0.2, g * 0.8, r * 0.6
+    return r * 0.1, g * 0.7, r * 0.5
 
 def ppmbreak(f):
     sig = f.readline().strip()

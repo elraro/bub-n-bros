@@ -747,6 +747,9 @@ class BlueNecklace(RandomBonus):
     points = 1000
     nimage = Bonuses.blue_necklace
     def taken(self, dragon):
+        if len(dragon.bubber.dragons) >= 7:
+            # avoid burning the server with two much dragons
+            return
         from player import Dragon
         d = Dragon(dragon.bubber, dragon.x, dragon.y, -dragon.dir, dragon.dcap)
         d.dcap['left2right'] = -d.dcap['left2right']
