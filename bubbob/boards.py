@@ -469,6 +469,10 @@ def wait_for_one_player():
                     fx += dx
                     self.move(int(fx), y)
                     yield None
+                    if y == self.ypop:
+                        from mnstrmap import PlayerBubbles
+                        self.setimages(None)
+                        self.gen.append(self.die(PlayerBubbles.explosion))
                 self.kill()
 
             yield 10
@@ -484,6 +488,7 @@ def wait_for_one_player():
             s = images.ActiveSprite(ico,
                                     random.randrange(0, screenwidth-ico.w),
                                     screenheight)
+            s.ypop = random.randrange(-ico.h, screenheight)
             s.gen = [welcomebubbling(s)]
             s.setimages(s.cyclic(nimages, speed=1))
             if random.random() > 0.4321:
@@ -495,6 +500,7 @@ def wait_for_one_player():
                 if w == h == 32:
                     s2 = images.ActiveSprite(images.sprget(key), -32, 0)
                     s2.gen = [s2.following(s, (s.ico.w-32)//2, (s.ico.h-32)//2)]
+                    s.ypop = None
         images.action(images.ActiveSprites[:])
 
 def patget(n, keycol=None):
