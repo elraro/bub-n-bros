@@ -34,7 +34,9 @@ def run(UdpLookForServer, Display):
     import sys
     kw = {'mode': Display}
     for arg in sys.argv[1:]:
-        if arg == '-no-udp':
+        if arg == '-udp':
+            kw['udp_over_tcp'] = 0
+        elif arg == '-no-udp':
             kw['udp_over_tcp'] = 1
         elif ':' in arg:
             Host, Port = sys.argv[1].split(':')

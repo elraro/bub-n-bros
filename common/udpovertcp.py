@@ -38,3 +38,5 @@ class SocketMarshaller:
             #else:
                 data = self.compress(data) + self.compress_flush(Z_SYNC_FLUSH)
                 self.mixer_send(message(MSG_INLINE_FRAME, data))
+                return len(data)
+        return 0

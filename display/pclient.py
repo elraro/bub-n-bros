@@ -13,6 +13,10 @@ from modes import KeyPressed, KeyReleased
 
 #import psyco; psyco.full()
 
+# switch to udp_over_tcp if the udp socket didn't receive at least 60% of
+# the packets sent by the server
+UDP_EXPECTED_RATIO = 0.60
+
 
 def read(sock, count):
     buffer = ""
@@ -63,7 +67,7 @@ class Playfield:
 ##                                                 self.gameident[i+1:-1])
         print "connected to %r." % self.gameident
 
-    def run(self, mode, udp_over_tcp=0):
+    def run(self, mode, udp_over_tcp='auto'):
         self.playing = {}   # 0, 1, or 'l' for local
         self.keys = {}
         self.keycodes = {}
@@ -78,15 +82,20 @@ class Playfield:
         self.playericons = {}
         self.screenmode = mode
         self.initlevel = 0
+        
         self.udpsock = None
+        self.udpsock_low = None
         self.udpsock2 = None
         self.accepted_broadcast = 0
-        self.bytecounter = 0
-        if udp_over_tcp:
-            self.udp_over_tcp = ''
-            self.udp_over_tcp_decompress = zlib.decompressobj().decompress
+        self.tcpbytecounter = 0
+        self.udpbytecounter = 0
+        if udp_over_tcp == 1:
+            self.start_udp_over_tcp()
         else:
             self.udp_over_tcp = None
+            if udp_over_tcp == 'auto':
+                self.udpsock_low = 0
+        
         pss = hostchooser.serverside_ping()
         self.initial_iwtd = [self.s] + pss
         self.iwtd = self.initial_iwtd[:]
@@ -102,7 +111,7 @@ class Playfield:
             if self.s in iwtd:
                 while self.s in iwtd:
                     inputdata = self.s.recv(0x6000)
-                    self.bytecounter += len(inputdata)
+                    self.tcpbytecounter += len(inputdata)
                     ##import os; logfn='/tmp/log%d'%os.getpid()
                     ##g = open(logfn, 'ab'); g.write(inputdata); g.close()
                     inbuf += inputdata
@@ -124,17 +133,18 @@ class Playfield:
                 if self.udpsock in iwtd:
                     while self.udpsock in iwtd:
                         udpdata = self.udpsock.recv(65535)
-                        self.bytecounter += len(udpdata)
+                        self.udpbytecounter += len(udpdata)
                         iwtd, owtd, ewtd = select(self.iwtd, [], [], 0)
                     self.update_sprites(udpdata)
                 if self.udpsock2 in iwtd:
                     while self.udpsock2 in iwtd:
                         udpdata = self.udpsock2.recv(65535)
-                        self.bytecounter += len(udpdata)
+                        self.udpbytecounter += len(udpdata)
                         if udpdata == hostchooser.BROADCAST_MESSAGE:
                             if not self.accepted_broadcast:
                                 self.s.sendall(message(CMSG_UDP_PORT, '*'))
                                 self.accepted_broadcast = 1
+                                self.udpsock_low = None
                             udpdata = ''
                         iwtd, owtd, ewtd = select(self.iwtd, [], [], 0)
                     if udpdata and self.accepted_broadcast:
@@ -208,8 +218,9 @@ class Playfield:
             t, t0 = t-t0, t
             if t:
                 print "%.2f images per second,  %.1f kbytes per second" % (
-                    float(n)/t, float(self.bytecounter)/1024/t)
-                self.bytecounter = 0
+                    float(n)/t,
+                    float(self.tcpbytecounter+self.udpbytecounter)/1024/t)
+                self.tcpbytecounter = -self.udpbytecounter
             n = 0
         self.painttimes = t0, n
 
@@ -281,10 +292,23 @@ class Playfield:
             self.s.sendall(message(CMSG_ENABLE_MUSIC, 1))
             self.s.sendall(message(CMSG_PING))
 
-        #for i in range(len(self.actions)):
-        #    #for color in self.actions[i].get('players', []):
-        #    #    self.s.sendall("\xFF" + message(CMSG_ADD_PLAYER, color))
-        #    self.s.sendall(message(CMSG_ADD_PLAYER, i))
+    def start_udp_over_tcp(self):
+        self.udp_over_tcp = ''
+        self.udp_over_tcp_decompress = zlib.decompressobj().decompress
+        self.udpsock_low = None
+        for name in ('udpsock', 'udpsock2'):
+            sock = getattr(self, name)
+            if sock is not None:
+                try:
+                    self.iwtd.remove(sock)
+                except ValueError:
+                    pass
+                try:
+                    self.initial_iwtd.remove(sock)
+                except ValueError:
+                    pass
+                sock.close()
+                setattr(self, name, None)
 
     def processkeys(self):
         keyevents = self.dpy.keyevents()
@@ -487,6 +511,25 @@ class Playfield:
 
     def msg_ping(self, *rest):
         self.s.sendall(message(CMSG_PONG, *rest))
+        if rest and self.udpsock_low is not None:
+            udpkbytes = rest[0]
+            if not udpkbytes:
+                return
+            #inp = self.udpbytecounter / (udpkbytes*1024.0)
+            #print "(%d%% packet loss)" % int(100*(1.0-inp))
+            if (udpkbytes<<10) * UDP_EXPECTED_RATIO > self.udpbytecounter:
+                # too many packets were dropped (including, maybe, all of them)
+                self.udpsock_low += 1
+                if self.udpsock_low >= 3 and self.initlevel >= 1:
+                    # third time now -- that's too much
+                    print "Note: routing UDP traffic over TCP",
+                    inp = self.udpbytecounter / (udpkbytes*1024.0)
+                    print "(%d%% packet loss)" % int(100*(1.0-inp))
+                    self.start_udp_over_tcp()
+                    self.s.sendall(message(CMSG_UDP_PORT, MSG_INLINE_FRAME))
+            else:
+                # enough packets received
+                self.udpsock_low = 0
 
     def msg_pong(self, *rest):
         if self.initlevel == 0:

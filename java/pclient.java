@@ -516,6 +516,7 @@ public class pclient extends Applet {
         public static final byte MSG_PLAYER_ICON   = (byte) 'i';
         public static final byte MSG_PING          = (byte) 'g';
         public static final byte MSG_PONG          = (byte) 'G';
+        public static final byte MSG_INLINE_FRAME  = (byte) '\\';
 
         public static final byte CMSG_KEY          = (byte) 'k';
         public static final byte CMSG_ADD_PLAYER   = (byte) '+';
@@ -729,12 +730,52 @@ public class pclient extends Applet {
             case MSG_PING: {
                 buffer[ofs+1+typecodes] = CMSG_PONG;
                 sendData(buffer, ofs, base-ofs);
+                if (nargs > 0 && client.udpsock_low >= 0.0) {
+                    int udpkbytes = args[0];
+                    // switch to udp_over_tcp if the udp socket
+                    // didn't receive at least 60% of
+                    // the packets sent by the server
+                    if (udpkbytes * 1024.0 * 0.60 > client.udpbytecounter) {
+                        client.udpsock_low += 1;
+                        if (udpsock_low >= 3) {
+                            double inp =client.udpbytecounter/(udpkbytes*1024.0);
+                            int loss = (int)(100.0*(1.0-inp));
+                            showStatus("routing UDP traffic over TCP (" +
+                                       Integer.toString(loss) +
+                                       "% packet loss)");
+                            client.start_udp_over_tcp();
+                        }
+                    }
+                    else
+                        client.udpsock_low = 0;
+                }
                 break;
             }
             case MSG_PONG: {
                 if (!client.taskbarfree && !client.taskbarmode) {
                     client.taskbarfree = true;
                     client.setTaskbar(true);
+                }
+                break;
+            }
+            case MSG_INLINE_FRAME: {
+                if (client.uinflater != null) {
+                    int dataofs = args[0];
+                    int datalen = args[1];
+                    int len;
+                    byte[] pkt = client.uinflater_buffer;
+                    client.uinflater.setInput(buffer, dataofs, datalen);
+                    try {
+                        len = client.uinflater.inflate(pkt);
+                    }
+                    catch (DataFormatException e) {
+                        len = 0;
+                    }
+                    Playfield pf = client.playfield;
+                    if (len > 0 && pf != null) {
+                        client.uinflater_buffer = pf.setSprites(pkt, len);
+                        client.repaint();
+                    }
                 }
                 break;
             }
@@ -810,12 +851,14 @@ public class pclient extends Applet {
                     args[0] = socket.getLocalPort();
                     client.socklistener.sendMessage(SocketListener.CMSG_UDP_PORT,
                                                     args);
+                    client.udpsock_low = 0;
                 }
                 try {
                     while (true) {
                         socket.receive(pkt);
                         if (isInterrupted())
                             break;
+                        client.udpbytecounter += (double) pkt.getLength();
                         Playfield pf = client.playfield;
                         if (pf != null) {
                             pkt.setData(pf.setSprites(pkt.getData(),
@@ -1033,6 +1076,31 @@ public class pclient extends Applet {
         }
         e.consume();
         repaint();
+    }
+
+    // UDP-over-TCP
+    public double udpbytecounter = 0.0;
+    public int udpsock_low = -1;
+    public Inflater uinflater = null;
+        public byte[] uinflater_buffer = null;
+
+    public void start_udp_over_tcp()
+    {
+        udpsock_low = -1;
+        int[] args = new int[1];
+        args[0] = 0;
+        try {
+            socklistener.sendMessage(SocketListener.CMSG_UDP_PORT, args);
+        }
+        catch (IOException e) {
+            return;
+        }
+        uinflater_buffer = new byte[SocketDisplayer.UDP_BUF_SIZE];
+        uinflater = new Inflater();
+        if (sockdisplayer != null) {
+            sockdisplayer.interrupt();
+            sockdisplayer = null;
+        }
     }
 
 //     // ImageObserver interface

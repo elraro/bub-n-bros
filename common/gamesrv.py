@@ -285,6 +285,7 @@ class Client:
     self.socket = socket
     self.addr = addr
     self.udpsocket = None
+    self.udpsockcounter = 0
 ##    if FnPath:
 ##      desc = '%s [%s]' % (FnDesc, FnPath)
 ##    else:
@@ -299,7 +300,8 @@ class Client:
     self.players = { }
     self.sounds = None
     self.has_music = 0
-    self.activity = time()
+    self.activity = self.last_ping = time()
+    self.force_ping_delay = 0.6
     self.musicpos = { }
     for b in bitmaps.values():
       self.msgl += b.defall()
@@ -320,7 +322,6 @@ class Client:
         if buffer:
           self.send_buffer(buffer)
       if self.udpsocket is not None:
-        #print "udp send: %d bytes" % len(udpdata)
         if self.sounds:
           if broadcast_extras is None or self not in broadcast_clients:
             udpdata = ''.join(self.sounds.keys() + [udpdata])
@@ -333,15 +334,21 @@ class Client:
               del self.sounds[key]
         if broadcast_extras is None or self not in broadcast_clients:
           try:
-            self.udpsocket.send(udpdata)
-            #print "Non-Broadcast to", self.addr
+            self.udpsockcounter += self.udpsocket.send(udpdata)
           except error:
             pass  # ignore UDP send errors (buffer full, etc.)
       if self.has_music > 1 and NOW >= self.musicstreamer:
         self.musicstreamer += 0.99
         self.sendmusicdata()
-      if not self.msgl and abs(NOW - self.activity) > self.KEEP_ALIVE:
-        self.msgl.append(message(MSG_PING))
+      if not self.msgl:
+        if abs(NOW - self.activity) <= self.KEEP_ALIVE:
+          if abs(NOW - self.last_ping) <= self.force_ping_delay:
+            return
+          if self.udpsockcounter < 1024:
+            return
+          self.force_ping_delay += 0.2
+        self.msgl.append(message(MSG_PING, self.udpsockcounter>>10))
+        self.last_ping = NOW
 
   def send_can_mix(self):
     return not self.msgl and self.socket is not None
@@ -444,7 +451,7 @@ class Client:
       # client accepts broadcasted data
       broadcast_clients[self] = 1
       #print "++++ Broadcasting ++++ to", self.addr
-    elif port == MSG_INLINE_FRAME:
+    elif port == MSG_INLINE_FRAME or port == 0:
       # client requests data in-line on the TCP stream
       import udpovertcp
       self.udpsocket = udpovertcp.SocketMarshaller(self.socket, self)
