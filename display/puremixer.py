@@ -8,22 +8,10 @@ class PureMixer:
     #  Note that opening the audio device itself is outside the scope of
     #  this module.  Anything else could also be done with the mixed data,
     #  e.g. stored on disk, for all this module knows.
-    #
-    #  It sends data to a audio-device-like object 'f' with the following
-    #  expected methods:
-    #    f.bufsize()    ->  total output buffer size in bytes
-    #    f.obufcount()  ->  number of bytes waiting in buffer
-    #    f.write(data)  ->  send data to the buffer
-    #                         len(data) <= f.bufsize() - f.obufcount()
-    #
-    def __init__(self, f, buffertime, freq=44100, bits=8, signed=0,
-                                      channels=1, byteorder=None):
-        """Open the mixer for output to the audio device 'f' and set
-        the mixer's parameters.
-        'buffertime' is how much delay you allow between a call to
-        play() and the sound being actually heard. You must call
-        poll() at at least that frequency."""
-        self.f = f
+
+    def __init__(self, freq=44100, bits=8, signed=0,
+                       channels=1, byteorder=None):
+        """Open the mixer and set its parameters."""
         self.freq = freq
         self.bytes = bits/8
         self.signed = signed
@@ -31,15 +19,7 @@ class PureMixer:
         self.byteorder = byteorder or sys.byteorder
         self.parameters = (freq, self.bytes, signed, channels, self.byteorder)
         self.bytespersample = channels*self.bytes
-        self.bufsize = int(self.bytespersample*freq*buffertime + 255.5) & ~ 255
-        if self.bufsize > f.bufsize():
-            self.bufsize = f.bufsize()
-            buffertime = self.bufsize / float(freq)
-        self.buffertime = buffertime
-
-    def close(self):
-        "Close the audio device."
-        self.f.close()
+        self.queue = '\x00' * self.bytes
 
     def resample(self, data, freq=44100, bits=8, signed=0,
                              channels=1, byteorder=None):
@@ -98,26 +78,32 @@ class PureMixer:
                              channels = w.getnchannels(),
                              byteorder = 'little')
 
-    def poll(self, mixer_channels):
-        """Mix and play the next batch buffer.
+    def mix(self, mixer_channels, bufsize):
+        """Mix the next batch buffer.
         Each object in the mixer_channels list must be a file-like object
         with a 'read(size)' method."""
-        for i in range(3):
-            bufsize = self.bufsize - self.f.obufcount()
-            if bufsize <= 0:
-                return
-            data = ''
-            for i in range(len(mixer_channels)-1, -1, -1):
-                c = mixer_channels[i]
+        data = ''
+        already_seen = {}
+        channels = mixer_channels[:]
+        channels.reverse()
+        for c in channels:
+            if already_seen.has_key(c):
+                data1 = ''
+            else:
                 data1 = c.read(bufsize)
-                if data1:
-                    l = min(len(data), len(data1))
-                    data = (audioop.add(data[:l], data1[:l], 1) +
-                            (data1[l:] or data[l:]))
-                else:
-                    del mixer_channels[i]
-            data += '\x00' * (bufsize - len(data))
-            self.f.write(data)
+                already_seen[c] = 1
+            if data1:
+                l = min(len(data), len(data1))
+                data = (audioop.add(data[:l], data1[:l], 1) +
+                        (data1[l:] or data[l:]))
+            else:
+                try:
+                    mixer_channels.remove(c)
+                except ValueError:
+                    pass
+        data += self.queue * ((bufsize - len(data)) / self.bytes)
+        self.queue = data[-self.bytes:]
+        return data
 
 
 def byteswap(data, byte):

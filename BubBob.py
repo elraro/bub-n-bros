@@ -37,15 +37,40 @@ def look_for_local_server(tries, verbose):
 
 def start_local_server():
     url = ''
-    MAINSCRIPT = os.path.abspath(os.path.join(LOCALDIR, 'bubbob', 'bb.py'))
-    args = [sys.executable, MAINSCRIPT]
     try:
         readpipe, writepipe = os.pipe()
     except:
         readpipe, writepipe = None
+    if hasattr(os, 'fork') and hasattr(os, 'dup2'):
+        if os.fork() == 0:
+            # in the child process
+            os.close(readpipe)
+            sys.path.append(os.path.join(LOCALDIR, 'bubbob'))
+            import bb, gamesrv, stdlog
+            bb.BubBobGame.Quiet = 1
+            logfile = stdlog.LogFile()
+            bb.start_metaserver(writepipe, 0)
+            if logfile:
+                print >> logfile
+                print "Logging to", logfile.filename
+                fd = logfile.f.fileno()
+                try:
+                    # detach from parent
+                    os.dup2(fd, 1)
+                    os.dup2(fd, 2)
+                    os.dup2(fd, 0)
+                except OSError:
+                    pass
+                logfile.close()
+            gamesrv.mainloop()
+            sys.exit(0)
     else:
-        args.append('--pipeurlto=%d,%d' % (readpipe, writepipe))
-    os.spawnv(os.P_NOWAITO, args[0], args)
+        MAINSCRIPT = os.path.abspath(os.path.join(LOCALDIR, 'bubbob', 'bb.py'))
+        args = [sys.executable, MAINSCRIPT]
+        if readpipe is not None:
+            args.append('--pipeurlto=%d,%d' % (readpipe, writepipe))
+        args.append('--quiet')
+        os.spawnv(os.P_NOWAITO, args[0], args)
     if readpipe is not None:
         os.close(writepipe)
         while 1:

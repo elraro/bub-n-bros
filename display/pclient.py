@@ -137,8 +137,12 @@ class Playfield:
         self.playericons = {}
         self.screenmode = mode
         self.initlevel = 0
+        self.trackcfgfile = None
+        self.trackcfgmtime = None
         if mode[-1].has_key('udp_over_tcp'):
             udp_over_tcp = mode[-1]['udp_over_tcp']
+        if mode[-1].has_key('cfgfile'):
+            self.trackcfgfile = mode[-1]['cfgfile']
         
         self.udpsock = None
         self.udpsock_low = None
@@ -379,6 +383,7 @@ class Playfield:
             self.udpsock.bind(('', INADDR_ANY))
             host, port = self.udpsock.getsockname()
             self.iwtd.append(self.udpsock)
+            self.initial_iwtd.append(self.udpsock)
         self.s.sendall(message(CMSG_UDP_PORT, port))
         if self.snd and self.snd.has_music:
             self.s.sendall(message(CMSG_ENABLE_MUSIC, 1))
@@ -462,6 +467,7 @@ class Playfield:
         if local:
             self.playing[id] = 'l'
             self.settaskbar(0)
+            self.checkcfgfile(1)
         else:
             self.playing[id] = 1
 
@@ -499,12 +505,15 @@ class Playfield:
 
     def msg_def_playfield(self, width, height, backcolor=None,
                           gameident=None, *rest):
+        #if self.snd is not None:
+        #    self.snd.close()
         if self.dpy is not None:
             # clear all pixmaps
             for ico in self.icons.values():
                 ico.clear()
             self.pixmaps.clear()
             self.dpy.close()
+            del self.sprites[:]
         self.width = width
         self.height = height
         if gameident:
@@ -595,8 +604,36 @@ class Playfield:
     def msg_player_icon(self, pid, icocode, *rest):
         self.playericons[pid] = self.geticon(icocode)
 
+    def checkcfgfile(self, force=0):
+        if self.trackcfgfile:
+            try:
+                st = os.stat(self.trackcfgfile)
+            except OSError:
+                pass
+            else:
+                if force or (st.st_mtime != self.trackcfgmtime):
+                    self.trackcfgmtime = st.st_mtime
+                    try:
+                        f = open(self.trackcfgfile, 'r')
+                        data = f.read().strip()
+                        f.close()
+                        d = eval(data or '{}', {}, {})
+                    except:
+                        print >> sys.stderr, 'Invalid config file format'
+                    else:
+                        d = d.get(gethostname(), {})
+                        namemsg = ''
+                        for id, local in self.playing.items():
+                            keyid = 'player%d' % id
+                            if local == 'l' and d.has_key(keyid):
+                                namemsg = namemsg + message(
+                                    CMSG_PLAYER_NAME, id, d[keyid])
+                        if namemsg:
+                            self.s.sendall(namemsg)
+
     def msg_ping(self, *rest):
         self.s.sendall(message(CMSG_PONG, *rest))
+        self.checkcfgfile()
         if rest and self.udpsock_low is not None:
             udpkbytes = rest[0]
             if not udpkbytes:

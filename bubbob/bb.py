@@ -19,21 +19,26 @@ class BubBobGame(gamesrv.Game):
 
     FnDesc = "Bub & Bob"
     FnBasePath = "bubbob"
+    Quiet = 0
+    End = 0
 
     def __init__(self, levelfile,
                  beginboard  = 1,
                  stepboard   = 1,
                  limitlives  = None,
-                 extralife   = 50000):
+                 extralife   = 50000,
+                 autoreset   = 0):
         gamesrv.Game.__init__(self)
+        self.game_reset_gen = None
         self.levelfile  = levelfile
         self.beginboard = beginboard
         self.stepboard  = stepboard
         self.limitlives = limitlives
         self.extralife  = extralife
+        self.autoreset  = autoreset
         levelsname, ext = os.path.splitext(os.path.basename(levelfile))
         self.FnDesc     = BubBobGame.FnDesc + ' ' + levelsname
-        self.openboard()
+        self.reset()
         self.openserver()
 
     def openboard(self, num=None):
@@ -46,6 +51,13 @@ class BubBobGame(gamesrv.Game):
         self.height = boards.bheight
         boards.curboard = None
         boards.BoardGen = [boards.next_board(num)]
+
+    def reset(self):
+        import player
+        self.openboard()
+        for p in player.BubPlayer.PlayerList:
+            p.reset()
+        self.End = 0
 
     def FnPlayers(self):
         from player import BubPlayer
@@ -64,9 +76,20 @@ class BubBobGame(gamesrv.Game):
                         boards.BoardGen.remove(gen)
                     except ValueError:
                         pass
+        if self.End and self.autoreset:
+            if (self.game_reset_gen is None or
+                self.game_reset_gen not in boards.BoardGen):
+                self.game_reset_gen = boards.game_reset()
+                boards.BoardGen.append(self.game_reset_gen)
         return frametime * boards.FRAME_TIME
 
     def FnExcHandler(self, kbd):
+        try:
+            from images import writestr
+            writestr(50, 50, 'Ooops -- server crash!')
+            self.sendudpdata()
+        except:
+            pass
         from player import BubPlayer
         if kbd and not [p for p in BubPlayer.PlayerList if p.isplaying()]:
             return 0
@@ -76,8 +99,12 @@ class BubBobGame(gamesrv.Game):
         print "-"*60
         import boards
         num = getattr(boards.curboard, 'num', None)
-        print "Correct the problem and leave pdb to restart board %s..." % num
-        import pdb; pdb.post_mortem(sys.exc_info()[2])
+        if self.Quiet:
+            print "Crash recovery! Automatically restarting board %s" % num
+            import time; time.sleep(2)
+        else:
+            print "Correct the problem and leave pdb to restart board %s..."%num
+            import pdb; pdb.post_mortem(sys.exc_info()[2])
         self.openboard(num)
         return 1
 
@@ -122,6 +149,7 @@ def parse_cmdline(argv):
         print >> sys.stderr, '       --start #    synonym for --begin'
         print >> sys.stderr, '  -s#  --step #     advance board number by steps of # (default 1)'
         print >> sys.stderr, '  -l#  --lives #    limit the number of lives to #'
+        print >> sys.stderr, '  -i   --infinite   restart the server at the end of the game'
         print >> sys.stderr, '  -h   --help       display this text'
         #print >> sys.stderr, '  -rxxx record the game in file xxx'
         sys.exit(1)
@@ -132,9 +160,10 @@ def parse_cmdline(argv):
         from getopt import getopt
     from getopt import error
     try:
-        opts, args = getopt(argv, 'mb:s:l:h',
+        opts, args = getopt(argv, 'mb:s:l:ih',
                             ['metaserver', 'start=', 'step=',
-                             'lives=', 'help', 'pipeurlto='])
+                             'lives=', 'infinite', 'help',
+                             'pipeurlto=', 'quiet'])
     except error, e:
         print >> sys.stderr, 'bb.py: %s' % str(e)
         print >> sys.stderr
@@ -144,6 +173,7 @@ def parse_cmdline(argv):
     metaserver = 0
     #webbrowser = 1
     pipe_url_to = None
+    quiet = 0
     for key, value in opts:
         if key in ('-m', '--metaserver'):
             metaserver = 1
@@ -153,16 +183,20 @@ def parse_cmdline(argv):
             options['stepboard'] = int(value)
         elif key in ('-l', '--lives'):
             options['limitlives'] = int(value)
+        elif key in ('-i', '--infinite'):
+            options['autoreset'] = 1
         elif key in ('-h', '--help'):
             usage()
         elif key == '--pipeurlto':
             rdside, pipe_url_to = map(int, value.split(','))
             os.close(rdside)
+        elif key == '--quiet':
+            quiet = 1
         #elif key in ('-w', '--webbrowser'):
         #    webbrowser = value.startswith('y')
     if args:
         if len(args) > 1:
-            print >> sys.stderr, 'bb12.py: multiple level files specified'
+            print >> sys.stderr, 'bb.py: multiple level files specified'
             sys.exit(1)
         levelfile = os.path.abspath(args[0])
         os.chdir(LOCALDIR)
@@ -172,12 +206,15 @@ def parse_cmdline(argv):
             import httppages
             httppages.meta_register()
     else:
-        os.chdir(LOCALDIR)
         if options:
-            print >> sys.stderr, 'bb12.py: command-line options ignored'
-        setuphttp2path()
-        import httppages
-        httppages.main(BubBobGame, pipe_url_to)
+            print >> sys.stderr, 'bb.py: command-line options ignored'
+        start_metaserver(pipe_url_to, quiet)
+
+def start_metaserver(pipe_url_to, quiet):
+    os.chdir(LOCALDIR)
+    setuphttp2path()
+    import httppages
+    httppages.main(BubBobGame, pipe_url_to, quiet)
 
 
 def setup():

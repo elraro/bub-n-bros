@@ -1,0 +1,73 @@
+<html>
+<head><title>Name Bub's Brothers</title>
+</head>
+<body text="#000000" bgcolor="#40FF40" link="#0000EE" vlink="#000099" alink="#FF0000">
+&nbsp;
+
+<form name="n" action="name.html" method="get">
+<center><table CELLSPACING=0 CELLPADDING=0 BORDER=0>
+
+<tr>
+<td width="4%%"  rowspan=9 bgcolor="#000000">&nbsp;</td>
+<td width="32%%"           bgcolor="#000000">&nbsp;</td>
+<td width="4%%"  rowspan=9 bgcolor="#000000">&nbsp;</td>
+<td width="20%%" rowspan=9>&nbsp;</td>
+<td width="4%%"  rowspan=9 bgcolor="#FFFFFF">&nbsp;</td>
+<td width="32%%"           bgcolor="#FFFFFF">&nbsp;</td>
+<td width="4%%"  rowspan=9 bgcolor="#FFFFFF">&nbsp;</td>
+</tr>
+
+%(
+buttons = {
+0: """
+<td align="center" valign="center" bgcolor="#FFFFFF">
+<h1>Player names</h1>
+</td>
+""",
+1: """
+<td rowspan=6 align="center" valign="top" bgcolor="#FFFFFF">
+<p><input type=submit name="s" value="  Save  "></p>
+<p>&nbsp;&nbsp;<input type=submit name="f" value=" Fill in missing names ">&nbsp;&nbsp;</p>
+<p><input type=submit name="c" value="  Clear  "></p>
+</td>
+"""}
+for id, img, bgcolor in [
+        (0, 'bub.png', '#c0ffc0'),
+        (1, 'bob.png', '#c0c0ff'),
+        (2,'boob.png', '#ffc0c0'),
+        (3, 'beb.png', '#ffc000'),
+        (4,'biob.png', '#ffff00'),
+        (5, 'bab.png', '#c04040'),
+        (6, 'bib.png', '#c0c0c0')]:
+    keyid = "player%d" % id
+    print """
+<tr>
+  <td bgcolor="#FFFFFF">
+    <table border=0 cellpadding=3>
+    <tr><td bgcolor="%s">
+      <table border=0>
+      <tr>
+        <td><img src="%s"></td>
+        <td width=30>&nbsp;</td>
+        <td><input type=text size=16 name="%s" value="%s"></td>
+        <td width=30>&nbsp;</td>
+      </tr>
+      </table>
+    </td></tr>
+    </table>
+  </td>
+%s
+</tr>
+""" % (bgcolor, img, keyid, getattr(options, keyid) or '', buttons.get(id, ''))
+)s
+
+<tr>
+<td bgcolor="#000000">&nbsp;</td>
+<td bgcolor="#FFFFFF">&nbsp;</td>
+</tr>
+
+</table></center>
+</form>
+
+</body>
+</html>

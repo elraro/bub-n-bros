@@ -32,6 +32,7 @@ CMSG_ENABLE_MUSIC = "m"
 CMSG_PING         = "g"
 CMSG_PONG         = "G"
 CMSG_DATA_REQUEST = "M"
+CMSG_PLAYER_NAME  = "n"
 
 BROADCAST_MESSAGE = "game!"   # less than 6 bytes
 

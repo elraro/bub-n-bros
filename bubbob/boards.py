@@ -415,6 +415,10 @@ def next_board(num=0, complete=1):
         boards.BoardGen = [boards.next_board(num)]
         return
 
+    if num < 0:
+        num = 0
+    elif num >= len(BoardList):
+        num = len(BoardList)-1
     brd = BoardList[num](num)
     for t in brd.enter(complete, inplace=inplace):
         yield t
@@ -558,11 +562,12 @@ def last_monster_killed(end_delay=390, music=None):
 ##    replace_boardgen(last_monster_killed())
 
 class TimeCounter(Copyable):
-    def __init__(self, limittime):
+    def __init__(self, limittime, blink=0):
         from player import BubPlayer
         self.saved_time = BubPlayer.LimitTime
         self.time = limittime / FRAME_TIME
         self.prev = None
+        self.blink = blink
     def update(self, t):
         from player import BubPlayer, scoreboard
         self.time -= t
@@ -570,6 +575,8 @@ class TimeCounter(Copyable):
             self.time = 0.0
         BubPlayer.LimitTime = self.time * FRAME_TIME
         next = int(BubPlayer.LimitTime)
+        if self.blink and BubPlayer.LimitTime - next >= 0.5:
+            BubPlayer.LimitTime = next = None
         if self.prev != next:
             scoreboard()
             self.prev = next
@@ -597,6 +604,7 @@ def bonus_play():
             t *= math.sqrt(Time0 / tc.time)
         yield t
         if tc.time == 0.5:
+            gamesrv.game.End = 'gameover'
             replace_boardgen(game_over(), 1)
             return
     # special board end
@@ -606,9 +614,10 @@ def bonus_play():
 
 def game_over():
     yield force_singlegen()
-    from player import BubPlayer
+    from player import BubPlayer, scoreboard
     images.Snd.Extralife.play()
     gamesrv.set_musics([], [images.music_potion])
+    scoreboard()
     maximum = 0
     results = {}
     for p in BubPlayer.PlayerList:
@@ -618,7 +627,37 @@ def game_over():
                 maximum = p.points
     maximum = BubPlayer.LimitScore or maximum
     for t in result_ranking(results, maximum, None):
-        yield t  # never ending
+        yield t
+
+def game_reset():
+    import time
+    from player import BubPlayer
+    for i in range(int(2.0/FRAME_TIME)):
+        yield 0
+        if BubPlayer.LimitTime and BubPlayer.LimitTime >= 1.0:
+            # someone else ticking the clock, try again later
+            return
+    # anyone playing ?
+    gameover = gamesrv.game.End == 'gameover'
+    if not gameover:
+        for p in BubPlayer.PlayerList:
+            if p.isplaying() and p.lives != 0:
+                return  # yes -> cancel game_reset()
+    # let's tick the clock !
+    tc = TimeCounter(60.9, blink=1)   # 1:00
+    t1 = time.time()
+    while tc.time:
+        yield 0
+        # anyone playing now ?
+        if not gameover:
+            for p in BubPlayer.PlayerList:
+                if p.isplaying() and p.lives != 0:
+                    tc.restore()
+                    return  # yes -> cancel game_reset()
+        t = time.time()  # use real time
+        tc.update((t-t1)/FRAME_TIME)
+        t1 = t
+    gamesrv.game.reset()
 
 ##def wasting_play():
 ##    from player import BubPlayer, scoreboard
@@ -749,7 +788,8 @@ def result_ranking(results, maximum, timeleft=200):
         play_again = None
     for t in display_ranking(results, timeleft, play_again):
         yield t
-    replace_boardgen(next_board(), 1)
+    if gamesrv.game.End != 'gameover':
+        replace_boardgen(next_board(), 1)
 
 def display_ranking(ranking, timeleft, bgen=None):
     from mnstrmap import Flood
@@ -918,7 +958,7 @@ def single_blocks_falling(xylist):
         for i in range(7):
             yield 0
 
-def extra_display_repulse(cx, cy):
+def extra_display_repulse(cx, cy, dlimit=5000, dfactor=1000):
     offsets = {}
     for s in gamesrv.sprites_by_n.values():
         x, y = s.getdisplaypos()
@@ -926,9 +966,9 @@ def extra_display_repulse(cx, cy):
             dx = x - cx
             dy = y - cy
             d = dx*dx + dy*dy + 100
-            if d <= 5000:
-                dx = (dx*1000)//d
-                dy = (dy*1000)//d
+            if d <= dlimit:
+                dx = (dx*dfactor)//d
+                dy = (dy*dfactor)//d
                 offsets[s] = dx, dy
                 s.setdisplaypos(x+dx, y+dy)
     yield 0

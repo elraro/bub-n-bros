@@ -6,10 +6,6 @@ from time import time, ctime
 from msgstruct import *
 from errno import EWOULDBLOCK
 
-#LOGFILE = None
-LOGFILE = 'gamesrv.log'
-LOGFILE_LIMIT = 16384  # bytes
-
 
 def protofilepath(filename):
   path = []
@@ -424,7 +420,7 @@ class Client:
     self.force_ping_delay = 0.6
     for c in clients:
       for id in c.players.keys():
-        self.msgl.append(message(MSG_PLAYER_JOIN, id, 0))
+        self.msgl.append(message(MSG_PLAYER_JOIN, id, c is self))
 
   def emit(self, udpdata, broadcast_extras):
     if self.initialdata:
@@ -574,9 +570,10 @@ then use the following address:
       print "New player %s" % (self.addr+(id,),)
       p._client = self
       p.playerjoin()
+      p.setplayername('')
       self.players[id] = p
-      framemsgappend(message(MSG_PLAYER_JOIN, id, 0))
-      self.msgl.append(message(MSG_PLAYER_JOIN, id, 1))
+      for c in clients:
+        c.msgl.append(message(MSG_PLAYER_JOIN, id, c is self))
 
   def remove_player(self, id, *rest):
     try:
@@ -586,34 +583,45 @@ then use the following address:
     else:
       p._playerleaves()
 
+  def set_player_name(self, id, name, *rest):
+    p = game.FnPlayers()[id]
+    p.setplayername(name)
+
   def set_udp_port(self, port, *rest):
     if port == MSG_BROADCAST_PORT:
-      self.log('set_udp_port: broadcast')
+      #self.log('set_udp_port: broadcast')
       broadcast_clients[self] = 1
       #print "++++ Broadcasting ++++ to", self.addr
-    elif port == MSG_INLINE_FRAME or port == 0:
-      # client requests data in-line on the TCP stream
-      import udpovertcp
-      self.udpsocket = udpovertcp.SocketMarshaller(self.socket, self)
-      self.log('set_udp_port: udp-over-tcp')
     else:
-      self.udpsocket = socket(AF_INET, SOCK_DGRAM)
-      self.udpsocket.setblocking(0)
-      self.udpsocket.connect((self.addr[0], port))
-      self.log('set_udp_port: %d' % port)
+      try:
+        del broadcast_clients[self]
+      except KeyError:
+        pass
+      if port == MSG_INLINE_FRAME or port == 0:
+        # client requests data in-line on the TCP stream
+        import udpovertcp
+        self.udpsocket = udpovertcp.SocketMarshaller(self.socket, self)
+        #self.log('set_udp_port: udp-over-tcp')
+      else:
+        self.udpsocket = socket(AF_INET, SOCK_DGRAM)
+        self.udpsocket.setblocking(0)
+        self.udpsocket.connect((self.addr[0], port))
+        #self.log('set_udp_port: %d' % port)
 
   def enable_sound(self, sound_mode=1, *rest):
-    self.sounds = {}
-    self.has_sound = sound_mode
-    if self.has_sound > 0:
-      for snd in samples.values():
-        snd.defall(self)
-    self.log('enable_sound %s' % sound_mode)
+    if sound_mode != self.has_sound:
+      self.sounds = {}
+      self.has_sound = sound_mode
+      if self.has_sound > 0:
+        for snd in samples.values():
+          snd.defall(self)
+      #self.log('enable_sound %s' % sound_mode)
 
   def enable_music(self, mode, *rest):
-    self.has_music = mode
-    self.startmusic()
-    self.log('enable_music')
+    if mode != self.has_music:
+      self.has_music = mode
+      self.startmusic()
+      #self.log('enable_music')
 
   def startmusic(self):
     if self.has_music:
@@ -652,10 +660,7 @@ then use the following address:
     pass
 
   def log(self, message):
-    f = logfile()
-    if f:
-      print >> f, ctime(), self.addr, message
-      f.close()
+    print self.addr, message
 
   def protocol_version(self, version, *rest):
     self.proto = version
@@ -684,6 +689,7 @@ then use the following address:
     CMSG_PING         : ping,
     CMSG_PONG         : pong,
     CMSG_DATA_REQUEST : md5_data_request,
+    CMSG_PLAYER_NAME  : set_player_name,
 ##    CMSG_DEF_FILE     : def_file,
     }
 
@@ -711,32 +717,6 @@ class SimpleClient(Client):
   MESSAGES.update({
     CMSG_KEY: cmsg_key,
     })
-
-def logfile():
-  global LOGFILE
-  if LOGFILE:
-    try:
-      f = open(LOGFILE, 'a+')
-    except IOError:
-      import tempfile
-      name = os.path.join(tempfile.gettempdir(), os.path.basename(LOGFILE))
-      if name == LOGFILE:
-        LOGFILE = None
-        return None
-      else:
-        print 'Logging to', name
-        LOGFILE = name
-        return logfile()
-    f.seek(0, 2)
-    if f.tell() > LOGFILE_LIMIT:
-      f.seek(-LOGFILE_LIMIT/2, 2)
-      data = f.read()
-      f.seek(0)
-      f.write(data)
-      f.truncate()
-    return f
-  else:
-    return None
 
 
 MAX_CLIENTS = 32
@@ -1053,22 +1033,7 @@ class Game:
     delay = self.nextframe - NOW
     if delay<=0.0:
       self.nextframe += self.FnFrame()
-      sprites[0] = ''
-      udpdata = ''.join(sprites)
-      if len(broadcast_clients) >= 2:
-        broadcast_extras = {}
-      else:
-        broadcast_extras = None
-      for c in clients[:]:
-        c.emit(udpdata, broadcast_extras)
-      if broadcast_extras is not None:
-        udpdata = ''.join(broadcast_extras.keys() + [udpdata])
-        try:
-          self.broadcast_s.sendto(udpdata,
-                                  ('255.255.255.255', broadcast_port))
-          #print "Broadcast UDP data"
-        except error:
-          pass  # ignore failed broadcasts
+      self.sendudpdata()
       NOW = time()
       #if recording and NOW >= recording[2]:
       #  recordudpdata(NOW, udpdata)
@@ -1089,6 +1054,24 @@ class Game:
         self.broadcast_next = time() + self.broadcast_delay
         self.broadcast_delay *= BROADCAST_DELAY_INCR
     return delay
+
+  def sendudpdata(self):
+    sprites[0] = ''
+    udpdata = ''.join(sprites)
+    if len(broadcast_clients) >= 2:
+      broadcast_extras = {}
+    else:
+      broadcast_extras = None
+    for c in clients[:]:
+      c.emit(udpdata, broadcast_extras)
+    if broadcast_extras is not None:
+      udpdata = ''.join(broadcast_extras.keys() + [udpdata])
+      try:
+        self.broadcast_s.sendto(udpdata,
+                                ('255.255.255.255', broadcast_port))
+        #print "Broadcast UDP data"
+      except error:
+        pass  # ignore failed broadcasts
 
   def FnExtraDesc(self):
     players = 0
@@ -1150,11 +1133,6 @@ def mainloop():
         if game is None or not game.FnExcHandler(1):
           raise
       except:
-        f = logfile()
-        if f:
-          import traceback
-          traceback.print_exc(file=f)
-          f.close()
         if game is None or not game.FnExcHandler(0):
           raise
   finally:

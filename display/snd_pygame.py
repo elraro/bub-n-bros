@@ -28,6 +28,17 @@ class Sound:
                 self.has_music = music is not None
         self.cmusics = None
 
+    def close(self):
+        try:
+            pygame.mixer.stop()
+        except pygame.error:
+            pass
+        if self.has_music:
+            try:
+                pygame.mixer.music.stop()
+            except pygame.error:
+                pass
+
     def sound(self, f):
         return pygame.mixer.Sound(f.freezefilename())
 

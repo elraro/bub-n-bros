@@ -388,7 +388,7 @@ class BubPlayer(gamesrv.Player):
         'OverridePlayerIcon': None,
         }
     TRANSIENT_DATA = ('_client', 'key_left', 'key_right',
-                      'key_jump', 'key_fire', 'pn',
+                      'key_jump', 'key_fire', 'pn', 'nameicons',
                       'icons', 'flippedicons',
                       'standardplayericon', 'iconnames')
 
@@ -423,6 +423,7 @@ class BubPlayer(gamesrv.Player):
             (11,-1): 'shield-left',    # shielded
             (11,+1): 'shield-right',
             }
+        self.nameicons = []
         self.reset()
 
     def reset(self):
@@ -439,6 +440,12 @@ class BubPlayer(gamesrv.Player):
     def loadicons(self, icons, fn):
         for key, value in self.iconnames.items():
             icons[key] = fn(value)
+
+    def setplayername(self, name):
+        icons = [images.sprcharacterget(c) for c in name]
+        self.nameicons = [ico for ico in icons if ico is not None][:16]
+        self.nameicons.reverse()
+        scoreboard()
 
     def playerjoin(self):
         n = self.pn
@@ -646,6 +653,7 @@ def xyiconumber(digits, x, y, pts, lst, width=7):
     return lst[-1][0]
 
 def scoreboard(reset=0, inplace=0):
+    endgame = 1
     if reset:
         for p in BubPlayer.PlayerList:
             if inplace:
@@ -663,7 +671,10 @@ def scoreboard(reset=0, inplace=0):
     bubblesshown = {}
     plist = []
     for p in BubPlayer.PlayerList:
-        if not p.isplaying():
+        if p.isplaying():
+            if p.lives != 0:
+                endgame = 0
+        else:
             if not p.keepalive:
                 continue
             if p.keepalive < time.time():
@@ -676,14 +687,13 @@ def scoreboard(reset=0, inplace=0):
     for score, p in plist:
         if p.lives == 0:
             ico = images.sprget(GreenAndBlue.gameover[p.pn][0])
-            lst.append((x0+9*CELL-ico.w, y0-ico.h, ico))
         elif p.icons:
             if p.isplaying():
                 mode = 0
             else:
                 mode = 11
             ico = BubPlayer.OverridePlayerIcon or p.icons[mode, -1]
-            lst.append((x0+7*CELL, y0-2*CELL, ico))
+        lst.append((x0+9*CELL-ico.w, y0-ico.h, ico))
         #if boards.curboard.wastingplay is None:
         for l in range(6):
             name = bubbles.extend_name(l)
@@ -691,18 +701,22 @@ def scoreboard(reset=0, inplace=0):
                 x, y = x0+l*(CELL-1), y0-3*CELL
                 imglist = getattr(LetterBubbles, name)
                 ico = images.sprget(imglist[1])
-                s = p.letters[name]
-                if isinstance(s, ActiveSprite):
-                    s.move(x, y)
-                    bubblesshown[s] = 1
-                elif s == 1:
-                    s = ActiveSprite(ico, x, y)
-                    s.setimages(s.cyclic([imglist[0], imglist[1],
-                                          imglist[2], imglist[1]]))
-                    p.letters[name] = s
-                    bubblesshown[s] = 1
-                else:
-                    lst.append((x, y, ico))
+                if gamesrv.game.End in (0, 1):
+                    s = p.letters[name]
+                    if (isinstance(s, ActiveSprite) and
+                        BubPlayer.FrameCounter <= s.timeout):
+                        s.move(x, y)
+                        bubblesshown[s] = 1
+                        continue
+                    if s == 1:
+                        s = ActiveSprite(ico, x, y)
+                        s.setimages(s.cyclic([imglist[0], imglist[1],
+                                              imglist[2], imglist[1]]))
+                        s.timeout = BubPlayer.FrameCounter + 500
+                        p.letters[name] = s
+                        bubblesshown[s] = 1
+                        continue
+                lst.append((x, y, ico))
 ##        else:
 ##            ico = images.sprget(Bonuses.blue_sugar)
 ##            lst.append((x0+12, y0-3*CELL-8, ico))
@@ -712,6 +726,10 @@ def scoreboard(reset=0, inplace=0):
         if p.lives is not None and p.lives > 0:
             xyiconumber(DigitsMisc.digits_white, x0+7*CELL, y0-18,
                         p.lives, lst, width=2)
+        x = x0+13*HALFCELL
+        for ico in p.nameicons:
+            x -= 7
+            lst.append((x, y0-35, ico))
         y0 -= 7*HALFCELL
     for p in BubPlayer.PlayerList:
         for name, s in p.letters.items():
@@ -740,6 +758,9 @@ def scoreboard(reset=0, inplace=0):
     if not brd.bonuslevel:
         xyiconumber(DigitsMisc.digits_white, 2, 2, brd.num+1, lst, width=2)
     brd.writesprites('scoreboard', lst)
+
+    if gamesrv.game.End in (0, 1):
+        gamesrv.game.End = endgame
 
 
 # initialize global board data

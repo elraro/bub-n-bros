@@ -118,6 +118,7 @@ def showlist(tag, text, bgcolor1, bgcolor2, bubimg, servers, action, btntext,
 <td bgcolor="#000000">&nbsp;</td>
 <td bgcolor="#FFFFFF" align="right">
   <a href="http://bub-n-bros.sourceforge.net"%(externaltarget)s>Web Home page</a> -
+  <a href="name.html">Player Names</a> -
   <a href="options.html">Display and sound settings</a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </td>
 <td bgcolor="#000000">&nbsp;</td>
@@ -239,7 +240,7 @@ tail = showlist("G", "Internet games", "#008000", "#C0FFC0", bubimg,
          cmd="list", frag="inet",
          url="http://%s/%s/list.html"%(myhost,self.seed))
 )s
-<p><font size=-1>%(inetservers is not None and "The above list is limited to servers that could be contacted." or "")s
+<p><font size=-1>%(inetservers is not None and 'Don\'t forget to <a href="name.html">give a name</a> to your dragons before you join a server!<br>The above list is limited to servers that could be contacted.' or '')s
 You can also browse the <a href="%(metaserver)s"%(externaltarget)s>full server list on SourceForge</a>.</font></p>
 %(tail)s
 <td bgcolor="#000000">&nbsp;</td>

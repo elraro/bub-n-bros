@@ -99,6 +99,7 @@ def graphicmodeslist():
                      '--shm=no   disable it (for remote connections or old X servers)',
                      ],
                     {'shm': 'yes'}),
+        GraphicMode('windows', 'MS Windows', []),
         GraphicMode('pygame', 'PyGame library (all platforms)',
                     [], url='http://www.pygame.org'),
         ]
@@ -111,6 +112,10 @@ def soundmodeslist():
                   ['--freq=#  mixer frequency (default 44100)',
                    '--fmt=#   data format (default S16_NE, --fmt=list for a list)'],
                   {'freq': '44100', 'fmt': 'S16_NE'}),
+        SoundMode('windows', 'audio mixer for Windows',
+                  ['--freq=#  mixer frequency (default 44100)',
+                   '--bits=#  bits per sample (8 or default 16)'],
+                  {'freq': '44100', 'bits': '16'}),
         SoundMode('off', 'no sounds', []),
         ]
 

@@ -848,7 +848,7 @@ class Bomb(RandomBonus):
                         pass
         brd.reorder_walls()
         starexplosion(self.x, self.y, 2)
-        gen = boards.extra_display_repulse(self.x+CELL, self.y+CELL)
+        gen = boards.extra_display_repulse(self.x+CELL, self.y+CELL, 15000)
         boards.extra_boardgen(gen)
 
 class Ham(RandomBonus):

@@ -45,7 +45,7 @@ def parse_cmdline(argv):
         sys.exit(2)
 
     shortopts = 'd:s:htu'
-    longopts = ['display=', 'sound=', 'music=', 'help', 'tcp', 'udp']
+    longopts = ['display=', 'sound=', 'music=', 'help', 'tcp', 'udp', 'cfg=']
     for info in modes.graphicmodeslist() + modes.soundmodeslist():
         short, long = info.getformaloptions()
         shortopts += short
@@ -73,6 +73,8 @@ def parse_cmdline(argv):
             extraopts['udp_over_tcp'] = 1
         elif key in ('-u', '--udp'):
             extraopts['udp_over_tcp'] = 0
+        elif key == '--cfg':
+            extraopts['cfgfile'] = value
         elif key in ('-h', '--help'):
             usage()
         else:

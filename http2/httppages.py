@@ -62,6 +62,7 @@ class PageServer:
         httpserver.register(prefix+'join.html',    self.joinloader)
         httpserver.register(prefix+'register.html',self.registerloader)
         httpserver.register(prefix+'options.html', self.optionsloader)
+        httpserver.register(prefix+'name.html',    self.nameloader)
         for fn in os.listdir(os.path.join(LOCALDIR, 'data')):
             path = prefix + fn
             if not httpserver.is_registered(path):
@@ -188,6 +189,8 @@ class PageServer:
             kwds['limitlives'] = int(options.lives)
         if options.extralife is not None:
             kwds['extralife'] = int(options.extralife)
+        if options.autoreset is not None:
+            kwds['autoreset'] = options.autoreset.startswith('y')
         self.Game(options.file, **kwds)
 
     ### loaders ###
@@ -241,6 +244,7 @@ class PageServer:
         juststarted = id not in self.unique_actions
         if juststarted:
             self.globaloptions.metapublish = 'n'
+            self.globaloptions.autoreset = 'n'
             for key, value in options.items():
                 if len(value) == 1:
                     setattr(self.globaloptions, key, value[0])
@@ -330,6 +334,40 @@ class PageServer:
         return httpserver.load(os.path.join(LOCALDIR, 'data', 'options.html'),
                                'text/html', locals=locals)
 
+    def nameloader(self, headers, **options):
+        if options:
+            anyname = None
+            for id in range(7):
+                keyid = 'player%d' % id
+                if keyid in options:
+                    value = options[keyid][0]
+                    anyname = anyname or value
+                    setattr(self.localoptions, keyid, value)
+            if 'c' in options:
+                for id in range(7):
+                    keyid = 'player%d' % id
+                    try:
+                        delattr(self.localoptions, keyid)
+                    except AttributeError:
+                        pass
+            if 'f' in options:
+                for id in range(7):
+                    keyid = 'player%d' % id
+                    if not getattr(self.localoptions, keyid):
+                        setattr(self.localoptions, keyid,
+                                anyname or ['Bub', 'Bob', 'Boob', 'Beb',
+                                            'Biob', 'Bab', 'Bib'][id])
+                    else:
+                        anyname = getattr(self.localoptions, keyid)
+            self.saveoptions()
+            if 's' in options:
+                return self.mainpage(headers)
+        locals = {
+            'options': self.localoptions,
+            }
+        return httpserver.load(os.path.join(LOCALDIR, 'data', 'name.html'),
+                               'text/html', locals=locals)
+
     def graphicmodeslist(self):
         try:
             return self.GraphicModesList
@@ -375,7 +413,7 @@ class PageServer:
         if dpy is None or snd is None:
             raise HTTPRequestError, "No installed graphics or sounds drivers. See the settings page."
         options = self.localoptions
-        result = []
+        result = ['--cfg='+self.filename]
         if options.datachannel == 'tcp': result.append('--tcp')
         if options.datachannel == 'udp': result.append('--udp')
         if options.music       == 'no':  result.append('--music=no')
@@ -476,13 +514,20 @@ def quote_plus(s):
     return ''.join([getter(c, '%%%02X' % ord(c)) for c in s])
 
 
-def main(Game, pipe_url_to=None):
+def main(Game, pipe_url_to=None, quiet=0):
     gamesrv.openpingsocket(0)  # try to reserve the standard UDP port
     srv = PageServer(Game)
     srv.registerpages()
     if not srv.opensocket():
         print >> sys.stderr, "server aborted."
         sys.exit(1)
+    if quiet:
+        Game.Quiet = 1
+        import stdlog
+        f = stdlog.LogFile()
+        if f:
+            print "Logging to", f.filename
+            sys.stdout = sys.stderr = f
     if pipe_url_to is not None:
         url = srv.indexurl
         while url:

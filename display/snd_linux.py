@@ -21,6 +21,7 @@ class Sound:
         ]
 
     def __init__(self, freq=44100, fmt='S16_NE'):
+        self.f = None
         self.freq = int(freq)
         self.format = fmt.upper()
         self.params = p = {}
@@ -43,18 +44,36 @@ class Sound:
             print >> sys.stderr, "sound disabled: %s: %s" % (
                 e.__class__.__name__, e)
             return
-        self.mixer = puremixer.PureMixer(f, self.BUFFERTIME, **p)
+        self.f = f
+        self.mixer = mixer = puremixer.PureMixer(**p)
+        buffertime = self.BUFFERTIME
+        self.bufsize = int(mixer.bytespersample*mixer.freq*buffertime +
+                           255.5) & ~ 255
+        if self.bufsize > f.bufsize():
+            self.bufsize = f.bufsize()
+            buffertime = self.bufsize / float(freq)
+        self.buffertime = buffertime
         self.mixer_channels = []
         self.mixer_accum = {}
         self.has_sound = 1
         self.has_music = 1
 
+    def close(self):
+        self.f.close()
+        self.f = None
+
     def sound(self, f):
         return self.mixer.wavesample(f.fopen())
 
     def flop(self):
-        self.mixer.poll(self.mixer_channels)
         self.mixer_accum = {}
+        if self.f is None:
+            return
+        for i in range(3):
+            bufsize = self.bufsize - self.f.obufcount()
+            if bufsize <= 0:
+                break
+            self.f.write(self.mixer.mix(self.mixer_channels, bufsize))
         #cnt = getattr(self, 'CNT', 0)
         #import time
         #print cnt, time.time()

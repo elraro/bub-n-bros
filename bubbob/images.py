@@ -1,6 +1,6 @@
 from __future__ import generators
 import gamesrv, os
-from sprmap import sprmap
+from sprmap import sprmap as original_sprmap
 from patmap import patmap
 
 KEYCOL = 0x010101
@@ -217,12 +217,10 @@ def action(sprlist, len=len):
 
 def sprget(n):
     filename, rect = sprmap[n]
-    filename = os.path.join('images', filename)
     return gamesrv.getbitmap(filename, KEYCOL).geticon(*rect)
 
 def sprget_vflip(n, vflipped={}):
     filename, (x,y,w,h) = sprmap[n]
-    filename = os.path.join('images', filename)
     try:
         bitmap, height = vflipped[filename]
     except KeyError:
@@ -308,7 +306,27 @@ extramap = {
     ('emotic', 5): ('extra7.ppm', (0, 40, 8, 8)),
     ('emotic', 6): ('extra7.ppm', (0, 48, 8, 8)),
     }
-sprmap.update(extramap)
+sprmap = {}
+for n, (filename, rect) in original_sprmap.items() + extramap.items():
+    sprmap[n] = os.path.join('images', filename), rect
+del n, filename, rect
+
+def sprcharacterget(c, filename=os.path.join('images', 'extra8.ppm')):
+    n = ord(c) - 32
+    if 0 <= n < 95:
+        return gamesrv.getbitmap(filename, KEYCOL).geticon(n*8, 0, 8, 15)
+    else:
+        return None
+
+def writestr(x, y, text):
+    result = []
+    for c in text:
+        ico = sprcharacterget(c)
+        if ico is not None:
+            result.append(gamesrv.Sprite(ico, x, y))
+            x += 7
+    return result
+
 
 def getsample(fn, freq):
     return gamesrv.getsample(os.path.join('sounds', fn), freq)

@@ -173,7 +173,7 @@ def modeitems(modelist):
 <table border=0 cellspacing=4>
 %(
 begingroup('Display driver', '#800000', '#FFC000', '#C0C0C0',
-           'beb.png', len(graphicmodes))
+           'lbeb.png', len(graphicmodes))
 modeitems(graphicmodes)
 endgroup()
 )s
@@ -182,7 +182,7 @@ endgroup()
 
 %(
 begingroup('Sound driver', '#800000', '#FFFF00', '#C0C0C0',
-           'biob.png', java and 1 or len(soundmodes))
+           'lbiob.png', java and 1 or len(soundmodes))
 if java:
     begingroupitem(1)
     print '<td><font size=-1>Java Applet always does sounds, but',
@@ -196,7 +196,7 @@ endgroup()
 <tr><td>&nbsp;</td><td>&nbsp;</td></tr>
 
 %(
-begingroup('Network options', '#004000', '#80FF00', None, 'bib.png', 1)
+begingroup('Network options', '#004000', '#80FF00', None, 'lbib.png', 1)
 begingroupitem(1)
 )s
 <td>

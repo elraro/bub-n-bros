@@ -506,6 +506,7 @@ static PyObject* display_putppm1(DisplayObject* self, PyObject* args)
   if (self->shmmode)
     {
       int x,y,w,h,scanline;
+      int bytes_per_line, data_scanline;
       int clipx=0, clipy=0, clipw=65536, cliph=65536;
       unsigned char* src;
       int length;
@@ -537,39 +538,85 @@ static PyObject* display_putppm1(DisplayObject* self, PyObject* args)
       if (y<clipy) { src+=(clipy-y)*scanline; h+=y-clipy; y=clipy; }
       if (x+w > clipw) w = clipw-x;
       if (y+h > cliph) h = cliph-y;
-      data += bytes_per_pixel*(x+y*self->width);
-      while (h>0)
+      if (w > 0)
         {
-          int i;
-	  int b;
-          unsigned char* src0 = src;
-	  unsigned char* data0 = data;
+          data += bytes_per_pixel*(x+y*self->width);
+          bytes_per_line = w*bytes_per_pixel;
+          data_scanline = bytes_per_pixel*self->width;
           if (keycol < 0)
-            for (i=0; i<w; i++)
-	      for (b=0; b<bytes_per_pixel; b++)
-		*data++ = *src++;
+            {
+              while (h>0)
+                {
+                  memcpy(data, src, bytes_per_line);
+                  src += scanline;
+                  data += data_scanline;
+                  h--;
+                }
+            }
           else
-	    {
-	      unsigned char *keycol_bytes = (unsigned char *)&keycol;
-	      for (i=0; i<w; i++)
-		{
-		  int transparent = 1;
-		  for( b=0; b<bytes_per_pixel; b++ )
-		    transparent = transparent && (keycol_bytes[b] == src[b]);
+            {
+              int i;
+              unsigned char *keycol_bytes = (unsigned char *)&keycol;
+              switch(bytes_per_pixel) {
+        
+              case 2:
+                while (h>0)
+                  {
+                    unsigned char* src1  = src;
+                    unsigned char* data1 = data;
+                    for (i=0; i<w; i++, src1+=2, data1+=2)
+                      if (src1[0] != keycol_bytes[0] || src1[1] != keycol_bytes[1])
+                        {
+                          data1[0] = src1[0];
+                          data1[1] = src1[1];
+                        }
+                    src += scanline;
+                    data += data_scanline;
+                    h--;
+                  }
+                break;
 
-		  if (!transparent)
-		    for( b=0; b<bytes_per_pixel; b++ )
-		      *data++ = *src++;
-		  else
-		    {
-		      data += bytes_per_pixel;
-		      src += bytes_per_pixel;
-		    }
-		}
-	    }
-          src = src0 + scanline;
-          data = data0 + bytes_per_pixel*self->width;
-          h--;
+              case 3:
+                while (h>0)
+                  {
+                    unsigned char* src1  = src;
+                    unsigned char* data1 = data;
+                    for (i=0; i<w; i++, src1+=3, data1+=3)
+                      if (src1[0] != keycol_bytes[0] ||
+                          src1[1] != keycol_bytes[1] ||
+                          src1[2] != keycol_bytes[2])
+                        {
+                          data1[0] = src1[0];
+                          data1[1] = src1[1];
+                          data1[2] = src1[2];
+                        }
+                    src += scanline;
+                    data += data_scanline;
+                    h--;
+                  }
+                break;
+
+              case 4:
+                while (h>0)
+                  {
+                    unsigned char* src1  = src;
+                    unsigned char* data1 = data;
+                    for (i=0; i<w; i++, src1+=4, data1+=4)
+                      if (src1[0] != keycol_bytes[0] ||
+                          src1[1] != keycol_bytes[1] ||
+                          src1[2] != keycol_bytes[2])
+                        {
+                          data1[0] = src1[0];
+                          data1[1] = src1[1];
+                          data1[2] = src1[2];
+                        }
+                    src += scanline;
+                    data += data_scanline;
+                    h--;
+                  }
+                break;
+              }
+            }
         }
     }
   else
@@ -610,6 +657,7 @@ static PyObject* display_getppm1(DisplayObject* self, PyObject* args)
   if (self->shmmode)
     {
       int x,y,w,h,scanline;
+      int bytes_per_line, data_scanline;
       int clipx=0, clipy=0, clipw=self->width, cliph=self->height;
       unsigned char* dst;
       int length;
@@ -637,21 +685,18 @@ static PyObject* display_getppm1(DisplayObject* self, PyObject* args)
       if (y<clipy) { dst+=(clipy-y)*scanline; h+=y-clipy; y=clipy; }
       if (x+w > clipw) w = clipw-x;
       if (y+h > cliph) h = cliph-y;
-      data += bytes_per_pixel*(x+y*self->width);
-      while (h>0)
+      if (w > 0)
         {
-          int i;
-	  int b;
-          unsigned char* dst0 = dst;
-	  unsigned char* data0 = data;
-          for (i=0; i<w; i++)
+          data += bytes_per_pixel*(x+y*self->width);
+          bytes_per_line = w*bytes_per_pixel;
+          data_scanline = bytes_per_pixel*self->width;
+          while (h>0)
             {
-	      for( b=0; b<bytes_per_pixel; b++ )
-		*dst++ = *data++;
+              memcpy(dst, data, bytes_per_line);
+              dst += scanline;
+              data += data_scanline;
+              h--;
             }
-          dst = dst0 + scanline;
-          data = data0 + bytes_per_pixel*self->width;
-          h--;
         }
       return result;
     }
