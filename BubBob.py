@@ -7,7 +7,7 @@
 #    python bubbob/bb.py --help
 #
 
-import sys, os
+import sys, os, socket, tempfile
 
 if __name__ == '__main__':
     LOCALDIR = sys.argv[0]
@@ -15,88 +15,92 @@ else:
     LOCALDIR = __file__
 LOCALDIR = os.path.abspath(os.path.dirname(LOCALDIR))
 sys.path.append(LOCALDIR)
+sys.argv[0] = os.path.abspath(sys.argv[0])
+os.chdir(LOCALDIR)
 
-def look_for_local_server(tries, verbose):
-    # Look for a running local web server
-    from common.hostchooser import find_servers
-    servers = find_servers([('127.0.0.1', None)], tries=tries,
-                           delay=0.5, verbose=verbose, port_needed=0)
-    httpport = 'off'
-    if servers:
-        info, ping = servers.values()[0]
-        infolst = info.split(':')
-        if len(infolst) >= 3:
-            httpport = infolst[2]
+try:
+    username = '-'+os.getlogin()
+except:
     try:
-        httpport = int(httpport)
+        import pwd
+        username = '-'+pwd.getpwuid(os.getuid())[0]
+    except:
+        username = ''
+TAGFILENAME = 'BubBob-%s%s.url' % (socket.gethostname(), username)
+TAGFILENAME = os.path.join(tempfile.gettempdir(), TAGFILENAME)
+
+
+def look_for_local_server():
+    # Look for a running local web server
+    try:
+        url = open(TAGFILENAME, 'r').readline().strip()
+    except (OSError, IOError):
+        return None
+    if not url.startswith('http://127.0.0.1:'):
+        return None
+    url1 = url[len('http://127.0.0.1:'):]
+    try:
+        port = int(url1[:url1.index('/')])
     except ValueError:
-        return ''
-    else:
-        return 'http://127.0.0.1:%d/controlcenter.html' % httpport
+        return None
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        s.connect(('', port))
+    except socket.error:
+        return None
+    try:
+        s.shutdown(2)
+        s.close()
+    except:
+        pass
+    return url
 
 def start_local_server():
-    url = ''
-    try:
-        readpipe, writepipe = os.pipe()
-    except:
-        readpipe, writepipe = None
     if hasattr(os, 'fork') and hasattr(os, 'dup2'):
         if os.fork() == 0:
             # in the child process
-            os.close(readpipe)
             sys.path.append(os.path.join(LOCALDIR, 'bubbob'))
-            import bb, gamesrv, stdlog
+            import bb
+            import gamesrv, stdlog
             bb.BubBobGame.Quiet = 1
             logfile = stdlog.LogFile()
-            bb.start_metaserver(writepipe, 0)
+            bb.start_metaserver(TAGFILENAME, 0)
             if logfile:
                 print >> logfile
-                print "Logging to", logfile.filename
-                fd = logfile.f.fileno()
-                try:
-                    # detach from parent
-                    os.dup2(fd, 1)
-                    os.dup2(fd, 2)
-                    os.dup2(fd, 0)
-                except OSError:
-                    pass
-                logfile.close()
+                if logfile:
+                    print "Logging to", logfile.filename
+                    fd = logfile.f.fileno()
+                    try:
+                        # detach from parent
+                        os.dup2(fd, 1)
+                        os.dup2(fd, 2)
+                        os.dup2(fd, 0)
+                    except OSError:
+                        pass
+                    logfile.close()
             gamesrv.mainloop()
             sys.exit(0)
     else:
         MAINSCRIPT = os.path.abspath(os.path.join(LOCALDIR, 'bubbob', 'bb.py'))
-        args = [sys.executable, MAINSCRIPT]
-        if readpipe is not None:
-            args.append('--pipeurlto=%d,%d' % (readpipe, writepipe))
-        args.append('--quiet')
+        args = [sys.executable, MAINSCRIPT,
+                '--saveurlto=%s' % TAGFILENAME, '--quiet']
         os.spawnv(os.P_NOWAITO, args[0], args)
-    if readpipe is not None:
-        os.close(writepipe)
-        while 1:
-            try:
-                t = os.read(readpipe, 128)
-                if not t:
-                    break
-            except OSError:
-                return ''
-            url += t
-        os.close(readpipe)
-    return url
 
 
 # main
-url = look_for_local_server(tries=1, verbose=0)
+url = look_for_local_server()
 if not url:
-    url = start_local_server()
-    if not url:
-        # wait for up to 5 seconds for the server to start
-        for i in range(10):
-            url = look_for_local_server(tries=1, verbose=0)
-            if url:
-                break
-        else:
-            print >> sys.stderr, 'The local server is not starting, giving up.'
-            sys.exit(1)
+    start_local_server()
+    # wait for up to 5 seconds for the server to start
+    for i in range(10):
+        import time
+        time.sleep(0.5)
+        url = look_for_local_server()
+        if url:
+            break
+    else:
+        print >> sys.stderr, 'The local server is not starting, giving up.'
+        sys.exit(1)
 
 try:
     import webbrowser
@@ -113,7 +117,7 @@ except:
     print "Sorry, I guess you have to go to the following URL manually:"
 else:
     print "Done running '%s'." % name
-    if not look_for_local_server(tries=1, verbose=0):
+    if look_for_local_server() != url:
         # assume that browser.open() waited for the browser to finish
         # and that the server has been closed from the browser.
         raise SystemExit

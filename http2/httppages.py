@@ -52,7 +52,7 @@ class PageServer:
 
     def registerpages(self):
         prefix = '%s/' % self.seed
-        httpserver.register('controlcenter.html',  self.controlcenterloader)
+        #httpserver.register('controlcenter.html',  self.controlcenterloader)
         httpserver.register(prefix,                self.indexloader)
         httpserver.register(prefix+'index.html',   self.indexloader)
         #httpserver.register(prefix+'list.html',    self.listloader)
@@ -554,7 +554,7 @@ def quote_plus(s):
     return ''.join([getter(c, '%%%02X' % ord(c)) for c in s])
 
 
-def main(Game, pipe_url_to=None, quiet=0):
+def main(Game, save_url_to=None, quiet=0):
     #gamesrv.openpingsocket(0)  # try to reserve the standard UDP port
     srv = PageServer(Game)
     srv.registerpages()
@@ -568,14 +568,17 @@ def main(Game, pipe_url_to=None, quiet=0):
         if f:
             print "Logging to", f.filename
             sys.stdout = sys.stderr = f
-    if pipe_url_to is not None:
-        url = srv.indexurl
-        try:
-            while url:
-                url = url[os.write(pipe_url_to, url):]
-            os.close(pipe_url_to)
-        except OSError:
-            pass
+    if save_url_to:
+        def try_to_unlink(fn):
+            try:
+                os.unlink(fn)
+            except:
+                pass
+        import atexit
+        atexit.register(try_to_unlink, save_url_to)
+        f = open(save_url_to, 'w')
+        print >> f, srv.indexurl
+        f.close()
     #if webbrowser:
     #    srv.launchbrowser()
 

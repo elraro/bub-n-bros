@@ -48,10 +48,9 @@ class LogFile:
             if self.f.tell() >= self.limitsize:
                 self.f.seek(-(self.limitsize>>1), 1)
                 data = self.f.read()
-                self.close()
-                if not self._open(self.filename, 'w+'):
-                    return 0
+                self.f.seek(0)
                 self.f.write('(...)' + data)
+                self.f.truncate()
             self.f.write('========= %s =========\n' % ctime())
         return 1
 

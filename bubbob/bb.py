@@ -210,7 +210,7 @@ def parse_cmdline(argv):
         opts, args = getopt(argv, 'mb:s:l:ih',
                             ['metaserver', 'start=', 'step=',
                              'lives=', 'infinite', 'help',
-                             'pipeurlto=', 'quiet', 'port='])
+                             'saveurlto=', 'quiet', 'port='])
     except error, e:
         print >> sys.stderr, 'bb.py: %s' % str(e)
         print >> sys.stderr
@@ -218,7 +218,7 @@ def parse_cmdline(argv):
         
     options = {}
     #webbrowser = 1
-    pipe_url_to = None
+    save_url_to = None
     quiet = 0
     for key, value in opts:
         if key in ('-m', '--metaserver'):
@@ -233,12 +233,8 @@ def parse_cmdline(argv):
             options['autoreset'] = 1
         elif key in ('-h', '--help'):
             usage()
-        elif key == '--pipeurlto':
-            rdside, pipe_url_to = map(int, value.split(','))
-            try:
-                os.close(rdside)
-            except OSError:
-                pass
+        elif key == '--saveurlto':
+            save_url_to = value
         elif key == '--quiet':
             quiet = 1
         elif key == '--port':
@@ -258,13 +254,13 @@ def parse_cmdline(argv):
     else:
         if options:
             print >> sys.stderr, 'bb.py: command-line options ignored'
-        start_metaserver(pipe_url_to, quiet)
+        start_metaserver(save_url_to, quiet)
 
-def start_metaserver(pipe_url_to, quiet):
+def start_metaserver(save_url_to, quiet):
     os.chdir(LOCALDIR)
     setuppath('http2')
     import httppages
-    httppages.main(BubBobGame, pipe_url_to, quiet)
+    httppages.main(BubBobGame, save_url_to, quiet)
 
 
 def setup():
