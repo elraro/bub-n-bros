@@ -645,7 +645,7 @@ def potion_fill(blist):
             yield t
         y += 2
     while notes: #and timeleft > 0.0:
-        notes = [b for b in notes if b.isalive()]
+        notes = [b for b in notes if b.alive]
         t = normal_frame()
         #timeleft -= t
         yield t

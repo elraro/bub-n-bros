@@ -27,15 +27,13 @@ class ActiveSprite(gamesrv.Sprite):
         i = self.angry
         genlist = self.gen[:]
         while 1:
-            # inline: if not self.isalive():
-            if self._n is None:
+            if not self.alive:
                 return
             try:
                 while genlist:
                     gen = genlist.pop(0)
                     gen.next()
-                    # inline: if not self.isalive():
-                    if self._n is None:
+                    if not self.alive:
                         return
             except StopIteration:
                 try:
@@ -135,7 +133,7 @@ class ActiveSprite(gamesrv.Sprite):
             yield None
 
     def following(self, other, dx=0, dy=0):
-        while other.isalive():
+        while other.alive:
             self.move(other.x + dx, other.y + dy)
             yield None
         self.kill()
@@ -231,7 +229,7 @@ def getsample(fn, freq):
     return gamesrv.getsample(os.path.join('sounds', fn), freq)
 
 SoundList = ['Pop', 'Jump', 'Die', 'LetsGo', 'Extralife',
-             'Fruit', 'Extra', 'Yippee', 'Hurry', 'Hell']
+             'Fruit', 'Extra', 'Yippee', 'Hurry', 'Hell', 'Shh']
 
 class Snd:
     pass

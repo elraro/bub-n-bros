@@ -151,24 +151,27 @@ class Music:
 
 def clearsprites():
   sprites_by_n.clear()
-  del sprites[:]
+  sprites[:] = ['']
 
 def compactsprites(insert_new=None, insert_before=None):
   global sprites, sprites_by_n
   if insert_before is not None:
-    insert_before = insert_before._n
-  newsprites = []
+    if insert_new.alive:
+      insert_before = insert_before.alive
+    else:
+      insert_before = None
+  newsprites = ['']
   newd = {}
   l = sprites_by_n.items()
   l.sort()
   for n, s in l:
     if n == insert_before:
-      prevn = insert_new._n
-      newn = insert_new._n = len(newsprites)
+      prevn = insert_new.alive
+      newn = insert_new.alive = len(newsprites)
       newsprites.append(sprites[prevn])
       newd[newn] = insert_new
       l.remove((prevn, insert_new))
-    newn = s._n = len(newsprites)
+    newn = s.alive = len(newsprites)
     newsprites.append(sprites[n])
     newd[newn] = s
   sprites = newsprites
@@ -181,69 +184,66 @@ class Sprite:
     self.x = x
     self.y = y
     self.ico = ico
-    self._n = len(sprites)
+    self.alive = len(sprites)
     sprites.append(pack("!hhh", x, y, ico.code))
-    sprites_by_n[self._n] = self
+    sprites_by_n[self.alive] = self
 
   def move(self, x,y, ico=None):
     self.x = x
     self.y = y
     if ico is not None:
       self.ico = ico
-    sprites[self._n] = pack("!hhh", x, y, self.ico.code)
+    sprites[self.alive] = pack("!hhh", x, y, self.ico.code)
 
   def step(self, dx,dy):
     x = self.x = self.x + dx
     y = self.y = self.y + dy
-    sprites[self._n] = pack("!hhh", x, y, self.ico.code)
+    sprites[self.alive] = pack("!hhh", x, y, self.ico.code)
 
   def seticon(self, ico):
     self.ico = ico
-    sprites[self._n] = pack("!hhh", self.x, self.y, ico.code)
+    sprites[self.alive] = pack("!hhh", self.x, self.y, ico.code)
 
   def kill(self):
-    if self._n is not None:
-      del sprites_by_n[self._n]
-      sprites[self._n] = ''
-      self._n = None
-
-  def isalive(self):
-    return self._n is not None
+    if self.alive:
+      del sprites_by_n[self.alive]
+      sprites[self.alive] = ''
+      self.alive = 0
 
   def to_front(self):
-    if self._n < len(sprites)-1:
-      info = sprites[self._n]
-      sprites[self._n] = ''
-      del sprites_by_n[self._n]
-      self._n = len(sprites)
-      sprites_by_n[self._n] = self
+    if self.alive and self.alive < len(sprites)-1:
+      info = sprites[self.alive]
+      sprites[self.alive] = ''
+      del sprites_by_n[self.alive]
+      self.alive = len(sprites)
+      sprites_by_n[self.alive] = self
       sprites.append(info)
 
   def to_back(self, limit=None):
     assert self is not limit
     if limit:
-      n1 = limit._n + 1
+      n1 = limit.alive + 1
     else:
-      n1 = 0
-    if self._n > n1:
+      n1 = 1
+    if self.alive > n1:
       if n1 in sprites_by_n:
         keys = sprites_by_n.keys()
-        keys.remove(self._n)
+        keys.remove(self.alive)
         keys.sort()
         keys = keys[keys.index(n1):]
         for n in keys:
           sprites_by_n[n].to_front()
         assert n1 not in sprites_by_n
-      info = sprites[self._n]
-      sprites[self._n] = ''
-      del sprites_by_n[self._n]
-      self._n = n1
+      info = sprites[self.alive]
+      sprites[self.alive] = ''
+      del sprites_by_n[self.alive]
+      self.alive = n1
       sprites_by_n[n1] = self
       sprites[n1] = info
 
   def __repr__(self):
-    if self.isalive():
-      return "<sprite %d at %d,%d>" % (self._n, self.x, self.y)
+    if self.alive:
+      return "<sprite %d at %d,%d>" % (self.alive, self.x, self.y)
     else:
       return "<killed sprite>"
 
@@ -525,7 +525,7 @@ bitmaps = {}
 samples = {}
 music_by_id = {}
 currentmusics = [0]
-sprites = []
+sprites = ['']
 sprites_by_n = {}
 recording = None
 
@@ -650,6 +650,7 @@ def Run():
         delay = nextframe - now
         if delay<=0.0:
           nextframe = nextframe + FnFrame()
+          sprites[0] = ''
           udpdata = ''.join(sprites)
           for c in clients[:]:
             c.emit(udpdata, now)

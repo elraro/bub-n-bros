@@ -481,11 +481,15 @@ class Monster(ActiveSprite):
         self.resetimages(is_ghost=1)
 
     def ghosting(self):
-        while 1:
+        counter = 0
+        while counter < 5:
             for i in range(50):
                 yield None
             d = self.tagdragon()
-            if d is not None:
+            if d is None:
+                counter += 1
+            else:
+                counter = 0
                 if abs(d.x-self.x) < abs(d.y-self.y):
                     dx = 0
                     if d.y > self.y:
@@ -511,6 +515,8 @@ class Monster(ActiveSprite):
                     if dist1 > distance:
                         break
                     distance = dist1
+        self.gen = [self.default_mode()]
+        self.resetimages()
 
     default_mode = falling
 

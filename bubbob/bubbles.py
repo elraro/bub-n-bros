@@ -547,7 +547,7 @@ class WaterCell(ActiveSprite):
                 elif isinstance(s, Bubble):
                     s.pop(self.poplist)
             for s in self.take_with_me:
-                if s.isalive():
+                if s.alive:
                     s.move(x2bounds(x0-HALFCELL), y0-CELL)
             self.move(x0, y0, ico)
             yield None
@@ -555,7 +555,7 @@ class WaterCell(ActiveSprite):
     def kill(self):
         from monsters import Monster
         for s in self.take_with_me[:]:
-            if isinstance(s, Monster) and s.isalive():
+            if isinstance(s, Monster) and s.alive:
                 s.argh(self.poplist, onplace=1)
         del self.take_with_me[:]
         ActiveSprite.kill(self)

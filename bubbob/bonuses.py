@@ -67,11 +67,12 @@ class Bonus(ActiveSprite):
             if dragon not in self.taken_by:
                 self.taken_by.append(dragon)
 
-    def taking(self, follow_dragons=0):
-        yield None   # time to be taken by several dragons
+    def taking(self, follow_dragons=0, delay=1):
+        for t in range(delay):
+            yield None   # time to be taken by several dragons
         if self.points:
             for p in self.taken_by:
-                if follow_dragons and p.isalive():
+                if follow_dragons and p.alive:
                     s = p
                 else:
                     s = self
@@ -81,7 +82,7 @@ class Bonus(ActiveSprite):
 
     def taken1(self, dragons):
         for d in dragons[:]:
-            if d.isalive():
+            if d.alive:
                 self.taken(d)
 
     def taken(self, dragon):
@@ -204,12 +205,12 @@ class Parabolic(ActiveSprite):
 
 class Parabolic2(Parabolic):
 
-    def __init__(self, x, y, imglist, imgspeed=3, onplace=0):
+    def __init__(self, x, y, imglist, imgspeed=3, onplace=0, y_amplitude=-8.0):
         Parabolic.__init__(self, images.sprget(imglist[0]), x, y)
         if onplace:
             self.gen.append(self.falling())
         else:
-            self.gen.append(self.moving())
+            self.gen.append(self.moving(y_amplitude))
         if len(imglist) > 1:
             self.setimages(self.cyclic(imglist, imgspeed))
 
@@ -606,17 +607,17 @@ class Fruits(RandomBonus):
         self.repeatcount = 0
         if not fine:
             self.kill()
-        elif random.random() < 0.0409:
+        elif random.random() < 0.04:
             self.superfruit = mode
-            self.sound = 'Yippee'
-            self.points = 10000
-            self.repeatcount = random.randrange(12,24)
+            self.sound = 'Shh'
+            self.points = 0
+            self.repeatcount = random.randrange(50,100)
     def taken1(self, dragons):
         if self.repeatcount:
             image, self.points = self.superfruit
-            Parabolic2(self.x, self.y, [image])
+            Parabolic2(self.x, self.y, [image], y_amplitude = -1.5)
             self.repeatcount -= 1
-            self.gen.append(self.taking(1))
+            self.gen.append(self.taking(1, 2))
             return -1
 Fruits1 = Fruits  # increase probability
 Fruits2 = Fruits
@@ -831,7 +832,8 @@ else:
             #import pdb; pdb.set_trace()
             self.savedstate = topstate = statesaver.copy(topstate)
 
-            while self.isalive():
+            while self.alive:
+                gamesrv.sprites[0] = ''
                 data = ''.join(gamesrv.sprites)
                 self.savedscreens.append(data)
                 yield 0
@@ -846,11 +848,12 @@ else:
             status = 0
             for t in range(10):
                 if not (t & 1):
+                    gamesrv.sprites[0] = ''
                     savedscreens.append(''.join(gamesrv.sprites))
                 time = boards.normal_frame()
                 for i in range(t):
                     status += 1
-                    if status % 3 == 0 and blinkme.isalive():
+                    if status % 3 == 0 and blinkme.alive:
                         if status % 6 == 0:
                             blinkme.step(boards.bwidth, 0)
                         else:
@@ -863,7 +866,7 @@ else:
             delay = 8.5
             gamesrv.clearsprites()
             while savedscreens:
-                gamesrv.sprites[:] = [savedscreens.pop()]
+                gamesrv.sprites[:] = ['', savedscreens.pop()]
                 if delay > 0.6:
                     delay *= 0.9
                 yield delay
