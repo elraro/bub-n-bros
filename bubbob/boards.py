@@ -514,7 +514,8 @@ def normal_frame():
                     except AttributeError:
                         ico = images.sprget(('hat', p.team))
                     y = d.y - 16
-                    if d.hatsprite is None or not d.hatsprite.alive:
+                    if (getattr(d,'hatsprite',None) is None or
+                        not d.hatsprite.alive):
                         d.hatsprite = images.ActiveSprite(ico, d.x, y)
                     else:
                         d.hatsprite.to_front()

@@ -276,7 +276,6 @@ class BubblingEyes(ActiveSprite):
         self.bubber = bubber
         self.saved_caps = saved_caps
         self.gen = [self.playing_bubble(bubble)]
-        self.hatsprite = None
 
     def bottom_up(self):
         return self.saved_caps['gravity'] < 0.0

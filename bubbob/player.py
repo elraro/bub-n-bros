@@ -83,6 +83,9 @@ class Dragon(ActiveSprite):
 
     def dying(self, can_loose_letter=1):
         self.isdying = 1
+        if self.hatsprite is not None:
+            dxy = [3*self.dir, -7]
+            self.hatsprite.gen = [self.hatsprite.parabolic(dxy)]
         lst = [bonus for timeout, bonus in self.dcap['carrying']
                if hasattr(bonus, 'buildoutcome')]
                #if random.random() > 0.2]
@@ -459,7 +462,7 @@ class BubPlayer(gamesrv.Player):
             elif m.group(2) == '(2)':
                 self.team = 1
             name = m.group(1).strip()
-            print "New player in team", m.group(2), "with mame", m.group(1)
+            print "New player in team", m.group(2), "with name", m.group(1)
         else:
             print "The regexp didn't match:", name
         icons = [images.sprcharacterget(c) for c in name]
