@@ -923,11 +923,11 @@ def newbitmap(data, colorkey=None):
 
 
 def addsocket(role, socket, handler=None, port=None):
+  if port is None:
+    host, port = socket.getsockname()
   if handler is not None:
     serversockets[socket] = handler
   socketsbyrole.setdefault(role, []).append(socket)
-  if port is None:
-    host, port = socket.getsockname()
   socketports[socket] = port
 
 def findsockets(role):
@@ -1205,9 +1205,13 @@ class Game:
       except:
         addrname = addr
       print 'Connected by', addrname
-      c = FnClient(conn, addrname)
-      if game is not None:
-        c.opengame(game)
+      try:
+        c = FnClient(conn, addrname)
+      except error, e:
+        print 'Connexion already lost!', e
+      else:
+        if game is not None:
+          c.opengame(game)
 
 
 def recursiveloop(endtime, extra_sockets):
