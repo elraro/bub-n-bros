@@ -14,6 +14,8 @@ META_SERVER_PORT = 8055
 IMAGE_DIR = "../bubbob/doc/images"
 ICONS = [open(os.path.join(IMAGE_DIR, s), 'rb').read()
          for s in os.listdir(IMAGE_DIR) if s.endswith('.png')]
+MAX_SERVERS = 50
+MAX_CONNEXIONS = 60
 
 
 serversockets = {}
@@ -65,6 +67,8 @@ class MetaServer:
             if current is server:
                 return
             self.ServersList.remove(current)
+        elif len(self.ServersDict) >= MAX_SERVERS:
+            raise OverflowError
         self.ServersList.append(server)
         self.ServersDict[key] = server
         print '+', key
@@ -102,6 +106,9 @@ class Connexion(MessageSocket):
         self.serverkey = None
         print '[', self.key
         self.backlinks = WeakValueDictionary()
+        if len(serversockets) >= MAX_CONNEXIONS:
+            self.disconnect()
+            raise OverflowError
         serversockets[s] = self.receive, self.disconnect
 
     def disconnect(self):
@@ -114,6 +121,8 @@ class Connexion(MessageSocket):
 
     def msg_serverinfo(self, info, *rest):
         print '|', self.key
+        if len(info) > 15000:
+            raise OverflowError
         info = decodedict(info)
         self.serverinfo.update(info)
 

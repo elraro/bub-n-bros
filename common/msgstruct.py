@@ -70,4 +70,6 @@ def decodemessage(data):
             end = limit + calcsize(typecodes)
             if len(data) >= end:
                 return unpack(typecodes, data[limit:end]), data[end:]
+            elif end > 1000000:
+                raise OverflowError
     return None, data
