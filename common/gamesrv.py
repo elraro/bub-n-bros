@@ -8,6 +8,7 @@ import hostchooser
 
 #LOGFILE = None
 LOGFILE = 'gamesrv.log'
+LOGFILE_LIMIT = 16384  # bytes
 
 EWOULDBLOCK = (11,     # Posix
                10035)  # Windows
@@ -518,22 +519,10 @@ class Client:
     pass
 
   def log(self, message):
-    global LOGFILE
-    if LOGFILE:
-      try:
-        f = open(LOGFILE, 'a')
-      except IOError:
-        import tempfile
-        name = os.path.join(tempfile.gettempdir(), os.path.basename(LOGFILE))
-        if name == LOGFILE:
-          LOGFILE = None
-        else:
-          print 'Logging to', name
-          LOGFILE = name
-          self.log(message)
-      else:
-        print >> f, ctime(), self.addr, message
-        f.close()
+    f = logfile()
+    if f:
+      print >> f, ctime(), self.addr, message
+      f.close()
 
 ##  def def_file(self, filename, md5sum):
 ##    fnp = []
@@ -578,6 +567,32 @@ class SimpleClient(Client):
   MESSAGES.update({
     CMSG_KEY: cmsg_key,
     })
+
+def logfile():
+  global LOGFILE
+  if LOGFILE:
+    try:
+      f = open(LOGFILE, 'r+')
+    except IOError:
+      import tempfile
+      name = os.path.join(tempfile.gettempdir(), os.path.basename(LOGFILE))
+      if name == LOGFILE:
+        LOGFILE = None
+        return None
+      else:
+        print 'Logging to', name
+        LOGFILE = name
+        return logfile()
+    f.seek(0, 2)
+    if f.tell() > LOGFILE_LIMIT:
+      f.seek(-LOGFILE_LIMIT/2, 2)
+      data = f.read()
+      f.seek(0)
+      f.write(data)
+      f.truncate()
+    return f
+  else:
+    return None
 
 
 class playfield:
@@ -838,6 +853,11 @@ def Run():
         if not FnExcHandler(1):
           raise
       except:
+        f = logfile()
+        if f:
+          import traceback
+          traceback.print_exc(file=f)
+          f.close()
         if not FnExcHandler(0):
           raise
   finally:
