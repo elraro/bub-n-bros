@@ -5,7 +5,7 @@ os.chdir(os.pardir)
 sys.path.append(os.getcwd())
 sys.path.append(os.path.abspath(os.path.join(os.pardir, 'common')))
 
-from sprmap import  sprmap
+from images import sprmap
 import bonuses, images
 
 try:
@@ -17,7 +17,7 @@ def create_image(name,source,extralines=0):
     if len(sys.argv) == 2 and sys.argv[1] == '-i':
         return
     print name, source
-    src = open('images/'+source[0],'r')
+    src = open(source[0],'r')
     assert src.readline().strip() == 'P6'
     line = src.readline()
     while line[0] == '#':
