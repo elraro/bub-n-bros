@@ -31,14 +31,20 @@ class LogFile:
         try:
             self.f = open(filename, 'r+', 1)
             self.f.seek(0, 2)
-        except (OSError, IOError):
+        except IOError:
+            # The open r+ might have failed simply because the file
+            # does not exist. Try to create it.
+            try:
+                self.f = open(filename, 'w+', 1)
+            except (OSError, IOError):
+                return 0
+        except OSError:
             return 0
-        else:
-            self.filename = filename
-            if self.f.tell() > 0:
-                print >> self.f
-                print >> self.f, '='*44
-            return 1
+        self.filename = filename
+        if self.f.tell() > 0:
+            print >> self.f
+            print >> self.f, '='*44
+        return 1
 
     def _check(self):
         if self.f is None:
