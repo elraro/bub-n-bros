@@ -356,6 +356,7 @@ def next_board(num=0, complete=1):
     # reset global board state
     from player import BubPlayer
     BubPlayer.__dict__.update(BubPlayer.INIT_BOARD_CAP)
+    del BubPlayer.MonsterList[:]
 
     # wait for at least one player
     while not [p for p in BubPlayer.PlayerList if p.isplaying()]:
@@ -776,8 +777,9 @@ def extra_water_flood():
     from monsters import Monster
     waves_icons = [images.sprget(n) for n in Flood.waves]
     fill_icon = images.sprget(Flood.fill)
+    atom = object()
     bspr = []
-    curboard.sprites['flood', id(bspr)] = bspr
+    curboard.sprites['flood', atom] = bspr
     waves_sprites = [gamesrv.Sprite(waves_icons[0], x, bheight-CELL)
                      for x in range(0, bwidth, CELL)]
     bspr += waves_sprites
@@ -811,7 +813,7 @@ def extra_water_flood():
             s.step(0, CELL)
     for s in waves_sprites:
         s.kill()
-    del curboard.sprites['flood', id(bspr)]
+    del curboard.sprites['flood', atom]
 
 def extra_walls_falling():
     walls_by_pos = curboard.walls_by_pos
