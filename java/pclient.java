@@ -768,8 +768,12 @@ public class pclient extends Applet {
                 int iy = args[3];
                 int iw = args[4];
                 int ih = args[5];
-                Bitmap bmp = client.bitmaps[bmpcode];
-                client.setIcon(icocode, bmp.extractIcon(ix, iy, iw, ih));
+                if (bmpcode < client.bitmaps.length) {
+                    Bitmap bmp = client.bitmaps[bmpcode];
+                    if (bmp != null)
+                        client.setIcon(icocode,
+                                       bmp.extractIcon(ix, iy, iw, ih));
+                }
                 break;
             }
             case MSG_DEF_BITMAP: {
