@@ -10,6 +10,7 @@ MMSG_START    = '+'
 MMSG_STOP     = '-'
 MMSG_LIST     = 'L'
 MMSG_ROUTE    = 'R'
+MMSG_TRACEBACK= 'T'
 
 RMSG_WAKEUP   = 'w'
 RMSG_PING     = 'p'

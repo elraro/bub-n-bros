@@ -40,6 +40,12 @@ class MetaClientSrv(MessageSocket):
         gamesrv.removesocket('META', self.s)
         print '*** disconnected from the meta-server'
 
+    def send_traceback(self):
+        import traceback, cStringIO
+        f = cStringIO.StringIO()
+        traceback.print_exc(file = f)
+        self.s.sendall(message(MMSG_TRACEBACK, f.getvalue()))
+
     def msg_wakeup(self, origin, *rest):
         if self.lastwakeup is None or time.time()-self.lastwakeup > 4.0:
             def fastresponses(wakeup):
@@ -127,6 +133,7 @@ def meta_register(game):
         client = game._meta_client = MetaClientSrv(s, game)
     client.s.sendall(message(MMSG_INFO, encodedict(info)) +
                      message(MMSG_START, port))
+    return client
 
 
 # ____________________________________________________________

@@ -144,12 +144,19 @@ class Connexion(MessageSocket):
         self.backlinks[origin.key] = origin
         self.s.sendall(message(msgcode, origin.key, *rest))
 
+    def msg_traceback(self, tb, *rest):
+        f = stdlog.LogFile('tb-%s.log' % (self.addr[0],))
+        if f:
+            print >> f, tb
+            f.close()
+
     MESSAGES = {
         MMSG_INFO:  msg_serverinfo,
         MMSG_START: msg_startserver,
         MMSG_STOP:  msg_stopserver,
         MMSG_LIST:  msg_list,
         MMSG_ROUTE: msg_route,
+        MMSG_TRACEBACK: msg_traceback,
         }
 
 

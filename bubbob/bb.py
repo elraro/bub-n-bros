@@ -46,7 +46,7 @@ class BubBobGame(gamesrv.Game):
         if self.metaserver:
             setuppath('metaserver')
             import metaclient
-            metaclient.meta_register(self)
+            self.metaserver = metaclient.meta_register(self)
         else:
             for s in gamesrv.findsockets('META'):
                 try:
@@ -119,6 +119,12 @@ class BubBobGame(gamesrv.Game):
         print "-"*60
         traceback.print_exc()
         print "-"*60
+        if not kbd:
+            try:
+                if self.metaserver:
+                    self.metaserver.send_traceback()
+            except Exception, e:
+                print '! %s: %s' % (e.__class__.__name__, e)
         import boards
         num = getattr(boards.curboard, 'num', None)
         if self.Quiet:
