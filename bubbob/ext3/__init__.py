@@ -131,9 +131,9 @@ class Alien(monsters.Monster):
         ymax = boards.bheight - 3*CELL
         cont = 1
         if relative:
-            shoot_prob = 0.009
+            shoot_prob = 0.007
         else:
-            shoot_prob = 0.019
+            shoot_prob = 0.017
         while cont:
             if self.angry:
                 self.kill()   # never getting out of a bubble
@@ -228,7 +228,7 @@ class Galaga:
             self.explode_bubbles()
             yield t
         for s in images.ActiveSprites[:]:
-            if isinstance(s, Alien):
+            if isinstance(s, (Alien, GalagaDragon)):
                 s.kill()
 
     def frame(self):
