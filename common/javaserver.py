@@ -2,7 +2,9 @@ import sys, os
 from cStringIO import StringIO
 import httpserver
 
-NUM_PLAYERS = 7
+PLAYERNAMES = ['Bub', 'Bob', 'Boob', 'Beb',
+               'Biob', 'Bab', 'Bib',
+               'Baub', 'Beab', 'Biab']
 LOCALDIR = os.path.abspath(os.path.dirname(__file__))
 DATADIR  = os.path.join(LOCALDIR, os.pardir, 'http2', 'data')
 
@@ -32,6 +34,7 @@ NAME_LINE2 = '%s=%s'
 NAME_SEP2  = '&'
 
 def playernames(options):
+    NUM_PLAYERS = len(PLAYERNAMES)
     result = {}
     anyname = None
     for id in range(NUM_PLAYERS):
@@ -56,8 +59,7 @@ def playernames(options):
         for id in range(NUM_PLAYERS):
             keyid = 'player%d' % id
             if not result.get(keyid):
-                result[keyid] = anyname or ['Bub', 'Bob', 'Boob', 'Beb',
-                                            'Biob', 'Bab', 'Bib'][id]
+                result[keyid] = anyname or PLAYERNAMES[id]
             else:
                 anyname = result[keyid]
     return result

@@ -2,6 +2,10 @@ import os, sys, random
 from cStringIO import StringIO
 import socket, time
 
+PLAYERNAMES = ['Bub', 'Bob', 'Boob', 'Beb',
+               'Biob', 'Bab', 'Bib',
+               'Baub', 'Beab', 'Biab']
+
 try:
     FILE = __file__
 except NameError:
@@ -374,9 +378,10 @@ class PageServer:
                                'text/html', locals=locals)
 
     def nameloader(self, headers, **options):
+        MAX = len(PLAYERNAMES)
         if options:
             anyname = None
-            for id in range(7):
+            for id in range(MAX):
                 keyid = 'player%d' % id
                 if keyid in options:
                     value = options[keyid][0]
@@ -388,19 +393,18 @@ class PageServer:
                             value = '%s (%s)' % (value, team)
                     setattr(self.localoptions, keyid, value)
             if 'c' in options:
-                for id in range(7):
+                for id in range(MAX):
                     keyid = 'player%d' % id
                     try:
                         delattr(self.localoptions, keyid)
                     except AttributeError:
                         pass
             if 'f' in options:
-                for id in range(7):
+                for id in range(MAX):
                     keyid = 'player%d' % id
                     if not getattr(self.localoptions, keyid):
                         setattr(self.localoptions, keyid,
-                                anyname or ['Bub', 'Bob', 'Boob', 'Beb',
-                                            'Biob', 'Bab', 'Bib'][id])
+                                anyname or PLAYERNAMES[id])
                     else:
                         anyname = getattr(self.localoptions, keyid)
             self.saveoptions()

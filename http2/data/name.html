@@ -12,15 +12,15 @@
 <center><table CELLSPACING=0 CELLPADDING=0 BORDER=0>
 
 <tr>
-<td width="4%%"  rowspan=9 bgcolor="#000000">&nbsp;</td>
+<td width="4%%"  rowspan=12 bgcolor="#000000">&nbsp;</td>
 <td width="34%%"           bgcolor="#000000" align="right">
   <img src="hat1.png"><font color="#FFFFFF">Team</font><img src="hat2.png">
 </td>
-<td width="4%%"  rowspan=9 bgcolor="#000000">&nbsp;</td>
-<td width="20%%" rowspan=9>&nbsp;</td>
-<td width="4%%"  rowspan=9 bgcolor="#FFFFFF">&nbsp;</td>
-<td width="30%%"           bgcolor="#FFFFFF">&nbsp;</td>
-<td width="4%%"  rowspan=9 bgcolor="#FFFFFF">&nbsp;</td>
+<td width="4%%"  rowspan=12 bgcolor="#000000">&nbsp;</td>
+<td width="20%%" rowspan=12>&nbsp;</td>
+<td width="4%%"  rowspan=12 bgcolor="#FFFFFF">&nbsp;</td>
+<td width="30%%"            bgcolor="#FFFFFF">&nbsp;</td>
+<td width="4%%"  rowspan=12 bgcolor="#FFFFFF">&nbsp;</td>
 </tr>
 
 %(
@@ -31,7 +31,7 @@ buttons = {
 </td>
 """,
 1: """
-<td rowspan=6 align="center" valign="top" bgcolor="#FFFFFF">
+<td rowspan=9 align="center" valign="top" bgcolor="#FFFFFF">
 <p><input type=submit name="s" value="  Save  "></p>
 <p>&nbsp;&nbsp;<input type=submit name="f" value=" Fill in missing names ">&nbsp;&nbsp;</p>
 <p><input type=submit name="c" value="  Clear  "></p>
@@ -44,7 +44,11 @@ for id, img, bgcolor in [
         (3, 'beb.png', '#ffc000'),
         (4,'biob.png', '#ffff00'),
         (5, 'bab.png', '#c04040'),
-        (6, 'bib.png', '#c0c0c0')]:
+        (6, 'bib.png', '#c0c0c0'),
+        (7,'baub.png', '#fc60ff'),
+        (8,'beab.png', '#4fa4ff'),
+        (9,'biab.png', '#0ab237'),
+          ]:
     keyid = "player%d" % id
     playername = options.get(keyid) or ''
     playername = playername.strip()
