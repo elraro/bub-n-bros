@@ -1053,7 +1053,7 @@ class Game:
       else:
         try:
           self.broadcast_s.sendto(BROADCAST_MESSAGE,
-                                  ('255.255.255.255', self.broadcast_port))
+                                  ('<broadcast>', self.broadcast_port))
           #print "Broadcast ping"
         except error:
           pass  # ignore failed broadcasts
@@ -1074,7 +1074,7 @@ class Game:
       udpdata = ''.join(broadcast_extras.keys() + [udpdata])
       try:
         self.broadcast_s.sendto(udpdata,
-                                ('255.255.255.255', broadcast_port))
+                                ('<broadcast>', broadcast_port))
         #print "Broadcast UDP data"
       except error:
         pass  # ignore failed broadcasts

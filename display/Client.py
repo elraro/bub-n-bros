@@ -15,7 +15,7 @@ import modes
 
 UdpLookForServer = [
     '127.0.0.1',
-    '255.255.255.255',
+    '<broadcast>',
     ]
 
 def parse_cmdline(argv):

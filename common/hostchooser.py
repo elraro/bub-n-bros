@@ -74,9 +74,7 @@ def pick(hostlist, delay=1):
     print >> sys.stderr, "no server found."
     raise SystemExit
 
-BROADCAST = '<broadcast>'
-
-def find_servers(hostlist=[('127.0.0.1', None), (BROADCAST, None)],
+def find_servers(hostlist=[('127.0.0.1', None), ('<broadcast>', None)],
                  tries=2, delay=0.5, verbose=1, port_needed=1):
     import gamesrv
     if verbose:
@@ -92,7 +90,7 @@ def find_servers(hostlist=[('127.0.0.1', None), (BROADCAST, None)],
         for host, udpport in hostlist:
             try:
                 ipaddr = host
-                if host != BROADCAST:
+                if host != '<broadcast>':
                     try:
                         ipaddr = gethostbyname(host)
                     except error, e:
