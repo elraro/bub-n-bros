@@ -225,7 +225,7 @@ def bget(x, y):
         return '#'
 
 def wget(x, y):
-    delta = WIND_DELTA
+    delta = curboard.WIND_DELTA
     x = (x + delta) // 16
     y = (y + delta) // 16
     if 0 <= x < curboard.width:
