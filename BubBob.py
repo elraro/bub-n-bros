@@ -111,6 +111,10 @@ except:
     print "Sorry, I guess you have to go to the following URL manually:"
 else:
     print "Done running '%s'." % name
+    if not look_for_local_server(tries=1, verbose=0):
+        # assume that browser.open() waited for the browser to finish
+        # and that the server has been closed from the browser.
+        raise SystemExit
     print
     print '-'*60
     print "If the browser fails to open the page automatically,"
