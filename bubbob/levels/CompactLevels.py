@@ -2,7 +2,7 @@
 #  A series of compact levels.
 #
 
-import boarddef, mnstrmap
+import boarddef, mnstrmap, random
 from boarddef import LNasty, LMonky, LGhosty, LFlappy
 from boarddef import LSpringy, LOrcy, LGramy, LBlitzy
 from boarddef import RNasty, RMonky, RGhosty, RFlappy
@@ -1365,6 +1365,105 @@ class level38(boarddef.Level):
 ##                         ##
 #############   #############
 """   #|#    #|#    #|#   """
+
+class level39(boarddef.Level):
+    monsters = []
+    mnstrclasses = ([mnstrmap.Nasty] * 10 +
+                    [None]           * 30 +
+                    [mnstrmap.Monky] * 7 +
+                    [None]           * 30 +
+                    [mnstrmap.Orcy]  * 5)
+    for i in range(len(mnstrclasses)):
+        if mnstrclasses[i]:
+            left = random.randrange(2)
+            x = random.choice([7,14,21])
+            monsters.append(mnstrclasses[i](x-left, -2*i, left))
+    
+    walls = """
+######   ####   ####   ######
+##                         ##
+##                         ##
+##                         ##
+##                         ##
+##                         ##
+##                         ##
+##                         ##
+##                         ##
+##                         ##
+##                         ##
+##                         ##
+##                         ##
+##                         ##
+##                         ##
+##                         ##
+##                         ##
+##                         ##
+######    #########    ######
+##                         ##
+##                         ##
+##                         ##
+##                         ##
+#############################
+"""   #|#    #|#    #|#   """
+
+class level40(boarddef.Level):
+    g = LGhosty
+
+    top = fire = 1
+    
+    walls = """
+##                         ##
+##                         ##
+##           # ##          ##
+##          ##  ### #      ##
+##       # ##              ##
+##                         ##
+##                         ##
+##                #        ##
+##         #      ####     ##
+##     ###                 ##
+##     # #   g             ##
+##            #            ##
+##           ###   #       ##
+##      #     #    ###     ##
+##    ###      g     #     ##
+##      #                  ##
+##            g            ##
+##     #           ##      ##
+##     #      #     ###    ##
+##   ###      #            ##
+##            # g          ##
+##         g  #      #     ##
+##    ##      #     ##     ##
+## # ###             ## ## ##
+"""   #|#    #|#    #|#   """
+
+    winds = """
+>>vvvvvvvvvvvvvvvvvvvvvvvvv<<
+>>vvvvvvvvvvvvvvvvvvvvvvvvv<<
+>>vvvvvvvvvvvvvvvvvvvvvvvvv<<
+>>vvvvvvvvvvvvvvvvvvvvvvvvv<<
+>>>>>>>>>>>>vvxvv<<<<<<<<<<<<
+>>>>>>>>>>>>vvxvv<<<<<<<<<<<<
+>>>>>>>>>>>>vxxxv<<<<<<<<<<<<
+>>>>>>>>>>>>vxxxv<<<<<<<<<<<<
+>>>>>>>>>>>>vxxxv<<<<<<<<<<<<
+>>>>>>>>>>>>xxxxx<<<<<<<<<<<<
+>>>>>>>>>>>>xxxxx<<<<<<<<<<<<
+>>>>>>>>>>>>xxxxx<<<<<<<<<<<<
+>>>>>>>>>>>>xxxxx<<<<<<<<<<<<
+>>>>>>>>>>>>xxxxx<<<<<<<<<<<<
+>>>>>>>>>>>>xxxxx<<<<<<<<<<<<
+>>>>>>>>>>>>xxxxx<<<<<<<<<<<<
+>>>>>>>>>>>>xxxxx<<<<<<<<<<<<
+>>>>>>>>>>>>xxxxx<<<<<<<<<<<<
+>>>>>>>>>>>>xxxxx<<<<<<<<<<<<
+>>>>>>>>>>>>xxxxx<<<<<<<<<<<<
+>>>>>>>>>>>>xxxxx<<<<<<<<<<<<
+>>>>>>>>>>>>xxxxx<<<<<<<<<<<<
+>>>>>>>>>>>>xxxxx<<<<<<<<<<<<
+>>                         <<
+"""
 
 class levelFinal(boarddef.Level):
     
