@@ -1130,7 +1130,7 @@ def extra_light_off(timeout, icocache={}):
     for s in gamesrv.sprites_by_n.values():
         s.setdisplayicon(s.ico)
 
-def extra_swap_up_down(N=25):
+def extra_swap_up_down(N=27):
     # unregister all walls
     walls = curboard.walls_by_pos.items()
     walls.sort()
@@ -1177,7 +1177,7 @@ def extra_swap_up_down(N=25):
     i = 0
     for (y,x), w in walls:
         y = height-1 - y
-        if 0 <= y < height and bget(x, y) == ' ':
+        if 0 <= y < height and (y,x) not in curboard.walls_by_pos:
             w = wallpool[i]
             i += 1
             curboard.putwall(x, y, w)
