@@ -204,11 +204,11 @@ class Lemmings:
                 break
 
         tc.restore()
-        for t in boards.result_ranking(self.score.copy(), self.lemtotal):
-            yield t
         for s in self.lemlist[:]:
             if s.alive:
                 s.kill()
+        for t in boards.result_ranking(self.score.copy(), self.lemtotal):
+            yield t
 
     def frame(self):
         windline = '>>' + '^'*(curboard.width-4) + '<<'
