@@ -1063,23 +1063,23 @@ class Game:
   FnKeys    = []
   FnUnknown = lambda self: None
   FnDisconnected = lambda self: None
-  
+
   def __init__(self):
     global game
-    game = self
-    clearsprites()
-
-  def openserver(self):
     s = opentcpsocket()
     self.address = HOSTNAME, socketports[s]
-    ps = openpingsocket()
     bs = self.broadcast_s = openbroadcastsocket()
     self.broadcast_port = socketports.get(bs)
     self.broadcast_next = None
+    self.nextframe = time()
+    clearsprites()
+    game = self
 
+  def openserver(self):
+    ps = openpingsocket()
     print '%s server at %s:%d, Broadcast %d, UDP %d' % (
       self.FnDesc, self.address[0], self.address[1],
-      displaysockport(bs), displaysockport(ps))
+      displaysockport(self.broadcast_s), displaysockport(ps))
 
     hs = openhttpsocket()
     if hs:
@@ -1098,7 +1098,6 @@ class Game:
         c.opengame(self)
     #else:
     #  framemsgappend(self.deffieldmsg())   # for recording
-    self.nextframe = time()
 
   def trigger_broadcast(self):
     assert self.broadcast_s is not None
