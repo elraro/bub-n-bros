@@ -28,6 +28,6 @@ class Music:
                                     signed = width > 1,
                                     channels = chan,
                                     byteorder = 'little')
-            print len(result)
+            #print len(result)
         self.sampledata = result[bytecount:]
         return result[:bytecount]
