@@ -184,7 +184,7 @@ class Lemming(Monster):
 
 class Lemmings:
     
-    def bgen(self, limittime = 45.1): # 0:45
+    def bgen(self, limittime = 60.1): # 0:60
         for t in boards.exit_board(0):
             yield t
         for t in curboard.clean_gen_state():

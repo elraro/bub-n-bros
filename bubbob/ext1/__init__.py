@@ -258,7 +258,7 @@ class Ball(ActiveSprite):
 
 class Arkanoid:
     
-    def bgen(self, limittime = 30.1): # 0:30
+    def bgen(self, limittime = 60.1): # 0:60
         import boards
         from player import BubPlayer
 

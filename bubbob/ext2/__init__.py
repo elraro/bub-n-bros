@@ -230,7 +230,7 @@ class FruitBonus(Bonus):
 
 class Pacman:
     
-    def bgen(self, limittime = 20.1): # 0:20
+    def bgen(self, limittime = 45.1): # 0:45
         import boards
         from player import BubPlayer
 

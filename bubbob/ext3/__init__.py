@@ -12,88 +12,115 @@ import monsters, bubbles
 LocalDir = os.path.basename(os.path.dirname(__file__))
 
 localmap = {
-    ('gala', 0) :  ('image1.ppm', ( 0,  0, 32, 32)),
-    ('gala', 1) :  ('image1.ppm', ( 0, 32, 32, 32)),
-    ('gala', 2) :  ('image1.ppm', ( 0, 64, 32, 32)),
+    'gala': ('image1-%d.ppm', (0, 0, 32, 32)),
     }
 
 music = gamesrv.getmusic(os.path.join(LocalDir, 'music.wav'))
 snd_shoot = gamesrv.getsample(os.path.join(LocalDir, 'shoot.wav'))
 
 
-class GalagaDragon(Dragon):
+class Ship(ActiveSprite):
+
+    def __init__(self, galaga, bubber, x, y):
+        ico = images.sprget(('gala', bubber.pn))
+        ActiveSprite.__init__(self, ico, x, y)
+        self.galaga = galaga
+        self.bubber = bubber
+        self.gen.append(self.movedown())
+        self.gen.append(self.playing_ship())
+        self.gen.append(self.doomed())
+        self.galaga.ships.append(self)
+
+    def movedown(self):
+        import boards
+        target_y = boards.bheight - self.ico.h
+        while self.y < target_y:
+            yield None
+            self.move(self.x, self.y + 3)
+        self.move(self.x, target_y)
+
+    def playing_ship(self):
+        import boards
+        bubber = self.bubber
+        xmin = HALFCELL
+        xmax = boards.bwidth - HALFCELL - self.ico.w
+        fire = 0
+        while 1:
+            wannago = bubber.wannago(self.dcap)
+            nx = self.x + 2*wannago
+            if nx < xmin:
+                nx = xmin
+            elif nx > xmax:
+                nx = xmax
+            self.move(nx, self.y)
+            if fire:
+                fire -= 1
+            elif bubber.key_fire:
+                self.firenow()
+                fire = 28
+            yield None
 
     def firenow(self):
-        self.fire = 1
-##        self.dir = -self.dir
-##        self.dcap['lookforward'] *= -1
-##        self.gen.append(self.restorelook())
         ico = images.sprget(GreenAndBlue.new_bubbles[self.bubber.pn][0])
         s = Shot(ico, self.x, self.y)
         s.d = self
         s.gen = [s.straightup(self)]
         self.play(snd_shoot)
 
-##    def restorelook(self):
-##        for i in range(4):
-##            yield None
-##        self.dcap['lookforward'] *= -1
-##        self.dir = -self.dir
-
-    def galaga_setup(self):
-        icons = [images.sprget(ico)
-                 for ico in GreenAndBlue.comming[self.bubber.pn]]
-        self.galaga_icons = ([icons[0]] * 4 +
-                             [icons[1]] * 4 +
-                             [icons[2]] * 4 +
-                             [icons[1]] * 4)
-        self.overlay_icons = [images.sprget(('gala', n)) for n in range(3)]
-        self.overlay_sprite = ActiveSprite(self.overlay_icons[0], self.x, self.y)
-
-    def dying(self, *args, **kw):
-        del self.galaga_icons[:]
-        dxy = [3*self.dir, -7]
-        self.overlay_sprite.gen.append(self.overlay_sprite.parabolic(dxy))
-        self.overlay_sprite = None
-        for t in Dragon.dying(self, *args, **kw):
-            yield t
+    def doomed(self):
+        dangerous = Alien, monsters.MonsterShot
+        while 1:
+            touching = images.touching(self.x+3, self.y+3, 26, 26)
+            for s in touching:
+                if isinstance(s, dangerous):
+                    self.kill()
+                    return
+            yield None
+            yield None
 
     def kill(self):
-        if self.overlay_sprite is not None:
-            self.overlay_sprite.kill()
-            self.overlay_sprite = None
-        Dragon.kill(self)
-
-    def seticon(self, ico):
-        if self.galaga_icons:
-            ico = self.galaga_icons.pop(0)
-            self.galaga_icons.append(ico)
-        Dragon.seticon(self, ico)
-
-    def to_front(self):
-        Dragon.to_front(self)
-        if self.overlay_sprite:
-            self.overlay_sprite.move(self.x, self.y,
-                                     random.choice(self.overlay_icons))
-            self.overlay_sprite.to_front()
+        from bubbles import Bubble
+        try:
+            self.bubber.dragons.remove(self)
+        except ValueError:
+            pass
+        images.Snd.Pop.play(1.0, pad=0.0)
+        images.Snd.Pop.play(1.0, pad=1.0)
+        ico = images.sprget(Bubble.exploding_bubbles[0])
+        for i in range(11):
+            s = ActiveSprite(ico,
+                             self.x + random.randrange(self.ico.w) - CELL,
+                             self.y + random.randrange(self.ico.h) - CELL)
+            s.gen.append(s.die(Bubble.exploding_bubbles))
+        try:
+            self.galaga.ships.remove(self)
+        except ValueError:
+            pass
+        ActiveSprite.kill(self)
 
 
 class Shot(bubbles.Bubble):
     touchable = 0
     
-    def straightup(self, dragon):
+    def straightup(self, ship):
         ymin = -self.ico.h
         while self.y > ymin:
             self.step(0, -10)
             touching = images.touching(self.x+CELL-1, self.y+CELL-1, 2, 2)
             touching = [s for s in touching if isinstance(s, Alien)]
             if touching:
+                alien = random.choice(touching)
                 self.gen = []
-                self.startnormalbubble(dx=0, dy=1)
-                random.choice(touching).in_bubble(self)
-                dragon.galaga.scores[dragon.bubber] += 1
+                self.touchable = 1
+                self.move(alien.x, alien.y)
+                self.pop([ship])
+                alien.kill()
+                ship.galaga.scores[ship.bubber] += 1
                 return
             yield None
+
+    def popped(self, dragon):
+        return 200
 
 
 class Alien(monsters.Monster):
@@ -134,12 +161,12 @@ class Alien(monsters.Monster):
         relative, tx, ty = self.path[0]
         fx = self.x
         fy = self.y
-        ymax = boards.bheight - 3*CELL
+        ymax = boards.bheight - self.ico.h
         cont = 1
         if relative:
-            shoot_prob = 0.007
+            shoot_prob = 0.008
         else:
-            shoot_prob = 0.017
+            shoot_prob = 0.020
         while cont:
             if self.angry:
                 self.kill()   # never getting out of a bubble
@@ -165,16 +192,14 @@ class Alien(monsters.Monster):
                 dx, dy = self.ANGLE_TABLE[angle]
             elif relative:
                 self.in_place = 1
-                if self.y > ymax and BubPlayer.DragonList:
-                    for d in BubPlayer.DragonList:
-                        d.gen = [d.dying(can_loose_letter=0)]
-                    del BubPlayer.DragonList[:]
-                    self.play(images.Snd.Die)
-                    x0 = self.x//CELL + 1
-                    if x0 < 2: x0 = 0
-                    if x0 >= boards.width-2: x0 = boards.width-3
-                    bubbles.FireFlame(x0, boards.height-2, None, [-1, 1],
-                                      boards.width)
+                if self.y > ymax and relative.ships:
+                    for ship in relative.ships[:]:
+                        ship.kill()
+                    #x0 = self.x//CELL + 1
+                    #if x0 < 2: x0 = 0
+                    #if x0 >= boards.width-2: x0 = boards.width-3
+                    #bubbles.FireFlame(x0, boards.height-2, None, [-1, 1],
+                    #                  boards.width)
             else:
                 self.path.pop(0)
                 self.gen.append(self.default_mode(angle))
@@ -189,71 +214,56 @@ class Alien(monsters.Monster):
                 monsters.DownShot(self)
             yield None
 
-    def in_bubble(self, bubble):
-        self.in_place = 2
-        bubble = monsters.Monster.in_bubble(self, bubble)
-
-    def argh(self, poplist=None, onplace=0):
-        if poplist and poplist[0] is None:
-            if self.alive:
-                self.kill()
-        else:
-            monsters.Monster.argh(self, poplist, onplace)
-
 
 class Galaga:
     
-    def bgen(self):#, limittime = 30.1): # 0:30
+    def bgen(self):
         for t in boards.exit_board(0, music=[music]*99):
             yield t
         for t in curboard.clean_gen_state():
             yield t
 
-        #tc = boards.TimeCounter(limittime)
-        BubPlayer.FrameCounter += 99999   # end all bonus effects now
+        self.ships = []
         self.scores = {}
         self.nbmonsters = 0
         finish = 0
         for t in self.frame():
             t = boards.normal_frame()
-            self.build_dragons()
+            self.build_ships()
             yield t
-            if len(BubPlayer.DragonList) == 0:
+            if len(self.ships) == 0:
                 finish += 1
-                if finish == 20:
+                if finish == 50:
                     break
             else:
                 finish = 0
-            #tc.update(t)
-            #if tc.time == 0.0:
-            #    break
 
-        #tc.restore()
         for t in boards.result_ranking(self.scores, self.nbmonsters):
-            self.build_dragons()
-            self.explode_bubbles()
+            self.build_ships()
             yield t
         for s in images.ActiveSprites[:]:
-            if isinstance(s, (Alien, GalagaDragon)):
+            if isinstance(s, (Alien, Ship)):
                 s.kill()
 
     def frame(self):
-        y = curboard.height-1
-        for x in range(2, curboard.width-2):
-            if bget(x, y) == ' ':
-                curboard.putwall(x, y)
-        curboard.reorder_walls()
-        for y in range(curboard.height-2, -1, -1):
+        curboard.walls_by_pos.clear()
+        curboard.winds = ['v' * curboard.width] * curboard.height
+        for y in range(len(curboard.walls)):
+            curboard.walls[y] = ' ' * len(curboard.walls[y])
+        l1 = curboard.sprites['walls']
+        l2 = curboard.sprites['borderwalls']
+        while l1 or l2:
+            for l in [l1, l2]:
+                for w in l[:]:
+                    w.step(0, 5)
+                    if w.y >= boards.bheight:
+                        l.remove(w)
+                        w.kill()
             yield None
-            yield None
-            for x in range(2, curboard.width-2):
-                if bget(x, y) == '#':
-                    curboard.killwall(x, y)
 
         self.globalx = boards.bwidth // 2
         self.globaly = 0
         shifter = self.shifter()
-        curboard.winds = [' ' * curboard.width] * curboard.height
         squadrons = len([p for p in BubPlayer.PlayerList if p.isplaying()])
         squadrons = 3 + (squadrons+1)//3
         nextsquad = 0
@@ -261,8 +271,8 @@ class Galaga:
         squadtime = 0
         while 1:
             yield None
-            if random.random() < 0.015:
-                bubbles.sendbubble(bubbles.PlainBubble, top=0)
+            #if random.random() < 0.015:
+            #    bubbles.sendbubble(bubbles.PlainBubble, top=0)
             in_place = {0: [], 1: [], 2: []}
             for s in BubPlayer.MonsterList:
                 if isinstance(s, Alien):
@@ -289,6 +299,8 @@ class Galaga:
                     pass
                 nextsquad += 1
                 relativey += 4*CELL
+        for t in range(20):
+            yield None
 
     def shifter(self):
         while 1:
@@ -309,29 +321,19 @@ class Galaga:
                 self.globaly += 1
                 yield None
 
-    def build_dragons(self):
+    def build_ships(self):
         for p in BubPlayer.PlayerList:
-            dragons = [d for d in p.dragons if not isinstance(d, GalagaDragon)]
+            dragons = [d for d in p.dragons if not isinstance(d, Ship)]
             if (dragons and len(p.dragons) == len(dragons) and
                 p not in self.scores):
-                realdragons = [d for d in dragons if d.__class__ == Dragon]
-                if realdragons:
-                    dragon = random.choice(realdragons)
-                    self.scores[p] = 0
-                    dragon.__class__ = GalagaDragon
-                    dragon.galaga_setup()
-                    dragon.galaga = self
-                    dragons.remove(dragon)
-                    #p.emotic(dragon, 4)
+                dragon = random.choice(dragons)
+                self.scores[p] = 0
+                ship = Ship(self, p, dragon.x, dragon.y)
+                ship.dcap = dragon.dcap
+                p.dragons.append(ship)
+                p.emotic(dragon, 4)
             for d in dragons:
                 d.kill()
-
-    def explode_bubbles(self):
-        if BubPlayer.DragonList:
-            for s in images.ActiveSprites:
-                if isinstance(s, Shot) and s.touchable:
-                    s.pop([None])
-                    return
 
 
 def run():
@@ -340,6 +342,10 @@ def run():
 
     for key, (filename, rect) in localmap.items():
         filename = os.path.join(LocalDir, filename)
-        images.sprmap[key] = (filename, rect)
+        if filename.find('%d') >= 0:
+            for p in BubPlayer.PlayerList:
+                images.sprmap[key, p.pn] = (filename % p.pn, rect)
+        else:
+            images.sprmap[key] = (filename, rect)
 
     boards.replace_boardgen(Galaga().bgen())
