@@ -130,7 +130,7 @@ class Playfield:
 ##                self.gameident, self.datapath = (self.gameident[:i].strip(),
 ##                                                 self.gameident[i+1:-1])
         print "connected to %r." % self.gameident
-        self.s.sendall(message(CMSG_PROTO_VERSION, 2))
+        self.s.sendall(message(CMSG_PROTO_VERSION, 3))
 
     def run(self, mode, udp_over_tcp='auto'):
         self.playing = {}   # 0, 1, or 'l' for local
@@ -161,6 +161,7 @@ class Playfield:
         self.udpsock_low = None
         self.udpsock2 = None
         self.accepted_broadcast = 0
+        self.dyndecompress = {}
         self.tcpbytecounter = 0
         self.udpbytecounter = 0
         if udp_over_tcp == 1:
@@ -205,11 +206,17 @@ class Playfield:
                     #iwtd, owtd, ewtd = select(self.iwtd, [], [], 0)
             if self.dpy:
                 if self.udpsock in iwtd:
+                    udpdata1 = None
                     while self.udpsock in iwtd:
                         udpdata = self.udpsock.recv(65535)
                         self.udpbytecounter += len(udpdata)
+                        if len(udpdata) >= 2 and '\x80' <= udpdata[0] < '\x90':
+                            udpdata = self.dynamic_decompress(udpdata)
+                        if udpdata is not None:
+                            udpdata1 = udpdata
                         iwtd, owtd, ewtd = select(self.iwtd, [], [], 0)
-                    self.update_sprites(udpdata)
+                    if udpdata1 is not None:
+                        self.update_sprites(udpdata1)
                 if self.udpsock2 in iwtd:
                     while self.udpsock2 in iwtd:
                         udpdata = self.udpsock2.recv(65535)
@@ -238,6 +245,27 @@ class Playfield:
                     self.erase_taskbar(erasetb)
             if pss in iwtd:
                 hostchooser.answer_ping(pss, self.gameident, self.sockaddr)
+
+    def dynamic_decompress(self, udpdata):
+        # See commends in common.py, dynamic_compress
+        try:
+            now = time.time()
+            dyndecompress = self.dyndecompress
+            key = ord(udpdata[1]) & 15
+            if key in dyndecompress:
+                entry = dyndecompress[key]
+                expectedheader, timeout, decompress = entry
+                if now < timeout and  udpdata[:2] == expectedheader:
+                    entry[0] = chr(ord(udpdata[0])+1) + udpdata[1]
+                    return decompress(udpdata[2:])
+                del dyndecompress[key]
+            if udpdata[0] != '\x80':
+                return None
+            decompress = zlib.decompressobj().decompress
+            dyndecompress[key] = ['\x81' + udpdata[1], now+10.0, decompress]
+            return decompress(udpdata[2:])
+        except zlib.error:
+            return None
 
     def geticon(self, icocode):
         try:
