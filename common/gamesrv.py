@@ -24,22 +24,20 @@ class Icon:
 
 class Bitmap:
 
-  def __init__(self, code, filename, colorkey=None):
+  def __init__(self, code, filename, colorkey=None, data=None):
     self.code = code
     self.filename = filename
     self.icons = {}
-    data = zlib.compress(self.read())
+    if data is None:
+      f = open(filename, "rb")
+      data = f.read()
+      f.close()
+    data = zlib.compress(data)
     if colorkey is not None:
       self.msgdef = message(MSG_DEF_BITMAP, code, data, colorkey)
     else:
       self.msgdef = message(MSG_DEF_BITMAP, code, data)
     framemsgappend(self.msgdef)
-
-  def read(self):
-    f = open(self.filename, "rb")
-    data = f.read()
-    f.close()
-    return data
 
   def geticon(self, x,y,w,h):
     rect = (x,y,w,h)
@@ -61,11 +59,7 @@ class Bitmap:
 class MemoryBitmap(Bitmap):
   
   def __init__(self, code, data, colorkey=None):
-    self.data = data
-    Bitmap.__init__(self, code, None, colorkey)
-
-  def read(self):
-    return self.data
+    Bitmap.__init__(self, code, None, colorkey, data)
 
 
 class Sample:

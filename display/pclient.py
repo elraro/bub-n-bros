@@ -3,9 +3,10 @@
 import sys, os
 from socket import *
 from select import select
-import cStringIO, struct, zlib
+import struct, zlib
 import time
 from common.msgstruct import *
+from common.pixmap import decodepixmap
 from common import hostchooser
 import modes
 from modes import KeyPressed, KeyReleased
@@ -24,19 +25,7 @@ def read(sock, count):
 
 
 def loadpixmap(dpy, data, colorkey=None):
-    f = cStringIO.StringIO(data)
-    sig = f.readline().strip()
-    assert sig == "P6"
-    while 1:
-        line = f.readline().strip()
-        if not line.startswith('#'):
-            break
-    wh = line.split()
-    w, h = map(int, wh)
-    sig = f.readline().strip()
-    assert sig == "255"
-    data = f.read()
-    f.close()
+    w, h, data = decodepixmap(data)
     if colorkey is None:
         colorkey = -1
     elif colorkey < 0:
@@ -80,6 +69,7 @@ class Playfield:
         self.keycodes = {}
         self.dpy = None
         self.bitmaps = {}
+        self.flippedbitmaps = {}
         self.icons = {}
         self.sounds = {}
         self.musics = {}
@@ -385,7 +375,17 @@ class Playfield:
         self.keys[name] = num, [self.icons[ico] for ico in icons]
 
     def msg_def_icon(self, bmpcode, icocode, x, y, w, h, *rest):
-        self.icons[icocode] = Icon(self.bitmaps[bmpcode], (x, y, w, h))
+##        if h<0:
+##            try:
+##                bitmap, height = self.flippedbitmaps[bmpcode]
+##            except KeyError:
+##                bitmap, height = self.dpy.vflipppm(self.bitmaps[bmpcode])
+##                self.flippedbitmaps[bmpcode] = bitmap, height
+##            y = height - y
+##            h = - h
+##        else:
+        bitmap = self.bitmaps[bmpcode]
+        self.icons[icocode] = Icon(bitmap, (x, y, w, h))
         #print >> sys.stderr, "def_icon  ", bmpcode, (x,y,w,h), '->', icocode
 
     def msg_def_bitmap(self, bmpcode, data, colorkey=None, *rest):

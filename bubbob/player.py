@@ -150,6 +150,7 @@ class Dragon(ActiveSprite):
             wannafire = bubber.key_fire
             wannajump = bubber.key_jump
             wannago = bubber.wannago(self.dcap)
+            bottom_up = self.bottom_up()
 
             if self.dcap['autofire']:
                 wannafire = 1
@@ -188,14 +189,14 @@ class Dragon(ActiveSprite):
                 dir = 0
                 if wannago == -1:
                     x0 = (self.x+1)//CELL
-                    y0 = (self.y+4) // CELL + 1
-                    y0bis = (self.y+CELL-1) // CELL + 1
+                    y0 = (self.y+4) // CELL + 1 - bottom_up
+                    y0bis = (self.y+CELL-1) // CELL + 1 - bottom_up
                     if bget(x0,y0) == ' ' == bget(x0,y0bis):
                         dir = -1
                 elif wannago == 1:
                     x0 = (self.x-3)//CELL + 2
-                    y0 = self.y // CELL + 1
-                    y0bis = (self.y+CELL-1) // CELL + 1
+                    y0 = self.y // CELL + 1 - bottom_up
+                    y0bis = (self.y+CELL-1) // CELL + 1 - bottom_up
                     if bget(x0,y0) == ' ' == bget(x0,y0bis):
                         dir = +1
                 self.step(2*dir, 0)
@@ -216,7 +217,7 @@ class Dragon(ActiveSprite):
             if self.up:
                 mode = 9
                 self.up -= self.dcap['gravity']
-                if self.up < 4.0:
+                if (self.up,-self.up)[bottom_up] < 4.0:
                     self.up = 0.0
                     #self.key_jump = KeyOff
                     mode = 10
@@ -224,24 +225,25 @@ class Dragon(ActiveSprite):
                     ny = self.y + yfp - self.up
                     self.move(self.x, int(ny))
                     yfp = ny - self.y
-                    if ny < -2*CELL:
+                    if ny < -2*CELL or ny >= boards.bheight:
                         self.vertical_warp()
-            elif onground(self.x, self.y) or (wannajump and onbubble):
+            elif ((onground,underground)[bottom_up](self.x, self.y) or
+                  (wannajump and onbubble)):
                 if wannajump:
                     self.play(images.Snd.Jump)
                     yfp = 0.0
-                    self.up = 7.5
+                    self.up = (7.5,-7.5)[bottom_up]
                     mode = 9
                 else:
                     mode = self.mytime // 4
             else:
                 mode = 10
                 if self.dcap['fly']:
-                    ny = self.y+1
+                    ny = self.y+(1,-1)[bottom_up]
                 else:
-                    ny = (self.y+4) & ~3
+                    ny = (self.y+(4,-1)[bottom_up]) & ~3
                 self.move(self.x, ny)
-                if ny >= boards.bheight:
+                if ny >= boards.bheight or ny < -2*CELL:
                     self.vertical_warp()
 
             if wannafire and not self.fire:
@@ -280,18 +282,26 @@ class Dragon(ActiveSprite):
                 self.dcap['shield'] = s
             if self.dcap['ring']:# and random.random() > 0.1:
                 mode = 11
-            self.seticon(self.bubber.icons[mode, self.dir])
+            if bottom_up:
+                icons = self.bubber.flippedicons
+                if not icons:
+                    self.bubber.loadicons(icons, images.sprget_vflip)
+            else:
+                icons = self.bubber.icons
+            self.seticon(icons[mode, self.dir])
 
             self.watermoveable = not wannajump
             yield None
             
             if self.angry:
                 if angryticks == 0:
-                    s = ActiveSprite(self.bubber.icons[11, self.dir],
-                                     self.x, self.y)
+                    s = ActiveSprite(icons[11, self.dir], self.x, self.y)
                     s.gen.append(s.die([None], speed=10))
                     angryticks = 6
                 angryticks -= 1
+
+    def bottom_up(self):
+        return self.dcap['gravity'] < 0.0
 
     def watermove(self, x, y):
         # for WaterCell.flooding()
@@ -356,8 +366,35 @@ class BubPlayer(gamesrv.Player):
 
     def __init__(self, n):
         self.pn = n
-        self.icons = None
+        self.icons = {}
+        self.flippedicons = {}
         self.standardplayericon = images.sprget(GreenAndBlue.players[n][3])
+        self.iconnames = {
+            (0, -1): GreenAndBlue.players[n][0],  # walk
+            (0, +1): GreenAndBlue.players[n][3],
+            (1, -1): GreenAndBlue.players[n][1],
+            (1, +1): GreenAndBlue.players[n][4],
+            (2, -1): GreenAndBlue.players[n][2],
+            (2, +1): GreenAndBlue.players[n][5],
+            (3, -1): GreenAndBlue.players[n][6],  # lancer de bulle
+            (3, +1): GreenAndBlue.players[n][8],
+            (4, -1): GreenAndBlue.players[n][7],
+            (4, +1): GreenAndBlue.players[n][9],
+            (5, -1): GreenAndBlue.players[n][0],  # mort
+            (5, +1): GreenAndBlue.players[n][0],
+            (6, -1): GreenAndBlue.players[n][11],
+            (6, +1): GreenAndBlue.players[n][10],
+            (7, -1): GreenAndBlue.players[n][12],
+            (7, +1): GreenAndBlue.players[n][12],
+            (8, -1): GreenAndBlue.players[n][10],
+            (8, +1): GreenAndBlue.players[n][11],
+            (9, -1): GreenAndBlue.jumping_players[n][2],  # saut, montant
+            (9, +1): GreenAndBlue.jumping_players[n][3],
+            (10,-1): GreenAndBlue.jumping_players[n][0],  # saut, descend
+            (10,+1): GreenAndBlue.jumping_players[n][1],
+            (11,-1): 'shield-left',    # shielded
+            (11,+1): 'shield-right',
+            }
         self.reset()
 
     def reset(self):
@@ -370,35 +407,15 @@ class BubPlayer(gamesrv.Player):
         self.pcap = {}
         self.dragons = []
 
+    def loadicons(self, icons, fn):
+        for key, value in self.iconnames.items():
+            icons[key] = fn(value)
+
     def playerjoin(self):
         n = self.pn
         print 'New player is at position #%d.' % n
-        if self.icons is None: self.icons = {
-            (0, -1): images.sprget(GreenAndBlue.players[n][0]),  # walk
-            (0, +1): images.sprget(GreenAndBlue.players[n][3]),
-            (1, -1): images.sprget(GreenAndBlue.players[n][1]),
-            (1, +1): images.sprget(GreenAndBlue.players[n][4]),
-            (2, -1): images.sprget(GreenAndBlue.players[n][2]),
-            (2, +1): images.sprget(GreenAndBlue.players[n][5]),
-            (3, -1): images.sprget(GreenAndBlue.players[n][6]),  # lancer de bulle
-            (3, +1): images.sprget(GreenAndBlue.players[n][8]),
-            (4, -1): images.sprget(GreenAndBlue.players[n][7]),
-            (4, +1): images.sprget(GreenAndBlue.players[n][9]),
-            (5, -1): images.sprget(GreenAndBlue.players[n][0]),  # mort
-            (5, +1): images.sprget(GreenAndBlue.players[n][0]),
-            (6, -1): images.sprget(GreenAndBlue.players[n][11]),
-            (6, +1): images.sprget(GreenAndBlue.players[n][10]),
-            (7, -1): images.sprget(GreenAndBlue.players[n][12]),
-            (7, +1): images.sprget(GreenAndBlue.players[n][12]),
-            (8, -1): images.sprget(GreenAndBlue.players[n][10]),
-            (8, +1): images.sprget(GreenAndBlue.players[n][11]),
-            (9, -1): images.sprget(GreenAndBlue.jumping_players[n][2]),  # saut, montant
-            (9, +1): images.sprget(GreenAndBlue.jumping_players[n][3]),
-            (10,-1): images.sprget(GreenAndBlue.jumping_players[n][0]),  # saut, descend
-            (10,+1): images.sprget(GreenAndBlue.jumping_players[n][1]),
-            (11,-1): images.sprget('shield-left'),    # shielded
-            (11,+1): images.sprget('shield-right'),
-            }
+        if not self.icons:
+            self.loadicons(self.icons, images.sprget)
         self.reset()
         self.key_left  = KeyOff
         self.key_right = KeyOff

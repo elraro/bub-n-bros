@@ -178,6 +178,23 @@ def sprget(n):
     filename = os.path.join('images', filename)
     return gamesrv.getbitmap(filename, KEYCOL).geticon(*rect)
 
+def sprget_vflip(n, vflipped={}):
+    filename, (x,y,w,h) = sprmap[n]
+    filename = os.path.join('images', filename)
+    try:
+        bitmap, height = vflipped[filename]
+    except KeyError:
+        import pixmap
+        f = open(filename, "rb")
+        data = f.read()
+        f.close()
+        width, height, data = pixmap.decodepixmap(data)
+        data = pixmap.vflip(width, height, data)
+        data = pixmap.encodepixmap(width, height, data)
+        bitmap = gamesrv.newbitmap(data, KEYCOL)
+        vflipped[filename] = bitmap, height
+    return bitmap.geticon(x, height-(y+h), w, h)
+
 def haspat(n):
     return n in patmap
 
@@ -191,6 +208,7 @@ extramap = {
     'shield-right': ('extra1.ppm', (0, 32, 32, 32)),
     'moebius':      ('extra1.ppm', (0, 64, 32, 32)),
     'flower':       ('extra1.ppm', (0, 96, 32, 32)),
+    'flower2':      ('extra1.ppm', (0, 128, 32, 32)),
     'questionmark3':('extra2.ppm', (0, 0, 16, 16)),
     'questionmark1':('extra2.ppm', (0, 16, 16, 16)),
     'questionmark5':('extra2.ppm', (0, 32, 16, 16)),

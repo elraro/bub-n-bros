@@ -50,6 +50,14 @@ class Display:
             img.set_colorkey([r, g, b], RLEACCEL)
         return img
 
+##    def vflipppm(self, img):
+##        w, h = img.get_size()
+##        colorkey = img.get_colorkey()
+##        data = pygame.image.tostring(img, "RGB", 1)
+##        flipimg = pygame.image.fromstring(data, (w, h), "RGB")
+##        flipimg.set_colorkey(colorkey, RLEACCEL)
+##        return flipimg, h
+
     def getppm(self, rect, bkgnd=None):
         if bkgnd is None:
             bkgnd = pygame.Surface(rect[2:])

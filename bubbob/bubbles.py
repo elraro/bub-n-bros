@@ -23,6 +23,7 @@ class Bubble(ActiveSprite):
     red_bubbles       = [156, 157, 156, 155]
     white_bubbles     = [164, 165, 164, 163]
     pink_bubbles      = [172, 173, 172, 171]
+    check_onbubble    = ([(0,-1)], [(0,1)])
 
     touchable = 1
     warp = 0
@@ -50,7 +51,7 @@ class Bubble(ActiveSprite):
                 self.catch_dragons.append(dragon)
         else:
             self.pop(dragon.poplist)
-        return o == [(0,-1)]
+        return o == self.check_onbubble[dragon.bottom_up()]
 
     def can_catch_dragons(self, author):
         self.catch_dragons = [author]

@@ -168,6 +168,7 @@ class Points(ActiveSprite):
 
 class Parabolic(ActiveSprite):
     fallstraight = 0
+    fallspeed = 4
     
     def moving(self, y_amplitude = -8.0):
         dxy = [(random.random()-0.5) * 15.0,
@@ -182,9 +183,13 @@ class Parabolic(ActiveSprite):
     def falling(self):
         nx = self.x
         ny = self.y & ~3
-        while not onground(nx, ny):
-            ny += 4
-            if ny >= boards.bheight:
+        if self.fallspeed < 0:
+            groundtest = underground
+        else:
+            groundtest = onground
+        while not groundtest(nx, ny):
+            ny += self.fallspeed
+            if ny < -2*CELL or ny >= boards.bheight:
                 (nx, ny), moebius = boards.vertical_warp(nx, ny)
             self.move(nx, ny)
             yield None
@@ -229,6 +234,8 @@ class BonusMaker(Parabolic2):
     def __init__(self, x, y, imglist, imgspeed=3, onplace=0, outcome=None):
         assert outcome
         self.outcome = outcome
+        if outcome == (Flower2,):
+            self.fallspeed = -4
         Parabolic2.__init__(self, x, y, imglist, imgspeed, onplace)
 
     def build(self):
@@ -1130,7 +1137,31 @@ class Flower(RandomBonus):
     nimage = 'flower'
     points = 800
     def taken(self, dragon):
-        dragon.dcap['flower'] += 8
+        dragon.dcap['flower'] += 12
+        dragon.carrybonus(self)
+
+class Flower2(RandomBonus):
+    "Bottom-up Flower.  Turn you upside-down."
+    nimage = 'flower2'
+    points = 1000
+    def __init__(self, *args):
+        RandomBonus.__init__(self, *args)
+        while not underground(self.x, self.y):
+            self.step(0, -CELL)
+            if self.y < 0:
+                self.kill()
+                return
+    def faller(self):
+        while self.y >= 0:
+            if underground(self.x, self.y):
+                yield None
+                yield None
+            else:
+                self.move(self.x, (self.y-1) & ~3)
+            yield None
+        self.kill()
+    def taken(self, dragon):
+        dragon.dcap['gravity'] *= -1.0
         dragon.carrybonus(self)
 
 Classes = [c for c in globals().values()

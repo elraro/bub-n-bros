@@ -264,6 +264,26 @@ def onground(x, y):
     #         (bget(x0,y0)=='#' and bget(x0,y0-1)==' ') or
     #         (bget(x2,y0)=='#' and bget(x2,y0-1)==' ')))
 
+def underground(x, y):
+    if y % CELL:
+        return 0
+    x0 = (x+5) // CELL
+    x1 = (x+CELL) // CELL
+    x2 = (x+2*CELL-5) // CELL
+    y0 = y // CELL
+
+    if x0 < 0 or x2 >= curboard.width:
+        return 0
+    y1 = y0 - 1
+    if not (0 < y0 < curboard.height):
+        if y0 != curboard.height:
+            y1 = 0
+        y0 = 0
+    y0 = curboard.walls[y0]
+    y1 = curboard.walls[y1]
+    return (' ' == y0[x0] == y0[x1] == y0[x2] and
+            not (' ' == y1[x0] == y1[x1] == y1[x2]))
+
 def x2bounds(x):
     if x < 2*CELL:
         return 2*CELL
