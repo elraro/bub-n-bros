@@ -214,7 +214,7 @@ class Playfield:
                             if not self.accepted_broadcast:
                                 self.s.sendall(message(CMSG_UDP_PORT, '*'))
                                 self.accepted_broadcast = 1
-                                self.udpsock_low = None
+                                #self.udpsock_low = None
                             udpdata = ''
                         iwtd, owtd, ewtd = select(self.iwtd, [], [], 0)
                     if udpdata and self.accepted_broadcast:
@@ -389,11 +389,11 @@ class Playfield:
             port = MSG_INLINE_FRAME
         else:
             self.udpsock = socket(AF_INET, SOCK_DGRAM)
-            self.udpsock.bind(('', INADDR_ANY))
+            self.udpsock.bind(('', PORTS.get('CLIENT', INADDR_ANY)))
             host, port = self.udpsock.getsockname()
             self.iwtd.append(self.udpsock)
             self.initial_iwtd.append(self.udpsock)
-        self.s.sendall(message(CMSG_UDP_PORT, port))
+        self.s.sendall(message(CMSG_UDP_PORT, port, HOSTNAME))
         if self.snd and self.snd.has_music:
             self.s.sendall(message(CMSG_ENABLE_MUSIC, 1))
             self.s.sendall(message(CMSG_PING))
