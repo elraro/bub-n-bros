@@ -31,6 +31,7 @@ class TronHead(ActiveSprite):
         self.ico_h = images.sprget(('trn-h', bubber.pn))
         self.ico_v = images.sprget(('trn-v', bubber.pn))
         ActiveSprite.__init__(self, *self.trail())
+        self.turns = []
         self.gen.append(self.turning())
         self.gen.append(self.trailing())
 
@@ -44,21 +45,22 @@ class TronHead(ActiveSprite):
         raise ValueError, self.dir
 
     def turning(self):
-        lastwannago = None
         while True:
-            wannago = self.bubber.wannago(self.dcap)
-            if wannago != lastwannago:
-                dx, dy = self.dir
-                if wannago < 0: dx, dy = dy, -dx
-                if wannago > 0: dx, dy = -dy, dx
-                self.dir = dx, dy
-                lastwannago = wannago
+            turn = self.bubber.turn_single_shot(self.dcap)
+            if turn:
+                self.turns.append(turn)
             yield None
 
     def trailing(self):
         unoccupied = self.tron.unoccupied
         trailsprites = self.tron.trailsprites
         while True:
+            if self.turns:
+                wannago = self.turns.pop(0)
+                dx, dy = self.dir
+                if wannago < 0: dx, dy = dy, -dx
+                if wannago > 0: dx, dy = -dy, dx
+                self.dir = dx, dy
             self.cx += self.dir[0]
             self.cy += self.dir[1]
             if not unoccupied.get((self.cx, self.cy)):

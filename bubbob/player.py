@@ -713,6 +713,15 @@ class BubPlayer(gamesrv.Player):
     def wannago(self, dcap):
         return dcap['left2right'] * cmp(self.key_right, self.key_left)
 
+    def turn_single_shot(self, dcap):
+        if self.key_left < 999997 and self.key_left != 1:
+            self.key_left = 0
+        if self.key_right < 999997 and self.key_right != 1:
+            self.key_right = 0
+        wannago = self.wannago(dcap)
+        self.key_left = self.key_right = 0
+        return wannago
+
     def givepoints(self, points):
         self.points += points
         if self.points < 0:
