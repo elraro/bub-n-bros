@@ -1,4 +1,4 @@
-.\" $Id: bb.py.1,v 1.2 2005/04/13 18:24:17 opqdonut Exp $
+.\" $Id: bb.py.1,v 1.3 2005/04/17 17:19:32 opqdonut Exp $
 .\"
 .\" Process this file with
 .\" groff -man -Tascii bb.py.1
@@ -40,10 +40,19 @@ client to that server. The http server also servers java applet
 clients for those players who wish to use one.
 
 When a game is started the script opens a port for the game
-server. This port can then be connected to by a client. Clients
+server. This port can then be connected to by a client.  Clients
 autodetect servers running on the local network with UDP ping on port
 .BR 8056 .
 
+.SS Connection forming
+
+The client forms a tcp connection to the server. Or, when using the
+metaserver, the server forms a connection to the client. If this
+fails, the client and server try a simultaneous SYN connect. This
+sometimes works if the server and client are behind firewalls. The
+server then tries to transmit the data over udp. If it gets no
+response from the client it will fall back to the existing tcp
+connection.
 
 .SH OPTIONS
 
