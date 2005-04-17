@@ -6,6 +6,7 @@ clean:
 	-rm -f `find -name "*~"`
 	-rm -f `find -name "*.py[co]"`
 	-rm -fr `find -name "build"`
+	make -C doc clean
 
 sync: magma-sync codespeak-sync
 
@@ -17,3 +18,6 @@ codespeak-sync:
 
 meta:
 	ssh codespeak.net python games/metaserver/metaserver.py -f
+
+docs:
+	make -C doc
