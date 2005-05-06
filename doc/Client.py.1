@@ -1,4 +1,4 @@
-.\" $Id: Client.py.1,v 1.2 2005/04/13 18:24:17 opqdonut Exp $
+.\" $Id: Client.py.1,v 1.3 2005/05/06 21:32:38 arigo Exp $
 .\"
 .\" Process this file with
 .\" groff -man -Tascii Client.py.1
@@ -95,7 +95,37 @@ audio drivers. Set mixing frequency to
 .B -m, --metaserver
 Connect with the help of the Metaserver (see 
 .BR bb.py (1)
-for more info).
+for more info).  Run
+.I Client.py -m
+to print a table of currently running servers, pick the
+the exact IP address and port of the server of your choice
+from the table, and run again
+.I Client.py -m
+.BR host:port .
+
+.TP
+.BI "--port TCP=" port
+In conjunction with the
+.I -m
+option, force a specific
+.I port
+on which to listen for an incoming TCP connexion from the
+remote server.  This is only used if a direct connexion to
+the server fails.  A random port number is picked by default.
+This option is useful if you are behind a firewall but can
+let TCP connexions on specific ports reach you.
+
+.TP
+.BI "--port UDP=" port
+Force a specific
+.I port
+on which to listen for incoming UDP traffic (animation
+data).  Useful if you are behind a firewall but can let UDP
+traffic on a given
+.I port
+pass through.  This is optional: animation data is routed
+over the TCP link if it does not appear to reach the client.
+A random port number is picked by default.
 
 .TP
 .BI "-s " DRIVER ", --sound=" DRIVER
