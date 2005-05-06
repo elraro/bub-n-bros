@@ -10,6 +10,7 @@ else:
 LOCALDIR = os.path.abspath(os.path.dirname(LOCALDIR))
 
 sys.path.append(os.path.abspath(os.path.join(LOCALDIR, os.pardir, 'common')))
+sys.path.append(os.path.abspath(LOCALDIR))
 import gamesrv
 
 PROFILE = 0
