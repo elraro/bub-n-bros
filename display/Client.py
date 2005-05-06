@@ -37,7 +37,8 @@ def parse_cmdline(argv):
         print >> sys.stderr, '  -t   --tcp        for slow or proxy connections'
         print >> sys.stderr, '  -u   --udp        for fast direct connections'
         print >> sys.stderr, '                      (default is to autodetect tcp or udp)'
-        print >> sys.stderr, '  --port # or #:#   fixed inbound udp port or host:port'
+        print >> sys.stderr, '  --port UDP=# or #:#   fixed inbound udp port or host:port'
+        print >> sys.stderr, '  --port TCP=#          fixed inbound tcp port (-m only)'
         print >> sys.stderr
         print >> sys.stderr, 'graphic drivers:'
         for info in modes.graphicmodeslist():
@@ -86,6 +87,10 @@ def parse_cmdline(argv):
             import common.msgstruct
             try:
                 portname, value = value.split('=')
+                if portname == 'UDP':
+                    portname = 'CLIENT'
+                elif portname == 'TCP':
+                    portname = 'BACK'
             except ValueError:
                 portname = 'CLIENT'
             if portname == 'CLIENT' and ':' in value:
