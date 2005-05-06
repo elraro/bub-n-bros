@@ -345,8 +345,7 @@ def meta_connect(serverkey, backconnectport=None):
     c.done()
     return s
 
-
-if __name__ == '__main__':
+def print_server_list():
     s = connect()
     if s is not None:
         s.sendall(message(MMSG_LIST))
@@ -370,3 +369,6 @@ if __name__ == '__main__':
                     key, value.get('desc', '<no description>'),
                     value.get('extradesc', ''))
             print
+
+if __name__ == '__main__':
+    print_server_list()

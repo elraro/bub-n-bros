@@ -33,6 +33,7 @@ def parse_cmdline(argv):
         print >> sys.stderr, '       --music=no   disable background music'
         print >> sys.stderr, '  -h   --help       display this text'
         print >> sys.stderr, '  -m   --metaserver connect with the help of the metaserver'
+        print >> sys.stderr, '                      (list servers with Client.py -m)'
         print >> sys.stderr, '  -t   --tcp        for slow or proxy connections'
         print >> sys.stderr, '  -u   --udp        for fast direct connections'
         print >> sys.stderr, '                      (default is to autodetect tcp or udp)'
@@ -100,7 +101,10 @@ def parse_cmdline(argv):
     mode = driver, sound, extraopts
 
     if metaserver:
-        if len(args) != 1 or ':' not in args[0]:
+        if len(args) == 0:
+            metalist()
+            sys.exit(0)
+        elif len(args) != 1 or ':' not in args[0]:
             usage()
         return metaconnect(args[0]), mode
 
@@ -141,6 +145,10 @@ def metaconnect(metaaddr):
     s = metaclient.meta_connect(metaaddr, port)
     sockaddr = s.getpeername()
     return s, sockaddr
+
+def metalist():
+    from metaserver import metaclient
+    metaclient.print_server_list()
 
 def main():
     (s, sockaddr), mode = parse_cmdline(sys.argv[1:])
