@@ -5,11 +5,15 @@ if __name__ == '__main__':
     LOCALDIR = sys.argv[0]
 else:
     LOCALDIR = __file__
+try:
+    LOCALDIR = os.readlink(LOCALDIR)
+except OSError:
+    pass
 #LOCALDIR = "__OVERRIDE__"
-LOCALDIR = os.path.abspath(os.path.dirname(LOCALDIR))
+LOCALDIR = os.path.dirname(os.path.abspath(LOCALDIR))
 
-sys.path.append(os.path.abspath(LOCALDIR))
-sys.path.append(os.path.abspath(os.path.join(LOCALDIR, os.pardir)))
+sys.path.append(LOCALDIR)
+sys.path.append(os.path.dirname(LOCALDIR))
 import common
 import pclient
 import modes
