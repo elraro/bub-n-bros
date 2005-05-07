@@ -1,9 +1,11 @@
+#!/usr/bin/env python
 import os, sys
 
 if __name__ == '__main__':
     LOCALDIR = sys.argv[0]
 else:
     LOCALDIR = __file__
+#LOCALDIR = "__OVERRIDE__"
 LOCALDIR = os.path.abspath(os.path.dirname(LOCALDIR))
 
 sys.path.append(os.path.abspath(LOCALDIR))
