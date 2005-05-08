@@ -47,6 +47,5 @@ install: install-docs
 	cp -R . $(LIBDIR)/bub-n-bros
 	chown -R $(OWNER):$(GROUP) $(LIBDIR)/bub-n-bros
 	ln -s $(LIBDIR)/bub-n-bros/display/Client.py $(BINDIR)/bubnbros
-	echo -e "#!/bin/sh \n\
-		cd $(LIBDIR)/bub-n-bros/bubbob/; exec env python bb.py $$@" > $(BINDIR)/bubnbros-server
+	ln -s $(LIBDIR)/bub-n-bros/bubbob/bb.py $(BINDIR)/bubnbros-server
 	chmod +x $(BINDIR)/bubnbros-server

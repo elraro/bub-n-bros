@@ -12,23 +12,40 @@ Installation instructions:
 Basic instructions on how to play:
     http://bub-n-bros.sourceforge.net/howto.html
 
-If you unpacked this from an official release (.tar.gz),
-you will find a copy of download.html and howto.html in
-the current directory.
+If you unpacked this from an official release (.tar.gz), you will find
+a copy of download.html and howto.html in the current directory.
 
+Installation on *NIX
+--------------------
+
+The game (and the man pages) can be installed on *NIX systems into a
+standard location like this:
+
+1) Check locations and permissions in the top-level Makefile. The game
+   is installed into /usr/local by default.
+
+2) Optionally run "make" to build extensions that enable cool powerups
+   and xshm operation. Recommended
+
+3) Run "make install" as root or other user with sufficient rights.
+
+NOTE!! The game logic is still quite directory-layout dependant ATM so
+       installing is implemented by copying the whole directory into
+       /usr/local/lib/ (the location can be changed in the Makefile)
+       and making symlinks to appropriate directories. This procedure
+       will probably be cleaned up in future releases.
 
 Copyright
 ---------
 
-Almost all sprite images, sounds, background musics and
-levels are directly taken from the MacOS version of Bub &
-Bob 1 by McSebi, and redistributed with his gracious
-permission.
+Almost all sprite images, sounds, background musics and levels are
+directly taken from the MacOS version of Bub & Bob 1 by McSebi, and
+redistributed with his gracious permission.
 
   http://www.mcsebi.de
 
-The game logic itself is protected by the MIT License
-included in the file LICENSE.txt.
+The game logic itself is protected by the MIT License included in the
+file LICENSE.txt.
 
 
 Authors
