@@ -1,16 +1,17 @@
-#!/usr/bin/env python
-import os, sys
+#! /usr/bin/env python
 
+# __________
+import os, sys
 if __name__ == '__main__':
     LOCALDIR = sys.argv[0]
 else:
     LOCALDIR = __file__
 try:
     LOCALDIR = os.readlink(LOCALDIR)
-except OSError:
+except:
     pass
-#LOCALDIR = "__OVERRIDE__"
 LOCALDIR = os.path.dirname(os.path.abspath(LOCALDIR))
+# ----------
 
 sys.path.append(LOCALDIR)
 sys.path.append(os.path.dirname(LOCALDIR))

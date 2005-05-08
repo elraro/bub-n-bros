@@ -1,16 +1,24 @@
 #! /usr/bin/env python
 
 from __future__ import generators
-import sys, os, random, time
 
+# __________
+import os, sys
 if __name__ == '__main__':
     LOCALDIR = sys.argv[0]
 else:
     LOCALDIR = __file__
-LOCALDIR = os.path.abspath(os.path.dirname(LOCALDIR))
+try:
+    LOCALDIR = os.readlink(LOCALDIR)
+except:
+    pass
+LOCALDIR = os.path.dirname(os.path.abspath(LOCALDIR))
+# ----------
 
-sys.path.append(os.path.abspath(os.path.join(LOCALDIR, os.pardir, 'common')))
-sys.path.append(os.path.abspath(LOCALDIR))
+import random, time
+
+sys.path.append(os.path.join(os.path.dirname(LOCALDIR), 'common'))
+sys.path.append(LOCALDIR)
 import gamesrv
 
 PROFILE = 0

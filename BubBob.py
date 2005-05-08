@@ -7,15 +7,23 @@
 #    python bubbob/bb.py --help
 #
 
-import sys, os, socket, tempfile
-
+# __________
+import os, sys
 if __name__ == '__main__':
     LOCALDIR = sys.argv[0]
 else:
     LOCALDIR = __file__
-LOCALDIR = os.path.abspath(os.path.dirname(LOCALDIR))
+try:
+    LOCALDIR = os.readlink(LOCALDIR)
+except:
+    pass
+sys.argv[0] = os.path.abspath(LOCALDIR)
+LOCALDIR = os.path.dirname(sys.argv[0])
+# ----------
+
+import socket, tempfile
+
 sys.path.append(LOCALDIR)
-sys.argv[0] = os.path.abspath(sys.argv[0])
 os.chdir(LOCALDIR)
 
 try:
