@@ -10,9 +10,16 @@ from mnstrmap import Monky
 LocalDir = os.path.basename(os.path.dirname(__file__))
 
 localmap = {
-    'trn-h':   ('image1-%d.ppm', (0, 16, 16, 5)),
-    'trn-v':   ('image1-%d.ppm', (0, 0, 5, 16)),
-    'trn-bg':  ('image2.ppm',    (0, 0, 32, 32)),
+    ('trn-head', 0,-1):   ('image1-%d.ppm', (0, 0, 8, 8)),
+    ('trn-head',-1, 0):   ('image1-%d.ppm', (0, 8, 8, 8)),
+    ('trn-head', 0, 1):   ('image1-%d.ppm', (0,16, 8, 8)),
+    ('trn-head', 1, 0):   ('image1-%d.ppm', (0,24, 8, 8)),
+    ('trn', 0,-1, 1, 0):  ('image1-%d.ppm', (0,32, 8, 8)),
+    ('trn', 0, 1, 1, 0):  ('image1-%d.ppm', (0,40, 8, 8)),
+    ('trn', 1, 0, 0,-1):  ('image1-%d.ppm', (0,48, 8, 8)),
+    ('trn', 1, 0, 0, 1):  ('image1-%d.ppm', (0,56, 8, 8)),
+    ('trn', 1, 0, 1, 0):  ('image1-%d.ppm', (0,64, 8, 8)),
+    ('trn', 0, 1, 0, 1):  ('image1-%d.ppm', (0,72, 8, 8)),
     }
 
 music = gamesrv.getmusic(os.path.join(LocalDir, 'music.wav'))
@@ -28,56 +35,72 @@ class TronHead(ActiveSprite):
         self.cx = cx
         self.cy = cy
         self.dir = dir
-        self.ico_h = images.sprget(('trn-h', bubber.pn))
-        self.ico_v = images.sprget(('trn-v', bubber.pn))
-        ActiveSprite.__init__(self, *self.trail())
-        self.turns = []
-        self.gen.append(self.turning())
+        self.icons = {}
+        for key in localmap:
+            ico = images.sprget((key, bubber.pn))
+            key = key[1:]
+            self.icons[key] = ico
+            if len(key) == 4:
+                dx1, dy1, dx2, dy2 = key
+                key = -dx2, -dy2, -dx1, -dy1
+                self.icons[key] = ico
+        ActiveSprite.__init__(self, self.icons[self.dir],
+                              self.cx*8-2, self.cy*8-2)
         self.gen.append(self.trailing())
 
-    def trail(self):
-        cx = self.cx * CELL + 2
-        cy = self.cy * CELL + 2
-        if self.dir == (1, 0):  return self.ico_h, cx-CELL, cy-2
-        if self.dir == (-1, 0): return self.ico_h, cx, cy-2
-        if self.dir == (0, 1):  return self.ico_v, cx-2, cy-CELL
-        if self.dir == (0, -1): return self.ico_v, cx-2, cy
-        raise ValueError, self.dir
-
-    def turning(self):
-        while True:
-            turn = self.bubber.turn_single_shot(self.dcap)
-            if turn:
-                self.turns.append(turn)
-            yield None
+    def forward_step(self, dir):
+        s = gamesrv.Sprite(self.icons[self.dir + dir], self.x, self.y)
+        self.tron.trailsprites.append(s)
+        self.dir = dir
+        self.cx += dir[0]
+        self.cy += dir[1]
+        self.move(self.cx*8-2, self.cy*8-2, self.icons[dir])
 
     def trailing(self):
         unoccupied = self.tron.unoccupied
-        trailsprites = self.tron.trailsprites
+        bubber = self.bubber
+        # first go straight forward until we enter the playing board itself
+        while (self.cx, self.cy) not in unoccupied:
+            self.forward_step(self.dir)
+            yield None
+            yield None
+        # playing!
+        unoccupied[self.cx, self.cy] = False
         while True:
-            if self.turns:
-                wannago = self.turns.pop(0)
-                dx, dy = self.dir
-                if wannago < 0: dx, dy = dy, -dx
-                if wannago > 0: dx, dy = -dy, dx
-                self.dir = dx, dy
-            self.cx += self.dir[0]
-            self.cy += self.dir[1]
+            # turn
+            d = [(bubber.key_left, -1, 0),
+                 (bubber.key_right, 1, 0),
+                 (bubber.key_jump,  0,-1),
+                 (bubber.key_fire,  0, 1)]
+            d.sort()
+            newdir = self.dir
+            if d[-1][0] > d[-2][0]:
+                newdir = d[-1][1:]
+            if (self.dir + newdir) not in self.icons:
+                newdir = self.dir   # forbidden 180-degree turn
+            # move one step forward
+            self.forward_step(newdir)
+            # crash?
             if not unoccupied.get((self.cx, self.cy)):
                 self.crash()
+                return
             unoccupied[self.cx, self.cy] = False
-            trailsprites.append(gamesrv.Sprite(*self.trail()))
-            yield None
-            yield None
             yield None
             yield None
 
+    def to_front(self):
+        if self.gen:
+            ActiveSprite.to_front(self)
+
     def crash(self):
+        self.move(self.x - self.dir[0], self.y - self.dir[1],
+                  self.icons[self.dir+self.dir])
+        self.to_back()
         self.play(snd_crash)
         ico = images.sprget(Monky.decay_weapon[1])
-        s = ActiveSprite(ico, self.cx * CELL + 2 - CELL,
-                              self.cy * CELL + 2 - CELL)
-        s.gen.append(s.die(Monky.decay_weapon[2:], 4))
+        s = ActiveSprite(ico, self.x + self.ico.w//2 - CELL,
+                              self.y + self.ico.h//2 - CELL)
+        s.gen.append(s.die(Monky.decay_weapon[1:], 4))
         self.stop()
 
     def stop(self):
@@ -119,7 +142,9 @@ class Tron:
         self.ready = 0
         tc.restore()
         for t in boards.result_ranking(self.score):
-            self.remove_trons()
+            for p in BubPlayer.PlayerList:
+                for d in p.dragons[:]:
+                    d.kill()
             yield t
         self.remove_trons()
 
@@ -134,7 +159,6 @@ class Tron:
                 dragon = random.choice(dragons)
                 x, y, dir = self.select_start_point()
                 head = TronHead(self, p, dragon.dcap, x, y, dir)
-                self.unoccupied[x, y] = False
                 self.trons.append(head)
                 p.dragons.append(head)
                 #p.emotic(head, 4)
@@ -150,47 +174,53 @@ class Tron:
         del self.trailsprites[:]
 
     def select_start_point(self):
-        distmin = 10
+        distmin = 12
         while True:
             x, y, dir = random.choice(self.start_points)
             for head in self.trons:
-                if abs(x-head.cx) + abs(y-head.cy) < distmin:
+                if abs(x-head.cx//2) + abs(y-head.cy//2) < distmin:
                     break
             else:
-                return x, y, dir
-            distmin *= 0.9
+                break
+            distmin *= 0.95
+        if (y, x) in curboard.walls_by_pos:
+            curboard.killwall(x, y)
+        x = 2*x+1
+        y = 2*y - dir[1]
+        if dir[1] < 0:
+            y += 2
+        return x, y, dir
 
     def frame(self, tc):
-        l = curboard.sprites['walls']
-        gl = curboard.sprites.setdefault('background', [])
-        bkgndicon = images.sprget('trn-bg')
-        for x in range(2, curboard.width-2):
-            for y in range(1, curboard.height-1):
-                if (y, x) in curboard.walls_by_pos:
-                    curboard.killwall(x, y)
-            for y in [0, curboard.height-1]:
-                if (y, x) not in curboard.walls_by_pos:
-                    curboard.putwall(x, y)
-            curboard.reorder_walls()
-            if x % 2 == 0:
-                for y in range(0, curboard.height, 2):
-                    w = gamesrv.Sprite(bkgndicon, x*CELL + HALFCELL,
-                                                  y*CELL + HALFCELL)
-                    w.to_back(l[0])
-                    gl.append(w)
+        y1 = 1
+        y2 = curboard.height-2
+        while y1 <= y2:
+            for y in [y1, y2]:
+                for x in range(2, curboard.width-2):
+                    if (y, x) in curboard.walls_by_pos:
+                        curboard.killwall(x, y)
             yield None
+            y1 += 1
+            y2 -= 1
 
-        self.unoccupied = {}
         self.start_points = []
-        for x in range(4, curboard.width-5):
-            self.start_points.append((x, 2, (0, 1)))
-            self.start_points.append((x, curboard.height-2, (0, -1)))
+        for x in range(4, curboard.width-3):
+            self.start_points.append((x, 0, (0, 1)))
+            self.start_points.append((x, curboard.height-1, (0, -1)))
 
         while tc.time != 0.0:
-            for x in range(3, curboard.width-2):
-                for y in range(2, curboard.height-1):
+            for y in [0, curboard.height-1]:
+                for x in range(2, curboard.width-2):
+                    if (y, x) not in curboard.walls_by_pos:
+                        curboard.putwall(x, y)
+            curboard.reorder_walls()
+            self.unoccupied = {}
+            for x in range(5, 2*curboard.width-4):
+                for y in range(3, 2*curboard.height-2):
                     self.unoccupied[x, y] = True
             random.shuffle(self.playerlist)
+            for i in range(5):
+                yield None
 
             min_players = 1
             while self.ready < 20 or len(self.trons) >= min_players:
@@ -204,11 +234,9 @@ class Tron:
                 self.trons[0].stop()
                 self.ready = 99
 
-            for i in range(20):
+            for i in range(28):
                 yield None
             self.ready = 0
-            for i in range(5):
-                yield None
 
 
 def run():

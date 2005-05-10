@@ -351,12 +351,15 @@ class Sprite:
 
   def to_front(self):
     if self.alive and self.alive < len(sprites)-1:
-      info = sprites[self.alive]
-      sprites[self.alive] = ''
-      del sprites_by_n[self.alive]
-      self.alive = len(sprites)
-      sprites_by_n[self.alive] = self
-      sprites.append(info)
+      self._force_to_front()
+
+  def _force_to_front(self):
+    info = sprites[self.alive]
+    sprites[self.alive] = ''
+    del sprites_by_n[self.alive]
+    self.alive = len(sprites)
+    sprites_by_n[self.alive] = self
+    sprites.append(info)
 
   def to_back(self, limit=None):
     assert self is not limit
@@ -372,7 +375,7 @@ class Sprite:
         keys = keys[keys.index(n1):]
         reinsert = [sprites_by_n[n] for n in keys]
         for s1 in reinsert:
-          s1.to_front()
+          s1._force_to_front()
         assert n1 not in sprites_by_n
       info = sprites[self.alive]
       sprites[self.alive] = ''
