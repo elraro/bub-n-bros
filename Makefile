@@ -8,6 +8,7 @@ MANGROUP=root
 MANDIR=/usr/local/man
 
 INSTALL=install
+PYTHON=python
 
 export # we export all variales to sub-makes
 
@@ -43,6 +44,7 @@ install: install-docs
 # install fanciness not yet implemented :)
 #	make -C bubbob install
 #	make -C display install	
+	$(PYTHON) bubbob/images/buildcolors.py
 	$(INSTALL) -d $(LIBDIR)/bub-n-bros
 	cp -R . $(LIBDIR)/bub-n-bros
 	chown -R $(OWNER):$(GROUP) $(LIBDIR)/bub-n-bros
