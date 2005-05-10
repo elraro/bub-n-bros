@@ -359,12 +359,12 @@ class PageServer:
                     break
         return self.mainpage(headers)
 
-    def optionsloader(self, headers, reset=[], **options):
+    def optionsloader(self, headers, reset=[], savetime=[], **options):
         if reset:
             self.localoptions.clear()
             self.globaloptions.clear()
             self.saveoptions()
-        elif options:
+        elif savetime:
             self.localoptions.port_CLIENT = None
             self.localoptions.port_LISTEN = None
             self.localoptions.port_HTTP = None

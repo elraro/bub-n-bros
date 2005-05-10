@@ -175,6 +175,7 @@ def modeitems(modelist):
 <td bgcolor="#E0E0D0">
 
 <form name="options" action="options.html" method="get">
+<input type=hidden name="savetime" value="%(time.time())s">
 <table border=0 cellspacing=4>
 
 
@@ -263,6 +264,7 @@ endgroup()
 <td bgcolor="#000000">&nbsp;</td>
 <td bgcolor="#E0E0D0" align="right">
 <form name="reset" action="options.html" method="get">
+  <input type=hidden name="time" value="%(time.time())s">
   <input type=submit name="reset" value="  Restore all defaults  ">
 </form>
 </td>
