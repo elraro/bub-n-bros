@@ -44,8 +44,7 @@ redistributed with his gracious permission.
 
   http://www.mcsebi.de
 
-The game logic itself is protected by the MIT License included in the
-file LICENSE.txt.
+See LICENSE.txt for more information.
 
 
 Authors
