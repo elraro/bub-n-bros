@@ -1036,7 +1036,7 @@ def openhttpsocket(ServerClass=None, HandlerClass=None,
         server_address = ('', INADDR_ANY)
         try:
           httpd = ServerClass(server_address, HandlerClass)
-        except error:
+        except error, e:
           print >> sys.stderr, "cannot start HTTP server", str(e)
           return None
       else:
