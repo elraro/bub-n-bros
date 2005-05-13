@@ -44,10 +44,11 @@ install: install-docs
 # install fanciness not yet implemented :)
 #	make -C bubbob install
 #	make -C display install	
-	$(PYTHON) bubbob/images/buildcolors.py
 	$(INSTALL) -d $(LIBDIR)/bub-n-bros
 	cp -R . $(LIBDIR)/bub-n-bros
 	chown -R $(OWNER):$(GROUP) $(LIBDIR)/bub-n-bros
 	ln -s $(LIBDIR)/bub-n-bros/display/Client.py $(BINDIR)/bubnbros
 	ln -s $(LIBDIR)/bub-n-bros/bubbob/bb.py $(BINDIR)/bubnbros-server
+	chmod +x $(BINDIR)/bubnbros
 	chmod +x $(BINDIR)/bubnbros-server
+	$(PYTHON) $(LIBDIR)/bub-n-bros/bubbob/images/buildcolors.py

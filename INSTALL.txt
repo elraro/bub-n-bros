@@ -18,6 +18,11 @@ the above pages in the doc/ subdirectory.
 Installation on *NIX
 --------------------
 
+NOTE!! THIS IS STILL EXPERIMENTAL. The game does not have to be
+       installed to play. The currently directory layout was not
+       designed with Unix-style installation in mind. For a
+       QUICK START see in doc/howto.html.
+
 The game (and the man pages) can be installed on *NIX systems into a
 standard location like this:
 
