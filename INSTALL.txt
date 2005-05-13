@@ -12,8 +12,8 @@ Installation instructions:
 Basic instructions on how to play:
     http://bub-n-bros.sourceforge.net/howto.html
 
-If you unpacked this from an official release (.tar.gz), you will find
-a copy of download.html and howto.html in the current directory.
+If you unpacked this from an official release, you will find a copy of
+the above pages in the doc/ subdirectory.
 
 Installation on *NIX
 --------------------
