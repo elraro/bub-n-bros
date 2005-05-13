@@ -12,8 +12,8 @@ compress: bb.py.1.gz Client.py.1.gz BubBob.py.1.gz
 	gzip -c $< > $@
 
 clean:
-	rm -f *.txt
-	rm -f *.html
+	rm -f bb.py.txt Client.py.txt BubBob.py.txt
+	rm -f bb.py.html Client.py.html BubBob.py.html
 
 install:
 	$(INSTALL) -c -o $(MANOWNER) -g $(MANGROUP) -m 644 bb.py.1.gz $(MANDIR)/man1/bubnbros-server.1.gz
