@@ -156,7 +156,7 @@ class BubBobGame(gamesrv.Game):
         import boards
         s = gamesrv.Game.FnExtraDesc(self)
         if boards.curboard and self.End != 'gameover':
-            s = 'board %d with %s' % (boards.curboard.num+1, s)
+            s = '%s, board %d' % (s, boards.curboard.num+1)
         return s
 
     def do_updatemetaserver(self):
