@@ -484,9 +484,12 @@ class Playfield:
         if self.udp_over_tcp is not None:
             port = MSG_INLINE_FRAME
         else:
-            self.udpsock = socket(AF_INET, SOCK_DGRAM)
-            self.udpsock.bind(('', PORTS.get('CLIENT', INADDR_ANY)))
-            host, port = self.udpsock.getsockname()
+            if '*udpsock*' in PORTS:
+                self.udpsock, port = PORTS['*udpsock*']
+            else:
+                self.udpsock = socket(AF_INET, SOCK_DGRAM)
+                self.udpsock.bind(('', PORTS.get('CLIENT', INADDR_ANY)))
+                host, port = self.udpsock.getsockname()
             self.iwtd.append(self.udpsock)
             self.initial_iwtd.append(self.udpsock)
         if 'sendudpto' in PORTS:

@@ -1,8 +1,10 @@
-import sys, os, time
+import sys, os, time, random
+from select import select
 from socket import *
 from metastruct import *
 
 METASERVER = ('codespeak.net', 8055)
+METASERVER_UDP = ('codespeak.net', 8055)
 METASERVER_URL = 'http://codespeak.net:8050/bub-n-bros.html'
 #METASERVER = ('127.0.0.1', 8055)
 #METASERVER_URL = 'http://127.0.0.1:8050/bub-n-bros.html'
@@ -209,12 +211,26 @@ class MetaClientCli:
         import thread
         print >> sys.stderr, 'Trying to connect to', self.serverkey
         self.ev = Event()
+        self.ev2 = Event()
+        self.buffer = ""
+        self.sendlock = thread.allocate_lock()
+        self.recvlock = thread.allocate_lock()
+        self.inputmsgqueue = []
+        self.gotudpport = None
+        if not (PORTS.get('CLIENT') or PORTS.get('sendudpto')):
+            self.s = connect()
+            thread.start_new_thread(self.acquire_udp_port, ())
+        else:
+            self.s = None
+            self.ev2.signal()
+
         thread.start_new_thread(self.bipbip, ())
         self.startthread(self.try_direct_connect)
         self.startthread(self.try_indirect_connect, 0.75)
         while self.resultsocket is None:
             self.threadsleft()
             self.ev.wait1()
+        self.ev2.wait1()
         return self.resultsocket
 
     def done(self):
@@ -266,10 +282,10 @@ class MetaClientCli:
 
     def try_indirect_connect(self):
         import thread, time
-        self.s = connect()
-        if not self.s: return
-        self.buffer = ""
-        self.sendlock = thread.allocate_lock()
+        if not self.s:
+            self.s = connect()
+        if not self.s:
+            return
         self.routemsg(RMSG_WAKEUP)
         self.startthread(self.try_backconnect)
         self.socketcache = {}
@@ -293,25 +309,43 @@ class MetaClientCli:
                     self.socketcache[port] = s
                     self.routemsg(RMSG_SYNC, port, float2str(now), *msg[2:])
 
-    def routemsg(self, *rest):
-        data = message(MMSG_ROUTE, self.serverkey, *rest)
+    def sendmsg(self, data):
         self.sendlock.acquire()
         try:
             self.s.sendall(data)
         finally:
             self.sendlock.release()
 
+    def routemsg(self, *rest):
+        self.sendmsg(message(MMSG_ROUTE, self.serverkey, *rest))
+
+    def _readnextmsg(self, blocking):
+        self.recvlock.acquire()
+        try:
+            while 1:
+                msg, self.buffer = decodemessage(self.buffer)
+                if msg is not None:
+                    if msg[0] == RMSG_UDP_ADDR:
+                        if len(msg) > 2:
+                            self.gotudpport = int(msg[2])
+                        continue
+                    self.inputmsgqueue.append(msg)
+                    return
+                iwtd, owtd, ewtd = select([self.s], [], [], 0)
+                if not iwtd:
+                    if self.inputmsgqueue or not blocking:
+                        return
+                data = self.s.recv(2048)
+                if not data:
+                    print >> sys.stderr, 'disconnected from the meta-server'
+                    sys.exit()
+                self.buffer += data
+        finally:
+            self.recvlock.release()
+
     def inputmsg(self):
-        while 1:
-            msg, self.buffer = decodemessage(self.buffer)
-            if msg is not None:
-                break
-            data = self.s.recv(2048)
-            if not data:
-                print >> sys.stderr, 'disconnected from the meta-server'
-                sys.exit()
-            self.buffer += data
-        return msg
+        self._readnextmsg(blocking=True)
+        return self.inputmsgqueue.pop(0)
 
     def try_backconnect(self):
         s1 = socket(AF_INET, SOCK_STREAM)
@@ -337,6 +371,28 @@ class MetaClientCli:
         print >> sys.stderr, ('simultaneous SYN connect succeeded with %s:%d' %
                               remoteaddr)
         self.resultsocket = s
+
+    def acquire_udp_port(self):
+        try:
+            s = socket(AF_INET, SOCK_DGRAM)
+            s.bind(('', INADDR_ANY))
+            randomdata = hex(random.randrange(0, sys.maxint))
+            for i in range(5):
+                s.sendto(randomdata, METASERVER_UDP)
+                time.sleep(0.05)
+                self.sendmsg(message(MMSG_UDP_ADDR, randomdata))
+                time.sleep(0.05)
+                self._readnextmsg(blocking=False)
+                if self.gotudpport:
+                    PORTS['*udpsock*'] = s, self.gotudpport
+                    if self.gotudpport != s.getsockname()[1]:
+                        print >> sys.stderr, ('udp port %d is visible from '
+                                              'outside on port %d' % (
+                            s.getsockname()[1],
+                            self.gotudpport))
+                    break
+        finally:
+            self.ev2.signal()
 
 
 def meta_connect(serverkey, backconnectport=None):
@@ -364,6 +420,12 @@ def print_server_list():
                 'server', 'game', 'players')
             print '-'*27+'+'+'-'*32+'+'+'-'*11
             for key, value in entries.items():
+                if ':' in key:
+                    try:
+                        addr, _, _ = gethostbyaddr(key[:key.index(':')])
+                        print addr
+                    except:
+                        pass
                 value = decodedict(value)
                 print ' %-25s | %-30s | %s' % (
                     key, value.get('desc', '<no description>'),

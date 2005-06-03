@@ -1,9 +1,9 @@
 import sys, os
 LOCALDIR = __file__
 LOCALDIR = os.path.abspath(os.path.dirname(LOCALDIR))
-sys.path.append(os.path.join(LOCALDIR, os.pardir, 'common'))
+sys.path.append(os.path.dirname(LOCALDIR))
 
-from msgstruct import *
+from common.msgstruct import *
 from socket import error
 
 MMSG_INFO     = 'I'
@@ -12,6 +12,7 @@ MMSG_STOP     = '-'
 MMSG_LIST     = 'L'
 MMSG_ROUTE    = 'R'
 MMSG_TRACEBACK= 'T'
+MMSG_UDP_ADDR = 'U'
 
 RMSG_WAKEUP   = 'w'
 RMSG_PING     = 'p'
@@ -19,6 +20,7 @@ RMSG_PONG     = 'o'
 RMSG_SYNC     = 'y'
 RMSG_CONNECT  = 'c'
 RMSG_LIST     = 'l'
+RMSG_UDP_ADDR = 'u'
 
 
 def encodedict(dict):

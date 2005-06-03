@@ -11,6 +11,7 @@ if __name__ == '__main__':
 
 META_SERVER_HTTP_PORT = 8050
 META_SERVER_PORT = 8055
+META_SERVER_UDP_PORT = 8055
 IMAGE_DIR = "../bubbob/doc/images"
 ICONS = [open(os.path.join(IMAGE_DIR, s), 'rb').read()
          for s in os.listdir(IMAGE_DIR) if s.endswith('.png')]
@@ -22,7 +23,7 @@ serversockets = {}
 
 class MetaServer:
 
-    def __init__(self, port=META_SERVER_PORT):
+    def __init__(self, port=META_SERVER_PORT, udpport=META_SERVER_UDP_PORT):
         s = socket(AF_INET, SOCK_STREAM)
         s.bind(('', port))
         s.listen(5)
@@ -30,6 +31,10 @@ class MetaServer:
         self.ServersDict = {}
         self.ServersList = []
         serversockets[s] = self.clientconnect, sys.exit
+        self.udpsock = socket(AF_INET, SOCK_DGRAM)
+        self.udpsock.bind(('', udpport))
+        serversockets[self.udpsock] = self.udp_message, None
+        self.udpdata = []
 
     def detach(self):
         pid = os.fork()
@@ -90,6 +95,12 @@ class MetaServer:
 
     def getserver(self, key):
         return self.ServersDict[key]
+
+    def udp_message(self):
+        data, addr = self.udpsock.recvfrom(32)
+        self.udpdata.append((data, addr))
+        if len(self.udpdata) > 50:
+            del self.udpdata[0]
 
 
 class Connexion(MessageSocket):
@@ -159,6 +170,19 @@ class Connexion(MessageSocket):
             print >> f, tb
             f.close()
 
+    def msg_udp_addr(self, pattern, *rest):
+        for data, addr in metaserver.udpdata:
+            if data == pattern:
+                try:
+                    host, port = addr
+                    port = int(port)
+                except ValueError:
+                    continue
+                self.s.sendall(message(RMSG_UDP_ADDR, host, port))
+                return
+        else:
+            self.s.sendall(message(RMSG_UDP_ADDR))
+
     MESSAGES = {
         MMSG_INFO:  msg_serverinfo,
         MMSG_START: msg_startserver,
@@ -166,6 +190,7 @@ class Connexion(MessageSocket):
         MMSG_LIST:  msg_list,
         MMSG_ROUTE: msg_route,
         MMSG_TRACEBACK: msg_traceback,
+        MMSG_UDP_ADDR:  msg_udp_addr,
         }
 
 
@@ -321,9 +346,10 @@ if __name__ == '__main__':
         metaserver.detach()
     try:
         openhttpsocket()
-        print 'listening to client port %d and http port %d.' % (
+        print 'listening to client port tcp %d / http %d / udp %d.' % (
             META_SERVER_PORT,
-            META_SERVER_HTTP_PORT)
+            META_SERVER_HTTP_PORT,
+            META_SERVER_UDP_PORT)
         mainloop()
     finally:
         if metaserver.ServersList:
