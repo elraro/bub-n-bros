@@ -4,7 +4,7 @@ from select import select
 from cStringIO import StringIO
 from weakref import WeakValueDictionary
 from metastruct import *
-import httpserver, stdlog
+from common import httpserver, stdlog
 
 if __name__ == '__main__':
     os.chdir(os.path.dirname(sys.argv[0]) or os.curdir)
