@@ -535,6 +535,8 @@ class Megabonus(Bonus):
             return None, None
 
     def in_bubble(self, bubble):
+        if not self.touchable:
+            return   # bubbling a BonusMaker about to make a big bonus
         dx, dy = self.nearest_free_point(bubble.x-self.x, bubble.y-self.y)
         if dx is not None:
             self.cover_bubble(dx, dy, bubble.d.bubber)
