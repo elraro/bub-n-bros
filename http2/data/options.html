@@ -65,7 +65,8 @@ def beginmode():
         url = None
         print '<img alt="%s" src="disabled.png">' % err
     else:
-        url = "options.html?%s=%s" % (mode.prefix, mode.name)
+        url = "options.html?%s=%s&savetime=%s" % (mode.prefix, mode.name,
+                                                  time.time())
         err = "select"
         print '<a href="%s"><img alt="select" src="unchecked.png"></a>' % url
     print '</td>'
