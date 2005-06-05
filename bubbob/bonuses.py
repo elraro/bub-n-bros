@@ -1680,10 +1680,11 @@ class Flower(RandomBonus):
     nimage = 'flower'
     points = 800
     big = 0
-    bigbonus = {'big': 1}
+    bigbonus = {'big': 1, 'multiply': 5}
     def taken(self, dragon):
         if self.big:
             dragon.dcap['bigflower'] = -99
+            dragon.dcap['autofire'] = 22
         else:
             dragon.dcap['flower'] += 12
         dragon.carrybonus(self)

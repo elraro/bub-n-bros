@@ -484,13 +484,15 @@ class Dragon(ActiveSprite):
                 x -= 16
         if self.dcap['bigflower'] is not None:
             N = 45
-            elasped = BubPlayer.FrameCounter - self.dcap['bigflower']
-            if not (0 <= elasped < N):
+            angle = BubPlayer.FrameCounter - self.dcap['bigflower']
+            if not (0 <= angle < N):
                 self.dcap['bigflower'] = BubPlayer.FrameCounter
-                elaspsed = 0
-            angles = [-elasped * (2.0*math.pi/N) * self.dir]
+                angle = 0
+            angles = [-angle * (2.0*math.pi/N) * self.dir]
             thrustfactors = None
             self.fire = max(1, 64 // self.dcap['firerate'] - 2)
+            if self.dcap['autofire'] >= 1:
+                self.dcap['autofire'] -= 1
         if not thrustfactors:
             thrustfactors = [None] * len(angles)
         for angle, thrustfactor in zip(angles, thrustfactors):
