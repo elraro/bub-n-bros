@@ -392,7 +392,7 @@ def vertical_warp(nx, ny):
 MODULES = ['boards', 'bonuses', 'bubbles', 'images',
            'mnstrmap', 'monsters', 'player', 'ranking',
            'binboards', 'macbinary', 'boarddef',
-           'ext1', 'ext2', 'ext3', 'ext4', 'ext5', 'ext6']
+           'ext1', 'ext2', 'ext3', 'ext4', 'ext5', 'ext6', 'ext7']
 
 def loadmodules(force=0):
     levelfilename = gamesrv.game.levelfile
@@ -506,6 +506,7 @@ def wait_for_one_player():
             # NB. this is also needed for import auto-detection
             import ext1; import ext2; import ext3
             import ext4; import ext5; import ext6
+            import ext7
             
             ico = images.sprget(nimages[0])
             s = images.ActiveSprite(ico,
