@@ -9,6 +9,7 @@ from bubbles import Bubble
 from mnstrmap import PlayerBubbles
 from mnstrmap import Monky
 import bonuses
+from ext6 import snd_crash
 
 LocalDir = os.path.basename(os.path.dirname(__file__))
 
@@ -25,7 +26,8 @@ for i in range(ANGLE_COUNT):
     localmap['camel', i] = ('image1-%d.ppm', (0, i*36, 36, 36))
 
 #music = gamesrv.getmusic(os.path.join(LocalDir, 'music.wav'))
-#snd_crash = gamesrv.getsample(os.path.join(LocalDir, 'crash.wav'))
+snd_fire = gamesrv.getsample(os.path.join(LocalDir, 'fire.wav'))
+snd_hit  = gamesrv.getsample(os.path.join(LocalDir, 'hit.wav'))
 
 
 class Plane(ActiveSprite):
@@ -132,6 +134,7 @@ class Plane(ActiveSprite):
                     asin = -asin
                 x -= asin * 5
                 y += acos * 5
+                self.play(snd_fire)
                 Shot(self, int(x), int(y), self.angle, 2)
                 Shot(self, int(x), int(y), self.angle)
                 shootdelay = 7
@@ -147,6 +150,7 @@ class Plane(ActiveSprite):
                                       (self.x+s.x)//2 + self.ico.w//2 - CELL,
                                       (self.y+s.y)//2 + self.ico.h//2 - CELL)
                     s1.gen.append(s1.die(Monky.decay_weapon[1:], 4))
+                    s1.play(snd_crash)
                     self.gen = [self.godowninflames(s)]
                     s.gen = [s.godowninflames(self)]
 
@@ -167,10 +171,12 @@ class Plane(ActiveSprite):
                 self.angle = 2 * ANGLE_STEP
                 self.flipped = not self.flipped
                 self.gen = [self.godowninflames()]
+                self.play(images.Snd.Pop)
             elif self.x > x_max:
                 self.angle = 180 - 2 * ANGLE_STEP
                 self.flipped = not self.flipped
                 self.gen = [self.godowninflames()]
+                self.play(images.Snd.Pop)
             elif self.y > y_max:
                 self.gen = [self.crashed()]
             yield None
@@ -207,6 +213,7 @@ class Plane(ActiveSprite):
 
     def crashed(self):
         self.untouchable()
+        self.play(snd_crash)
         ico = images.sprget(Monky.decay_weapon[1])
         self.seticon(ico)
         self.step(self.ico.w//2 - CELL,
@@ -246,6 +253,7 @@ class Shot(ActiveSprite):
         for i in range(20-steps):
             for s in images.touching(self.x+3, self.y+11, 2, 2):
                 if isinstance(s, Plane) and s is not self.plane:
+                    self.play(snd_hit)
                     self.kill()
                     if s.controlled():
                         s.gen = [s.godowninflames(self.plane)]
