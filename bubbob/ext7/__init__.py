@@ -31,6 +31,7 @@ snd_hit  = gamesrv.getsample(os.path.join(LocalDir, 'hit.wav'))
 
 
 class Plane(ActiveSprite):
+    lock = None
 
     def __init__(self, camel, bubber, dcap, x, y, dirhint=None):
         self.bubber = bubber
@@ -108,6 +109,21 @@ class Plane(ActiveSprite):
             f *= 0.98
             yield None
 
+##    def loosealtitude(self, y0, angle0):
+##        if 90 <= angle0 < 270 or (angle0 == 270 and not self.flipped):
+##            angledir = -1
+##        else:
+##            angledir = 1
+##        for i in range(0, 180, ANGLE_STEP):
+##            if i % (4*ANGLE_STEP) == 0 and not (45 <= angle0 <= 135):
+##                angle0 += ANGLE_STEP * angledir
+##                angle0 = (angle0 + 360) % 360
+##            y0 += 4.0 * ANGLE_TABLE[i][1]
+##            if y0 > self.fy:
+##                self.fy = y0
+##            self.angle = angle0
+##            yield None
+
     def turn(self, dir):
         self.angle += ANGLE_STEP * dir
         self.angle = (self.angle + 360) % 360
@@ -156,12 +172,13 @@ class Plane(ActiveSprite):
 
     def fly(self, speed=3.3):
         while True:
-            if self.y < 0 and not (0 < self.angle < 180):
-                if (90 <= self.angle < 270
-                    or (self.angle == 270 and self.flipped)):
-                    self.angle = 180 - 2 * ANGLE_STEP
+            if (self.y < 0 and not (0 < self.angle < 180) and
+                ((abs(270 - self.angle) < -4*self.y) or random.random() < 0.2)):
+                if (90 <= self.angle < 270 or
+                    (self.angle == 270 and not self.flipped)):
+                    self.turn(-1)
                 else:
-                    self.angle = 2 * ANGLE_STEP
+                    self.turn(1)
             ico = self.getico()
             acos, asin = ANGLE_TABLE[self.angle]
             self.fx += acos * speed
@@ -240,17 +257,16 @@ class Shot(ActiveSprite):
 
     def moving(self, steps=0):
         minx = 2*CELL - 4
-        miny = 0      - 12
         maxx = (curboard.width-2)*CELL  - 4
         maxy = (curboard.height-1)*CELL - 12
         fx = self.x
         fy = self.y
         dx, dy = ANGLE_TABLE[self.angle]
-        dx *= 7.2
-        dy *= 7.2
+        dx *= 7.6
+        dy *= 7.6
         fx += dx * steps
         fy += dy * steps
-        for i in range(20-steps):
+        for i in range(22-steps):
             for s in images.touching(self.x+3, self.y+11, 2, 2):
                 if isinstance(s, Plane) and s is not self.plane:
                     self.play(snd_hit)
@@ -264,7 +280,7 @@ class Shot(ActiveSprite):
             fx += dx
             fy += dy
             self.move(int(fx), int(fy))
-            if self.x < minx or self.x > maxx or self.y < miny or self.y > maxy:
+            if self.x < minx or self.x > maxx or self.y > maxy:
                 break
             yield None
         self.kill()
