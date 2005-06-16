@@ -25,7 +25,7 @@ localmap = {}
 for i in range(ANGLE_COUNT):
     localmap['camel', i] = ('image1-%d.ppm', (0, i*36, 36, 36))
 
-#music = gamesrv.getmusic(os.path.join(LocalDir, 'music.wav'))
+music = gamesrv.getmusic(os.path.join(LocalDir, 'music.wav'))
 snd_fire = gamesrv.getsample(os.path.join(LocalDir, 'fire.wav'))
 snd_hit  = gamesrv.getsample(os.path.join(LocalDir, 'hit.wav'))
 
@@ -273,7 +273,7 @@ class Shot(ActiveSprite):
 class Camel:
     
     def bgen(self, limittime = 90.1): # 1:30
-        for t in boards.exit_board(0):  #, repeatmusic=[music]):
+        for t in boards.exit_board(0, repeatmusic=[music]):
             yield t
         for t in curboard.clean_gen_state():
             yield t
