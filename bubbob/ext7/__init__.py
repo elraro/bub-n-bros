@@ -323,7 +323,7 @@ class Camel:
                     dirhint = None
                 else:
                     start_position = dragon.x-2, dragon.y-2
-                    dirhint = dragon.dir
+                    dirhint = getattr(dragon, 'dir', None)
                 plane = Plane(self, p, dragon.dcap,
                               start_position[0], start_position[1], dirhint)
                 p.dragons.append(plane)
