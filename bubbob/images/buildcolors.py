@@ -156,20 +156,25 @@ if __name__ == '__auto__':    # when execfile'd from images.py
     for fn, r in rebuild:
         if r:
             convert(fn)
+    
+try:
+    import psyco
+    psyco.bind(rotate)
+except:
+    pass
 
 if __name__ == '__main__':
-    try:
-        import psyco; psyco.full()
-    except:
-        pass
-
     if sys.argv[1:2] == ['-f']:
         files = inputfiles()
     elif sys.argv[1:2] == ['-c']:
         for filename in inputfiles():
             for n in range(2, MAX):
-                print 'rm', filename % n
-                os.unlink(filename % n)
+                try:
+                    os.unlink(filename % n)
+                except OSError:
+                    pass
+                else:
+                    print 'rm', filename % n
         sys.exit()
     else:
         rebuild = updatecheck()
