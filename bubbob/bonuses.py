@@ -855,8 +855,13 @@ class Door(RandomBonus):
 class LongFire(RandomBonus):
     "Long Fire. Increase the range of your bubble throw out."
     nimage = Bonuses.softice1
+    big = 0
+    bigbonus = {'big': 1}
     def taken(self, dragon):
-        dragon.dcap['shootthrust'] *= 1.5
+        if self.big:
+            dragon.dcap['shootbubbles'] = ['MoreBubblesBubble'] * 10
+        else:
+            dragon.dcap['shootthrust'] *= 1.5
         dragon.carrybonus(self)
 
 class Glue(RandomBonus):
@@ -952,7 +957,7 @@ class Chickpea(TemporaryBonus):
     nimage = Bonuses.chickpea
     points = 800
     capname = 'overlayglasses'
-    captime = 230
+    captime = 400
     big = 0
     bigbonus = {'big': 1}
 
@@ -964,7 +969,7 @@ class Chickpea(TemporaryBonus):
 
     def taken(self, dragon):
         TemporaryBonus.taken(self, dragon)
-        dragon.dcap['shield'] += 250
+        dragon.dcap['shield'] += 420
 
 class IceCream(RandomBonus):
     "Icecream. An icecream which is so good you'll always want more."

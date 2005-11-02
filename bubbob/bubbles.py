@@ -934,6 +934,18 @@ class MonsterBubble(BonusBubble):
         m = mcls(mdef, self.x, self.y, 1)
         m.in_bubble(self)
 
+class MoreBubblesBubble(BonusBubble):
+
+    def can_catch_dragons(self, author, catch_myself=0):
+        # at this point, explode the bubble into more bubbles
+        d = author
+        for angle in [math.pi, math.pi/2, -math.pi/2, 0]:
+            for factor in [0.2, 0.55, 0.9, 1.25, 1.6]:
+                DragonBubble(d, self.x, self.y, d.dir,
+                             angle = angle, thrustfactor = factor)
+        self.pop()
+
+
 Classes = ([PlainBubble] * 7 +
            [FireBubble, WaterBubble, LightningBubble] * 4 +
            [LetterBubble])
