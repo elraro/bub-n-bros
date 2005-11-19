@@ -112,6 +112,10 @@ static int create_shm_image(DisplayObject* self, XImage_Shm* img,
   /* Get memory address to segment: */
   img->m_shminfo.shmaddr = (char *) shmat(img->m_shminfo.shmid, 0, 0);
 
+  /* Mark the segment as destroyable (it will be destroyed when this
+     process terminates) */
+  shmctl(img->m_shminfo.shmid, IPC_RMID, NULL);
+
   /* Tell XServer that it may only read from it and attach to display: */
   img->m_shminfo.readOnly = True;
   XShmAttach (self->dpy, &img->m_shminfo);
