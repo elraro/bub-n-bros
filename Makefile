@@ -22,6 +22,7 @@ clean:
 	-rm -fr `find -name "build"`
 	make -C doc clean
 	cd bubbob/images && python buildcolors.py -c
+	rm -fr cache
 
 sync: magma-sync codespeak-sync
 
