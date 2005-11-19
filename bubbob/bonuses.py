@@ -10,9 +10,6 @@ from mnstrmap import PotionBonuses, Fire
 from player import BubPlayer
 
 
-EXTRA_BONUSES = ['StarBubble']  # ['Moebius']
-
-
 questionmarklist = ['questionmark3',
                     'questionmark4',
                     'questionmark5',
@@ -204,9 +201,7 @@ class Parabolic(ActiveSprite):
         else:
             groundtest = onground
         while not groundtest(nx, ny):
-            ny += self.fallspeed
-            if ny < -2*CELL or ny >= boards.bheight:
-                (nx, ny), moebius = boards.vertical_warp(nx, ny)
+            nx, ny = vertical_warp(nx, ny + self.fallspeed)
             self.move(nx, ny)
             yield None
         self.move(nx, ny)
@@ -1728,21 +1723,19 @@ class Flower2(TemporaryBonus):
     def endaction(self, dragon):
         dragon.dcap['gravity'] *= -1.0
 
-if 'Moebius' in EXTRA_BONUSES:
-    class Moebius(RandomBonus):
-        "Moebius Band.  Bottom left is top right and bottom right is top left... or vice-versa."
-        nimage = 'moebius'
-        points = 900
-        def taken1(self, dragons):
-            BubPlayer.Moebius = not BubPlayer.Moebius
+##class Moebius(RandomBonus):
+##    "Moebius Band.  Bottom left is top right and bottom right is top left... or vice-versa."
+##    nimage = 'moebius'
+##    points = 900
+##    def taken1(self, dragons):
+##        BubPlayer.Moebius = not BubPlayer.Moebius
 
-if 'StarBubble' in EXTRA_BONUSES:
-    class StarBubble(FireBubble):
-        "Star Bubbles. Makes you fire bonus bubbles."
-        nimage = 'moebius'
-        bubkind = 'StarBubble'
-        bubcount = 3
-        bigbonus = {'bubcount': 10}
+class StarBubble(FireBubble):
+    "Star Bubbles. Makes you fire bonus bubbles."
+    nimage = 'moebius'
+    bubkind = 'StarBubble'
+    bubcount = 3
+    bigbonus = {'bubcount': 10}
 
 
 Classes = [c for c in globals().values()

@@ -90,8 +90,8 @@ class PlayerBubbles:
     appearing = nrange(916,3)
     bubble    = nrange(910,3)
     explosion = nrange(913,3)
-    left_weapon  = nrange(464,4)
-    right_weapon = nrange(468,4)
+    left_weapon  = nrange(464,4) # NOT_USED
+    right_weapon = nrange(468,4) # NOT_USED
     decay_weapon = []
 
 class LetterBubbles:
@@ -165,14 +165,14 @@ class Bonuses:
     yellow_potion = 639 #/
 
     kirsh     = 600
-    icecream1 = 601
+    icecream1 = 601 # NOT_USED
     erdbeer   = 602
     fish1     = 603
     tomato    = 604
-    donut     = 605
+    donut     = 605 # NOT_USED
     apple     = 606
     corn      = 607
-    icecream2 = 608
+    icecream2 = 608 # NOT_USED
     radish    = 609
 
     cyan_ice   = 610 #\  .
@@ -267,7 +267,7 @@ class Stars:
 
 class SpinningBalls:
     free = nrange(482,4)
-    bubbled = nrange(486,2)
+    bubbled = nrange(486,2) # NOT_USED
 
 class BigImages:
     cyan_ice   = 10  # Megabonus produced after a wand

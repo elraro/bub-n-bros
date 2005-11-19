@@ -210,11 +210,11 @@ class Monster(ActiveSprite):
             nextgen = self.walking
         self.gen.append(nextgen())
 
-    def moebius(self):
-        self.dir = -self.dir
-        self.resetimages()
-        if hasattr(self, 'dcap'):
-            self.dcap['left2right'] *= -1
+##    def moebius(self):
+##        self.dir = -self.dir
+##        self.resetimages()
+##        if hasattr(self, 'dcap'):
+##            self.dcap['left2right'] *= -1
 
     def hjumping(self):
         y0 = self.y
@@ -723,10 +723,10 @@ class Springy(Monster):
                 if onground(nx, (self.y//16+1)*16):
                     self.move(nx, self.y)
                     break
-            (nx, yf), moebius = boards.vertical_warp(nx, yf)
+            nx, yf = vertical_warp(nx, yf)
             self.move(nx, int(yf))
-            if moebius:
-                self.moebius()
+##            if moebius:
+##                self.moebius()
             yield None
         self.gen.append(self.falling())
 

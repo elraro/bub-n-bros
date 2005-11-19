@@ -17,7 +17,7 @@ class Dragon(ActiveSprite):
     priority = 1
     mdef = PlayerBubbles
     fly_counter = 0
-    glueddown = None
+##    glueddown = None
 
     DCAP = {
         'hspeed': 1,
@@ -29,7 +29,7 @@ class Dragon(ActiveSprite):
         'bubbledelay': 0,
         'shootbubbles': (),
         'pinball': 0,
-        'nojump': 0,
+##        'nojump': 0,
         'autofire': 0,
         'ring': 0,
         'hotstuff': 0,
@@ -147,9 +147,9 @@ class Dragon(ActiveSprite):
     def listcarrybonuses(self):
         return [bonus for timeout, bonus in self.dcap['carrying']]
 
-    def moebius(self):
-        self.dir = -self.dir
-        self.dcap['left2right'] *= -1
+##    def moebius(self):
+##        self.dir = -self.dir
+##        self.dcap['left2right'] *= -1
 
     def normal_movements(self):
         yfp = 0.0
@@ -170,6 +170,7 @@ class Dragon(ActiveSprite):
             wannajump = bubber.key_jump
             wannago = bubber.wannago(self.dcap)
             bottom_up = self.bottom_up()
+            onground1 = (onground,underground)[bottom_up]
 
             if self.dcap['autofire']:
                 wannafire = 1
@@ -207,51 +208,51 @@ class Dragon(ActiveSprite):
             else:
                 hfp += self.dcap['hspeed']
 
-            if self.glueddown:
-                if wannajump or not self.dcap['nojump']:
-                    del self.glueddown
-                else:
-                    # glued gliding movements
-                    self.step(self.x & 1, self.y & 1)
-                    if wannago:
-                        mytime = (mytime+self.dcap['lookforward']) % 12
-                    else:
-                        hfp = 0
-                    while hfp > 0 and self.glueddown:
-                        gx, gy = self.glueddown
-                        dx = wannago*gy
-                        dy = -wannago*gx
-                        x0 = (self.x + gx + dx) // CELL + 1
-                        y0 = (self.y + gy + dy) // CELL + 1
-                        if ' ' == bget(x0+dx, y0+dy) == bget(x0+dx-gx, y0+dy-gy):
-                            self.step(2*dx, 2*dy)
-                            # detached from this wall?
-                            x1 = (self.x + gx + dx) // CELL + 1
-                            y1 = (self.y + gy + dy) // CELL + 1
-                            if (' ' == bget(x1-dx+gx, y1-dy+gy)
-                                    == bget(x0   +gx, y0   +gy)
-                                    == bget(x0+dx+gx, y0+dy+gy)):
-                                if bget(x0-dx+gx, y0-dy+gy) != ' ':
-                                    # rotate around the corner
-                                    self.glueddown = -dx, -dy
-                                    self.step(2*gx, 2*gy)
-                                else:
-                                    del self.glueddown
-                        elif bget(x0-gx, y0-gy) == ' ':
-                            # attach to the wall into which we are running
-                            if (self.x*dx | self.y*dy) % CELL != 0:
-                                if ((((self.x-2*dx)*dx | (self.y-2*dy)*dy) &
-                                     ((self.x-4*dx)*dx | (self.y-4*dy)*dy))
-                                    % CELL == 0):
-                                    self.step(-2*dx, -2*dy)
-                                else:
-                                    del self.glueddown
-                            else:
-                                self.glueddown = dx, dy
-                        else:
-                            del self.glueddown
-                        self.vertical_warp()
-                        hfp -= 0.82   # slightly faster than usual
+##            if self.glueddown:
+##                if wannajump or not self.dcap['nojump']:
+##                    del self.glueddown
+##                else:
+##                    # glued gliding movements
+##                    self.step(self.x & 1, self.y & 1)
+##                    if wannago:
+##                        mytime = (mytime+self.dcap['lookforward']) % 12
+##                    else:
+##                        hfp = 0
+##                    while hfp > 0 and self.glueddown:
+##                        gx, gy = self.glueddown
+##                        dx = wannago*gy
+##                        dy = -wannago*gx
+##                        x0 = (self.x + gx + dx) // CELL + 1
+##                        y0 = (self.y + gy + dy) // CELL + 1
+##                        if ' ' == bget(x0+dx, y0+dy) == bget(x0+dx-gx, y0+dy-gy):
+##                            self.step(2*dx, 2*dy)
+##                            # detached from this wall?
+##                            x1 = (self.x + gx + dx) // CELL + 1
+##                            y1 = (self.y + gy + dy) // CELL + 1
+##                            if (' ' == bget(x1-dx+gx, y1-dy+gy)
+##                                    == bget(x0   +gx, y0   +gy)
+##                                    == bget(x0+dx+gx, y0+dy+gy)):
+##                                if bget(x0-dx+gx, y0-dy+gy) != ' ':
+##                                    # rotate around the corner
+##                                    self.glueddown = -dx, -dy
+##                                    self.step(2*gx, 2*gy)
+##                                else:
+##                                    del self.glueddown
+##                        elif bget(x0-gx, y0-gy) == ' ':
+##                            # attach to the wall into which we are running
+##                            if (self.x*dx | self.y*dy) % CELL != 0:
+##                                if ((((self.x-2*dx)*dx | (self.y-2*dy)*dy) &
+##                                     ((self.x-4*dx)*dx | (self.y-4*dy)*dy))
+##                                    % CELL == 0):
+##                                    self.step(-2*dx, -2*dy)
+##                                else:
+##                                    del self.glueddown
+##                            else:
+##                                self.glueddown = dx, dy
+##                        else:
+##                            del self.glueddown
+##                        self.vertical_warp()
+##                        hfp -= 0.82   # slightly faster than usual
             # normal left or right movements
             while hfp > 0:
                 hfp -= 1
@@ -275,30 +276,32 @@ class Dragon(ActiveSprite):
                     f = - self.dcap['vslippy'] * (self.dcap['slippy']+1)/3.0
                     self.dcap['vslippy'] = max(min(f, 10.0), -10.0)
                     hfp = 0
-            onbubble = 0
+            onbubble = False
             if not self.dcap['infinite_shield']:
                 touching = images.touching(self.x+1, self.y+1, 30, 30)
                 touching.reverse()
                 for s in touching:
                     if s.touched(self):
-                        onbubble = max(onbubble, getattr(s,'solidbubble',0)+1)
+##                        onbubble = max(onbubble, getattr(s,'solidbubble',0)+1)
+                        onbubble = True
             elif bubber.key_left or bubber.key_right or bubber.key_jump or bubber.key_fire:
                 self.dcap['infinite_shield'] = 0
 
             dir = self.dir
             imgtransform = 'vflip' * bottom_up
-            if self.glueddown:
-                # glued movements: done above
-                mode = mytime // 6 * 2
-                imgtransform = {
-                    (0, 1): '',
-                    (0,-1): 'vflip',
-                    (-1,0): 'cw',
-                    ( 1,0): 'ccw',
-                    }[self.glueddown]
-                if self.glueddown == (0, -1):
-                    dir = -self.dir
-            elif self.up:
+##            if self.glueddown:
+##                # glued movements: done above
+##                mode = mytime // 6 * 2
+##                imgtransform = {
+##                    (0, 1): '',
+##                    (0,-1): 'vflip',
+##                    (-1,0): 'cw',
+##                    ( 1,0): 'ccw',
+##                    }[self.glueddown]
+##                if self.glueddown == (0, -1):
+##                    dir = -self.dir
+##            elif
+            if self.up:
                 # going up
                 mode = 9
                 self.up -= self.dcap['gravity']
@@ -310,17 +313,17 @@ class Dragon(ActiveSprite):
                     ny = self.y + yfp - self.up
                     self.move(self.x, int(ny))
                     yfp = ny - self.y
-                    if ny < -2*CELL or ny >= boards.bheight:
-                        self.vertical_warp()
+                    self.vertical_warp()
             else:
                 # going down or staying on ground
-                ground = (onground,underground)[bottom_up](self.x, self.y)
-                if ground or onbubble>1 or (
-                    wannajump and onbubble and not self.dcap['nojump']):
-                    if self.dcap['nojump']:
-                        mode = 0
-                        self.glueddown = (0, (1,-1)[bottom_up])
-                    elif wannajump:
+                ground = onground1(self.x, self.y)
+                if ground or (wannajump and onbubble):
+##                            and not self.dcap['nojump']) or onbubble>1:
+##                    if self.dcap['nojump']:
+##                        mode = 0
+##                        self.glueddown = (0, (1,-1)[bottom_up])
+##                    elif
+                    if wannajump:
                         self.play(images.Snd.Jump)
                         yfp = 0.0
                         self.up = (7.5,-7.5)[bottom_up]
@@ -344,8 +347,7 @@ class Dragon(ActiveSprite):
                     elif nx > boards.bwidth - 64:
                         nx -= 2
                     self.move(nx, ny)
-                    if ny >= boards.bheight or ny < -2*CELL:
-                        self.vertical_warp()
+                    self.vertical_warp()
 
             if wannafire and not self.fire:
                 self.firenow()
@@ -474,14 +476,14 @@ class Dragon(ActiveSprite):
             thrustfactors = [1, 1-c, 1+c, a,      a,     b,     b]
         dir = self.dir
         x = self.x
-        if self.glueddown:
-            gx, gy = self.glueddown
-            dir = dir*gy
-            if not dir:
-                dir = 1
-                delta = self.dir*gx * math.pi/2
-                angles = [angle-delta for angle in angles]
-                x -= 16
+##        if self.glueddown:
+##            gx, gy = self.glueddown
+##            dir = dir*gy
+##            if not dir:
+##                dir = 1
+##                delta = self.dir*gx * math.pi/2
+##                angles = [angle-delta for angle in angles]
+##                x -= 16
         if self.dcap['bigflower'] is not None:
             N = 45
             angle = BubPlayer.FrameCounter - self.dcap['bigflower']
@@ -520,7 +522,7 @@ class BubPlayer(gamesrv.Player):
         'MegaBonus': None,
         'BaseFrametime': 1.0,
         'LeaveBonus': None,
-        'Moebius': 0,
+##        'Moebius': 0,
         'OverridePlayerIcon': None,
         }
     TRANSIENT_DATA = ('_client', 'key_left', 'key_right',

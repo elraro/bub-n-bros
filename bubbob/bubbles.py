@@ -168,8 +168,8 @@ class Bubble(ActiveSprite):
                         self.poplist = None
                         self.kill()
                         return
-                    if self.vertical_warp():
-                        dx = -dx
+                    self.vertical_warp()
+##                        dx = -dx
                 w = wget(self.x, self.y)
                 if w != ' ':
                     dx, dy = bubble_wind[w]
@@ -264,9 +264,9 @@ class DragonBubble(Bubble):
                         s_monster[key] = s_monster.get(key, 0) + 1
                     break
             if specialangle:
-                (nx, ny), moebius = vertical_warp(nx + hspeed*acos, ny + hspeed*asin)
-                if moebius:
-                    acos = -acos
+                nx, ny = vertical_warp(nx + hspeed*acos, ny + hspeed*asin)
+##                if moebius:
+##                    acos = -acos
             else:
                 nx += hspeed
             hspeed *= 0.965
@@ -374,11 +374,11 @@ class BubblingEyes(ActiveSprite):
                 nx += dx
             else:
                 ny += dy
-            (nx, ny), moebius = boards.vertical_warp(nx, ny)
+            nx, ny = vertical_warp(nx, ny)
             bubble.move(nx, ny)
             self.move(nx+dx, ny+dy, images.sprget((flip, key)))
-            if moebius:
-                self.dcap['left2right'] *= -1
+##            if moebius:
+##                self.dcap['left2right'] *= -1
             if dx == dy == 0:
                 bubble.default_windless = prev_dx_dy
             else:
@@ -465,9 +465,9 @@ class BonusBubble(Bubble):
         nx = self.x
         ny = self.y
         while abs(hspeed) >= 4.0:
-            (nx, ny), moebius = vertical_warp(nx + hspeed*acos, ny + hspeed*asin)
-            if moebius:
-                acos = -acos
+            nx, ny = vertical_warp(nx + hspeed*acos, ny + hspeed*asin)
+##            if moebius:
+##                acos = -acos
             if nx <= CELL:
                 acos = abs(acos)
             if nx >= boards.bwidth-3*CELL:

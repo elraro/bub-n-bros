@@ -379,14 +379,27 @@ def vertical_warp(nx, ny):
         ny -= bheightmod
     elif ny < -32:
         ny += bheightmod
-    else:
-        return (nx, ny), 0
-    from player import BubPlayer
-    if BubPlayer.Moebius:
-        nx = bwidth - 2*CELL - nx
-        return (nx, ny), 1
-    else:
-        return (nx, ny), 0
+    return nx, ny
+
+def vertical_warp_sprite(spr):
+    if spr.y >= bheight:
+        spr.step(0, -bheightmod)
+    elif spr.y < -32:
+        spr.step(0, bheightmod)
+
+##def vertical_warp(nx, ny):
+##    if ny >= bheight:
+##        ny -= bheightmod
+##    elif ny < -32:
+##        ny += bheightmod
+##    else:
+##        return (nx, ny), 0
+##    from player import BubPlayer
+##    if BubPlayer.Moebius:
+##        nx = bwidth - 2*CELL - nx
+##        return (nx, ny), 1
+##    else:
+##        return (nx, ny), 0
 
 
 MODULES = ['boards', 'bonuses', 'bubbles', 'images',

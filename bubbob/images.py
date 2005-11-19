@@ -56,16 +56,15 @@ class ActiveSprite(gamesrv.Sprite):
             self.gen.append(gen)
 
     def vertical_warp(self):
+        # short-cut this method to boards.py
         import boards
-        (nx, ny), moebius = boards.vertical_warp(self.x, self.y)
-        if ny != self.y:
-            self.move(nx, ny)
-            if moebius:
-                self.moebius()
-        return moebius
-
-    def moebius(self):
-        pass
+        ActiveSprite.vertical_warp = boards.vertical_warp_sprite
+        self.vertical_warp()
+##            if moebius:
+##                self.moebius()
+##        return moebius
+##    def moebius(self):
+##        pass
 
     # common generators
     def cyclic(self, nimages, speed=5):
@@ -119,10 +118,10 @@ class ActiveSprite(gamesrv.Sprite):
                 nx = boards.bwidth - 4*CELL
                 dx = -abs(dx)
             if warp and (ny < -2*CELL or ny >= boards.bheight):
-                (nx, ny), moebius = boards.vertical_warp(nx, ny)
-                if moebius:
-                    self.moebius()
-                    dx = -dx
+                nx, ny = boards.vertical_warp(nx, ny)
+##                if moebius:
+##                    self.moebius()
+##                    dx = -dx
             self.move(int(nx), int(ny))
             dxy[:] = [dx, dy]
             yield None
