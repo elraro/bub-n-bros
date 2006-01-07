@@ -49,7 +49,7 @@ class RandomLevel(boarddef.Level):
         if hasattr(self.__class__, 'walls'):
             #print 'Reusing previously generated level'
             #print self.__class__.walls
-	    self.walls = self.__class__.walls
+            self.walls = self.__class__.walls
             boarddef.Level.__init__(self,num)
             return
 
@@ -72,7 +72,7 @@ class RandomLevel(boarddef.Level):
 
         self.dig_vertical_walls()
         self.do_walls()
-	self.walls = self.__class__.walls
+        self.walls = self.__class__.walls
         #print self.walls
         boarddef.Level.__init__(self,num)
 
@@ -133,10 +133,10 @@ class RandomLevel(boarddef.Level):
                 x = randint(0,self.WIDTH-1)
                 w = randint(0,self.WIDTH-1)
                 s = choice([-1,1])
-		if s == -1:
+                if s == -1:
                     w = min(w,x)
-		    x -= w
-		else:
+                    x -= w
+                else:
                     w = min(w,self.WIDTH-x)
             for x1 in range(x,x+w):
                 self.setw(x1,y)
@@ -221,6 +221,172 @@ class RandomLevel(boarddef.Level):
                         continue
                     self.clrw(x,y)
 
+    def grids(self, horizchance, vertchance):
+        """Generate a level with a grid of horizontal and vertical lines
+        0: gaussian chance of each horizontal line part
+        1: gaussian chance of each vertical line part
+        """
+        self.wmap = [ [ ' ' for x in range(self.WIDTH)] for y in range(self.HEIGHT) ]
+        self.fmap = [ [ 1 for x in range(self.WIDTH)] for y in range(self.HEIGHT) ]
+        xsize = choice([3,3,3,4,4,4,4,5,6])
+        ysize = choice([2,3,3,4,4,4,4,5])
+        xofs = choice([-1,0,1])
+        yofs = choice([-1,0,1])
+        for x in range((self.WIDTH/xsize)+1):
+            for y in range((self.HEIGHT/ysize)+1):
+                dx = x*xsize + xofs
+                dy = y*ysize + yofs
+                if gauss(0,1) > horizchance:
+                    for i in range(0,xsize+1):
+                        self.setw(dx+i,dy)
+                if gauss(0,1) > vertchance:
+                    for i in range(0,ysize+1):
+                        self.setw(dx,dy+i)
+
+    def pegs(self, pegchance, posadj, thick):
+        """Generate a level by putting pegs
+        0: gaussian level of a peg appearance
+        1: gaussian level of peg position adjustment
+        """
+        self.wmap = [ [ ' ' for x in range(self.WIDTH)] for y in range(self.HEIGHT) ]
+        self.fmap = [ [ 1 for x in range(self.WIDTH)] for y in range(self.HEIGHT) ]
+        xdist = choice([3,3,3,4,4,5]) # distance between pegs
+        ydist = choice([2,3,3,3,4,5]) # distance between pegs
+        if not thick:
+            xdist = xdist - randint(0,1)
+            ydist = ydist - randint(0,1)
+        xadj = randint(0,4) - 2
+        yadj = randint(0,4) - 2
+        for x in range(self.WIDTH / xdist):
+            for y in range(self.HEIGHT / ydist):
+                if gauss(0,1) > pegchance:
+                    dx = x * xdist + xadj
+                    dy = y * ydist + yadj
+                    if gauss(0,1) > posadj:
+                        dx = dx + randint(0,2) - 1
+                        dy = dy + randint(0,2) - 1
+                    self.setw(dx,dy)
+                    if thick:
+                        self.setw(dx+1,dy)
+                        self.setw(dx,dy+1)
+                        self.setw(dx+1,dy+1)
+
+    def bouncers(self, length, diradj, rev):
+        """Generate a level using a down and left or right moving walker
+        0: how many steps does the walker take
+        1: gaussian level, how often to change moving from left to right
+        2: fill empty level with wall or reverse?
+        """
+        if rev == 0:
+            wll = '#'
+        else:
+            wll = ' '
+            rev = 1
+        self.wmap = [ [ wll for x in range(self.WIDTH)] for y in range(self.HEIGHT) ]
+        self.fmap = [ [ rev for x in range(self.WIDTH)] for y in range(self.HEIGHT) ]
+        x = randint(0,self.WIDTH-2)
+        y = randint(0,self.HEIGHT-2)
+        lorr = choice([1, -1])  # move left or right
+        for i in range(length):
+            if rev == 0:
+                self.clrw(x,y)
+                self.clrw(x+1,y)
+                self.clrw(x,y+1)
+                self.clrw(x+1,y+1)
+            else:
+                self.setw(x,y)
+                self.setw(x+1,y)
+            x = x + lorr
+            y = y + 1
+            if y > self.HEIGHT:
+                y = 0
+            if x > self.WIDTH - 2:
+                x = self.WIDTH - 2
+                lorr = -lorr
+            elif x < 0:
+                x = 0
+                lorr = -lorr
+            if gauss(0,1) > diradj:
+                lorr = -lorr
+
+
+    def walkers(self, length, minturn, maxturn, isbig):
+        """Generate a level with a walker
+        0: length of the walker: how many steps it walks
+        1: minimum length it walks straight, before turning
+        2: maximum length it walks straight, before turning
+        3: is the trail is 1 or 2 blocks high
+        """
+        # all solid map
+        self.wmap = [ ['#' for x in range(self.WIDTH)] for y in range(self.HEIGHT) ]
+        self.fmap = [ [ 0 for x in range(self.WIDTH)] for y in range(self.HEIGHT) ]
+        x = randint(0,self.WIDTH-2)
+        y = randint(0,self.HEIGHT-2)
+        dir = randint(0,4)
+        dlen = 0
+        for i in range(length):
+            self.clrw(x,y)
+            self.clrw(x+1,y)
+            if isbig == 1:
+                self.clrw(x,y+1)
+                self.clrw(x+1,y+1)
+            dlen = dlen + 1
+            if dir == 0:
+                x = x - 2
+                if x < 0:
+                    x = self.WIDTH-2
+            elif dir == 1:
+                y = y - 1
+                if y < 0:
+                    y = self.HEIGHT
+            elif dir == 2:
+                x = x + 2
+                if x > (self.WIDTH - 2):
+                    x = 0
+            else:
+                y = y + 1
+                if y > self.HEIGHT:
+                    y = 0
+            if dlen > randint(minturn, maxturn):
+                # turn 90 degrees
+                dir = (dir + choice([1,3])) % 4
+                dlen = 0
+
+    def rivers(self, n_flow, side_threshold, side_shift):
+        """Generate flow paths by digging a big wall. The arguments are:
+        0: the number of parallel flow to dig in the wall
+        1: side_threshold is a gausian level for doing a step aside
+        2: side_shift is the maximal size of the side step.
+        """
+        # We start from a full wall
+        # map for the walls
+        self.wmap = [ ['#' for x in range(self.WIDTH)] for y in range(self.HEIGHT) ]
+        # map of the free cells
+        self.fmap = [ [0 for x in range(self.WIDTH)] for y in range(self.HEIGHT) ]
+        for x in [0, self.WIDTH-2]+[randint(3,self.WIDTH-5) for f in range(max(0, n_flow-2))]:
+            for y in range(self.HEIGHT):
+                self.clrw(x,y)
+                self.clrw(x+1,y)
+                g = gauss(0,1)
+                if abs(g) > side_threshold:
+                    # We want to move aside, let's find which side is the best:
+                    if self.WIDTH/4 < x < 3*self.WIDTH/4:
+                        side = random() > 0.5
+                    t = random()
+                    if t > x*4/self.WIDTH:
+                        side = 1
+                    elif t > (self.WIDTH-x)*4/self.WIDTH:
+                        side = -1
+                    side_step = randint(1,side_shift)
+                    if side > 0:
+                        for i in range(x+2, min(x+2+side_step,self.WIDTH-1)):
+                            self.clrw(i,y)
+                        x = max(0,min(x+side_step, self.WIDTH-2))
+                    else:
+                        for i in range(max(x-side_step,0),x):
+                            self.clrw(i,y)
+                        x = max(x-side_step, 0)
+
     def close(self):
         "Just close the level with floor and roof"
         for x in range(self.WIDTH):
@@ -289,8 +455,43 @@ class RandomLevel(boarddef.Level):
             LNasty, LMonky, LGhosty, LFlappy, LSpringy, LOrcy, LGramy, LBlitzy,
             RNasty, RMonky, RGhosty, RFlappy, RSpringy, ROrcy, RGramy, RBlitzy,
             ],lambda : flat(12,4))]
-        gens = choice([16,16,16,16,16,16,20,20,8,8,8,8,4,4,4,4,2,2,2,2,1,1,3,5,6,7])
+        gens = choice([512,512,256,256,128,128,64,64,32,32,16,16,16,16,16,16,20,20,8,8,8,8,4,4,4,4,2,2,2,2,1,1,3,5,6,7])
         self.genwalls = []
+        if gens & 512:
+            print 'Using grids generator'
+            self.genwalls.append((RandomLevel.grids,
+                                  uniform(0.0, 0.1),
+                                  uniform(0.0, 0.1)))
+        if gens & 256:
+            # generate using pegs
+            print 'Using the pegs generator'
+            self.genwalls.append((RandomLevel.pegs,
+                                  uniform(0.1,0.2),
+                                  uniform(0.45,0.7),
+                                  choice([0,1,1,1])))
+        if gens & 128:
+            # generate using a bouncer
+            nr = choice([0,0,1])
+            print 'Using the bouncer generator'
+            self.genwalls.append((RandomLevel.bouncers,
+                                 dice(1, 100) + 250 - nr*200, # length
+                                 uniform(0.7, 1.7),
+                                 nr))
+        if gens & 64:
+            # generate using a walker
+            print 'Using the walker generator'
+            nr = dice(1, 3) + 2
+            self.genwalls.append((RandomLevel.walkers,
+                                 dice(2, 100) + 100, # length
+                                 nr, nr + dice(2, 3), # straight walk min, max len
+                                 choice([0,1])))
+        if gens & 32:
+            # generate rivers
+            print 'Using the rivers generator'
+            self.genwalls.append((RandomLevel.rivers,
+                                  randrange(2,(self.WIDTH-4)/5),    # the number of rivers
+                                  uniform(0.7, 1.7), # the side stepping threshold
+                                  6))                # the max side stepping size
         if gens & 16:
             # generate rooms
             print 'Using the romms generator'
@@ -346,7 +547,7 @@ class RandomLevel(boarddef.Level):
 Levels = []
 for i in range(25):
     class level(RandomLevel):
-	auto = 1
+        auto = 1
     Levels.append(level)
 
 class levelfinal(RandomLevel):

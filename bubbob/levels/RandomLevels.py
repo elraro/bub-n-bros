@@ -63,6 +63,11 @@ class Shape:
     basemnstr = ChoiceParameter('basemnstr', MnstrNames)
     extramnstr = ChoiceParameter('extramnstr', range(4))
     samemnstr = BoolParameter('samemnstr')
+    rivers = BoolParameter('rivers')
+    walkers = BoolParameter('walkers')
+    bouncers = BoolParameter('bouncers')
+    pegs = BoolParameter('pegs')
+    grids = BoolParameter('grids')
     rooms = BoolParameter('rooms')
     holes = BoolParameter('holes')
     lines = ChoiceParameter('lines', '   -/|')
@@ -128,11 +133,16 @@ class Shape:
 
     def test_density(self, prevlist):
         fill = ((self.rooms != 0) +
+                (self.walkers != 0) +
+                (self.pegs != 0) +
+                (self.grids != 0) +
+                (self.bouncers != 0) +
+                (self.rivers != 0) +
                 (self.lines != ' ') +
                 (self.platforms != 0) +
                 (self.mess != ' ') -
                 (self.holes != 0))
-        if not (1 <= fill <= 3):
+        if not (1 <= fill <= 8):
             self.reset()
 
     all_tests = [value for (name, value) in locals().items()
@@ -154,6 +164,33 @@ class Shape:
                 lvl.mlist.append((mnstrclslist(name), f))
 
         lvl.genwalls = []
+
+        if self.grids:
+            lvl.genwalls.append((RandomLevel.grids,
+                                 uniform(0.7,0.8),
+                                 uniform(0.7,0.8)))
+        if self.pegs:
+            lvl.genwalls.append((RandomLevel.pegs,
+                                  uniform(0.1,0.2),
+                                  uniform(0.45,0.7),
+                                  choice([0,1,1,1])))
+        if self.bouncers:
+            nr = choice([0,0,1])
+            lvl.genwalls.append((RandomLevel.bouncers,
+                                 dice(1, 100) + 250 - nr*200, # length
+                                 uniform(0.7, 1.7),
+                                 nr))
+        if self.walkers:
+            nr = dice(1, 3) + 2
+            lvl.genwalls.append((RandomLevel.walkers,
+                                 dice(2, 100) + 100, # length
+                                 nr, nr + dice(2, 3),
+                                 choice([0,1])))
+        if self.rivers:
+            lvl.genwalls.append((RandomLevel.rivers,
+                                 randrange(3,(lvl.WIDTH-4)/4), # the number of rivers
+                                 uniform(0.3, 1.4), # the side stepping threshold
+                                 10))                # the max side stepping size
         if self.rooms:
             nr = dice(2, 6)
             lvl.genwalls.append((RandomLevel.rooms,
