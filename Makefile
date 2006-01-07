@@ -12,9 +12,10 @@ PYTHON=python
 
 export # we export all variales to sub-makes
 
-all: docs
+all:
 	make -C bubbob
 	make -C display
+	-make docs
 
 clean:
 	-rm -f `find -name "*~"`
