@@ -207,6 +207,16 @@ class Bubble(ActiveSprite):
                                     imglist[0]]))
 
 
+class NormalBubble(Bubble):
+    warp = 1
+
+    def __init__(self, dragon, x, y, timeout=800):
+        imglist1 = GreenAndBlue.new_bubbles[dragon.bubber.pn]
+        Bubble.__init__(self, images.sprget(imglist1[0]), x, y)
+        self.d = dragon
+        self.startnormalbubble(timeout=timeout)
+
+
 class CatchNote:
     def __init__(self, points):
         self.points = points
@@ -290,10 +300,7 @@ class DragonBubble(Bubble):
                                    if isinstance(s, BonusMaker)]
                 if touched_bonuses:
                     bonusmaker = random.choice(touched_bonuses)
-                    bonus = bonusmaker.build()
-                    bonusmaker.kill()
-                    if bonus:
-                        bonus.in_bubble(self)
+                    if bonusmaker.in_bubble(self):
                         withmonster = 1
         if not self.alive:
             return

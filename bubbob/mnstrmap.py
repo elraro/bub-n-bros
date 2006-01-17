@@ -169,7 +169,7 @@ class Bonuses:
     erdbeer   = 602
     fish1     = 603
     tomato    = 604
-    donut     = 605 # NOT_USED
+    donut     = 605
     apple     = 606
     corn      = 607
     icecream2 = 608 # NOT_USED

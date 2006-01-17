@@ -194,14 +194,17 @@ class Parabolic(ActiveSprite):
         self.kill()
 
     def falling(self):
-        nx = self.x
-        ny = self.y & ~3
+        nx, ny = vertical_warp(self.x, self.y & ~3)
         if self.fallspeed < 0:
             groundtest = underground
         else:
             groundtest = onground
         while not groundtest(nx, ny):
-            nx, ny = vertical_warp(nx, ny + self.fallspeed)
+            ny += self.fallspeed
+            nx, ny1 = vertical_warp(nx, ny)
+            if ny1 != ny:
+                ny = ny1
+                self.wrapped_around()
             self.move(nx, ny)
             yield None
         self.move(nx, ny)
@@ -217,6 +220,9 @@ class Parabolic(ActiveSprite):
             yield None
 
     def build(self):
+        pass
+
+    def wrapped_around(self):
         pass
 
 
@@ -250,6 +256,11 @@ class BonusMaker(Parabolic2):
             self.fallspeed = -self.fallspeed
         Parabolic2.__init__(self, x, y, imglist, imgspeed, onplace)
 
+    def wrapped_around(self):
+        cls = self.outcome[0]
+        if issubclass(cls, RandomBonus) and not boards.curboard.playingboard:
+            self.kill()
+
     def build(self):
         cls = self.outcome[0]
         args = self.outcome[1:]
@@ -260,6 +271,13 @@ class BonusMaker(Parabolic2):
 
     def touched(self, dragon):
         pass
+
+    def in_bubble(self, bubble):
+        bonus = self.build()
+        self.kill()
+        if bonus:
+            bonus.in_bubble(bubble)
+        return bonus
 
 
 class MonsterBonus(Bonus):
@@ -724,6 +742,11 @@ class Cactusbonus(Megabonus):
             y = self.y + self.ico.h//2 - CELL
             self.bonus.move(x, y)
             self.bonus.taken1(d1)
+            self.bonus.kill()
+
+    def kill(self):
+        Megabonus.kill(self)
+        if self.bonus.alive:
             self.bonus.kill()
 
 def starexplosion(x, y, multiplyer, killmonsters=0, outcomes=[]):
@@ -1737,13 +1760,30 @@ class StarBubble(FireBubble):
     bubcount = 3
     bigbonus = {'bubcount': 10}
 
+class Donut(RandomBonus):
+    "Donut.  Catch every free monster in a bubble."
+    nimage = Bonuses.donut
+    points = 950
+    big = 0
+    bigbonus = {'big': 1}
+
+    def taken1(self, dragons):
+        extra_boardgen(boards.extra_catch_all_monsters(dragons, self.big))
+        if self.big:
+            # catch all dragons as well
+            from bubbles import NormalBubble
+            for dragon in BubPlayer.DragonList[:]:
+                b = NormalBubble(dragon, dragon.x, dragon.y, 542)
+                if not dragon.become_bubblingeyes(b):
+                    b.kill()
+
 
 Classes = [c for c in globals().values()
            if type(c)==type(RandomBonus) and issubclass(c, RandomBonus)]
 Classes.remove(RandomBonus)
 Classes.remove(TemporaryBonus)
 Cheat = []
-#Classes = [Sheep]  # CHEAT
+#Classes = [Donut, Cactus]  # CHEAT
 
 AllOutcomes = ([(c,) for c in Classes if c is not Fruits] +
                2 * [(MonsterBonus, lvl)

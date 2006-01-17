@@ -1201,6 +1201,36 @@ def extra_swap_up_down(N=27):
         w.kill()
     curboard.reorder_walls()
 
+def extra_catch_all_monsters(dragons=[], everything=False):
+    from monsters import Monster
+    from bubbles import NormalBubble
+    from bonuses import Bonus, BonusMaker
+    if not dragons:
+        from player import BubPlayer
+        dragons = BubPlayer.DragonList
+    i = 0
+    give_up = 33
+    for s in images.ActiveSprites[:]:
+        while not dragons:
+            give_up -= 1
+            if give_up == 0:
+                return
+            yield 0
+        if not s.alive or not s.touchable:
+            continue
+        if isinstance(s, Bonus):
+            ok = everything and s.bubblable
+        elif isinstance(s, BonusMaker):
+            ok = everything
+        else:
+            ok = isinstance(s, Monster)
+        if ok:
+            dragon = dragons[i%len(dragons)]
+            s.in_bubble(NormalBubble(dragon, s.x, s.y, 542 + 17*i))
+            i += 1
+            yield 0
+            yield 0
+
 
 def register(dict):
     global width, height, bwidth, bheight, bheightmod
