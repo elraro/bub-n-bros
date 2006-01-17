@@ -6,8 +6,7 @@ from metastruct import *
 METASERVER = ('codespeak.net', 8055)
 METASERVER_UDP = ('codespeak.net', 8055)
 METASERVER_URL = 'http://codespeak.net:8050/bub-n-bros.html'
-#METASERVER = ('127.0.0.1', 8055)
-#METASERVER_URL = 'http://127.0.0.1:8050/bub-n-bros.html'
+VERSION_TAG = 1501
 
 def connect(failure=[]):
     if len(failure) >= 2:
@@ -82,7 +81,12 @@ class MetaClientSrv(MessageSocket):
             import traceback, cStringIO, sys
             f = cStringIO.StringIO()
             print >> f, sys.version
-            print >> f, (sys.platform, sys.executable, sys.argv)
+            print >> f, 'platform:   ', sys.platform
+            print >> f, 'executable: ', sys.executable
+            print >> f, 'argv:       ', sys.argv
+            print >> f, 'cwd:        ', os.getcwd()
+            print >> f, 'version tag:', VERSION_TAG
+            print >> f
             traceback.print_exc(file = f)
             self.s.sendall(message(MMSG_TRACEBACK, f.getvalue()))
 

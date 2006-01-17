@@ -12,10 +12,11 @@ SERVER_TIMEOUT = 7200   # 2 hours without any connection or port activity
 
 
 def protofilepath(filename):
+  dirpath = filename
   path = []
-  while filename:
-    filename, component = os.path.split(filename)
-    assert component, "invalid file path"
+  while dirpath:
+    dirpath, component = os.path.split(dirpath)
+    assert component, "invalid file path %r" % (filename,)
     path.insert(0, component)
   path.insert(0, game.FnBasePath)
   return '/'.join(path)
