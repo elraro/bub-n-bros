@@ -11,13 +11,6 @@ from Xlib import X, display
 import psyco; psyco.full()
 
 
-def maybe_unlink(file):
-    try:
-        os.unlink(file)
-    except:
-        pass
-
-
 class Display:
     
     def __init__(self, width, height, title):

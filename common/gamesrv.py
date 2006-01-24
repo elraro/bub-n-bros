@@ -1076,6 +1076,7 @@ class Game:
   FnDesc    = "NoName"
   FnFrame   = lambda self: 1.0
   FnExcHandler=lambda self, k: 0
+  FnServerInfo=lambda self, s: None
   FnPlayers = lambda self: {}
   FnKeys    = []
   FnUnknown = lambda self: None
@@ -1246,7 +1247,7 @@ def recursiveloop(endtime, extra_sockets):
 SERVER_SHUTDOWN = 0.0
 
 def mainloop():
-  global game
+  global game, SERVER_SHUTDOWN
   servertimeout = None
   try:
     while serversockets:
@@ -1269,7 +1270,9 @@ def mainloop():
               serversockets[s]()    # call handler
           servertimeout = None
         elif SERVER_SHUTDOWN and not ewtd and not owtd:
-          raise SystemExit, "Server shutdown requested."
+          SERVER_SHUTDOWN -= delay
+          if SERVER_SHUTDOWN <= 0.001:
+            raise SystemExit, "Server shutdown requested."
         elif clients or getattr(game, 'autoreset', 0):
           servertimeout = None
         elif servertimeout is None:
@@ -1291,7 +1294,9 @@ def mainloop():
       print "Server crash -- waiting for clients to terminate..."
       while clients:
         iwtd = [c.socket for c in clients]
-        iwtd, owtd, ewtd = select(iwtd, [], iwtd)
+        iwtd, owtd, ewtd = select(iwtd, [], iwtd, 120.0)
+        if not (iwtd or owtd or ewtd):
+          break   # timeout - give up
         for c in clients[:]:
           if c.socket in ewtd:
             c.disconnect("select reported an error")
@@ -1308,6 +1313,8 @@ def mainloop():
 def closeeverything():
   global SERVER_SHUTDOWN
   SERVER_SHUTDOWN = 2.5
+  if game is not None:
+    game.FnServerInfo("Server is stopping!")
 
 # ____________________________________________________________
 

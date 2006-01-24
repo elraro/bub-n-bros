@@ -105,13 +105,19 @@ class BubBobGame(gamesrv.Game):
                 self.game_reset_gen = None
         return frametime * boards.FRAME_TIME
 
-    def FnExcHandler(self, kbd):
+    def FnServerInfo(self, msg):
         try:
             from images import writestr
-            writestr(50, 50, 'Ooops -- server crash!')
+            writestr(50, 50, msg)
             self.sendudpdata()
         except:
             pass
+
+    def FnExcHandler(self, kbd):
+        if kbd:
+            self.FnServerInfo("Server was Ctrl-C'ed!")
+        else:
+            self.FnServerInfo('Ooops -- server crash!')
         from player import BubPlayer
         if kbd and not [p for p in BubPlayer.PlayerList if p.isplaying()]:
             return 0

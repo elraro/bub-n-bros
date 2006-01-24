@@ -3,8 +3,9 @@
 ##       GTK-based implementation of xshm      ##
 ################################################
 
-import os, sys, tempfile, math
+import os, sys, math
 from modes import KeyPressed, KeyReleased
+import caching
 
 def import_trickery():
     global gtk, gdk
@@ -14,13 +15,6 @@ def import_trickery():
     from gtk import gdk
     sys.argv[:] = argv
 import_trickery()
-
-
-def maybe_unlink(file):
-    try:
-        os.unlink(file)
-    except:
-        pass
 
 
 class Display:
@@ -36,7 +30,7 @@ class Display:
         
         self.width  = int(width * scale)
         self.height = int(height * scale)
-        self.tempppmfile = tempfile.mktemp('.ppm')
+        self.tempppmfile = caching.mktemp('.ppm')
 
         # create a top level window
         w = self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
@@ -78,17 +72,14 @@ class Display:
                                              i, j, x2-i, y2-j)
 
     def pixmap(self, w, h, data, colorkey=-1):
-        file = self.tempppmfile
-        try:
-            f = open(file, 'wb')
-            print >> f, 'P6'
-            print >> f, w, h
-            print >> f, 255
-            f.write(data)
-            f.close()
-            pb = gdk.pixbuf_new_from_file(file)
-        finally:
-            maybe_unlink(file)
+        filename = self.tempppmfile
+        f = open(filename, 'wb')
+        print >> f, 'P6'
+        print >> f, w, h
+        print >> f, 255
+        f.write(data)
+        f.close()
+        pb = gdk.pixbuf_new_from_file(filename)
         if colorkey >= 0:
             pb = pb.add_alpha(1, chr(colorkey >> 16),
                               chr((colorkey >> 8) & 0xFF),
