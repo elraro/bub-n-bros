@@ -87,7 +87,7 @@ class Ghost:
     right = nrange(447,4)
 
 class PlayerBubbles:
-    appearing = nrange(916,3)
+    appearing = nrange(952,5)
     bubble    = nrange(910,3)
     explosion = nrange(913,3)
     left_weapon  = nrange(464,4) # NOT_USED

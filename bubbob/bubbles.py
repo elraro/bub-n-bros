@@ -6,7 +6,7 @@ import boards
 from boards import *
 from images import ActiveSprite
 from mnstrmap import GreenAndBlue, LetterBubbles, Stars
-from mnstrmap import Lightning, Water, Fire, SpinningBalls
+from mnstrmap import Lightning, Water, Fire, SpinningBalls, PlayerBubbles
 
 
 bubble_wind = {
@@ -215,6 +215,50 @@ class NormalBubble(Bubble):
         Bubble.__init__(self, images.sprget(imglist1[0]), x, y)
         self.d = dragon
         self.startnormalbubble(timeout=timeout)
+
+
+class BigBubbleCatcher(ActiveSprite):
+    numlist = [(PlayerBubbles.explosion[2], 1),
+               (PlayerBubbles.explosion[1], 2),
+               (PlayerBubbles.explosion[0], 2),
+               (PlayerBubbles.bubble[1],    5),
+               (PlayerBubbles.appearing[4], 3),
+               (PlayerBubbles.appearing[3], 3),
+               (PlayerBubbles.appearing[2], 2),
+               (PlayerBubbles.appearing[1], 2),
+               (PlayerBubbles.appearing[0], 2)]
+
+    def __init__(self, dragon, target, timeout):
+        img = images.sprget(PlayerBubbles.explosion[2])
+        ActiveSprite.__init__(self, img, -img.w, 0)
+        self.dragon = dragon
+        self.target = target
+        self.timeout = timeout
+        self.gen.append(self.follow())
+        self.recenter(PlayerBubbles.explosion[2])
+        for imgnum, delay in self.numlist:
+            images.sprget(imgnum)     # preload
+
+    def recenter(self, imgnum):
+        s = self.target
+        if not s.alive or not s.touchable:
+            self.kill()
+        else:
+            img = images.sprget(imgnum)
+            self.move(s.x + (s.ico.w - img.w) // 2,
+                      s.y + (s.ico.h - img.h) // 2,
+                      img)
+
+    def follow(self):
+        for imgnum, delay in self.numlist:
+            for t in range(delay):
+                self.recenter(imgnum)
+                yield None
+        self.recenter(imgnum)
+        if self.alive:
+            s = self.target
+            s.in_bubble(NormalBubble(self.dragon, s.x, s.y, self.timeout))
+            self.kill()
 
 
 class CatchNote:
