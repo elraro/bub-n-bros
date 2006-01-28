@@ -174,6 +174,10 @@ Please <a href="%s">click here</a> to continue.
         else:
             return SimpleHTTPRequestHandler.parse_request(self)
 
+    def address_string(self):
+        """Override to avoid DNS lookups"""
+        return "%s:%d" % self.client_address
+
 def my_host():
     import gamesrv
     port = gamesrv.socketports[gamesrv.openhttpsocket()]
