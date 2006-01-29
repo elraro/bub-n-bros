@@ -60,6 +60,8 @@ class RandomLevel(boarddef.Level):
         # map of the free cells
         self.fmap = [ [1 for x in range(self.WIDTH)] for y in range(self.HEIGHT) ]
 
+        self.windmap = [ [' ' for x in range(self.WIDTH)] for y in range(self.HEIGHT) ]
+
         if hasattr(self, 'auto'):
             self.generate()
             self.do_bonuses()
@@ -74,6 +76,10 @@ class RandomLevel(boarddef.Level):
         self.do_walls()
         self.walls = self.__class__.walls
         #print self.walls
+
+        self.do_winds()
+        self.winds = self.__class__.winds
+
         boarddef.Level.__init__(self,num)
 
     def setw(self,x,y,c='#'):
@@ -88,6 +94,81 @@ class RandomLevel(boarddef.Level):
             return
         self.wmap[y][x] = ' '
         self.fmap[y][x] = 1
+
+    def setwind(self,x,y,c=' '):
+        if x > self.WIDTH-1 or x < 0 or y > self.HEIGHT-1 or y < 0:
+            return
+        self.windmap[y][x] = c
+
+    def generate_wind1(self, rndchoice=1, choices=[' ',' ',' ','x','>','<','^','^','v'], xsize=-1,ysize=-1):
+        """Makes a random wind pattern. Parameters:
+        0: if 1=randomly select from choices, else select in order
+        1: a list of the choices that are allowed.
+        2: horizontal size of wind blocks
+        3: vertical size of wind blocks
+        """
+        choicenum = 0
+        if xsize == -1:
+            xsize = randint(1, self.WIDTH)
+        if ysize == -1:
+            ysize = randint(1, self.HEIGHT)
+        if xsize < 1:
+            xsize = 1
+        elif xsize > self.WIDTH:
+            xsize = self.WIDTH
+        if ysize < 1:
+            ysize = 1
+        elif ysize > self.HEIGHT:
+            ysize = self.HEIGHT
+        for x in range((self.WIDTH/xsize)+1):
+            for y in range((self.HEIGHT/ysize)+1):
+                if rndchoice == 1:
+                    wdir = choice(choices)
+                else:
+                    wdir = choices[choicenum]
+                    choicenum = (choicenum + 1) % len(choices)
+                for dx in range(xsize+1):
+                    for dy in range(ysize+1):
+                        self.setwind(x+dx,y+dy,wdir)
+        # make sure that the special bubbles can come into screen
+        for x in range(self.WIDTH):
+            self.setwind(x, 0, ' ')
+            self.setwind(x, self.HEIGHT-1, ' ')
+
+    def wind_sidewalls(self):
+        """Make sure the left and side walls have updraft next to them
+        """
+        for y in range(self.HEIGHT):
+            self.setwind(0,y,'^')
+            self.setwind(self.WIDTH-1,y,'^')
+
+    def generate_wind(self):
+        """Chooses one of the wind pattern generators and uses that to generate the winds.
+        """
+        gens = choice([1,1,2,3,4,4,4,4,5])
+        if gens == 1: # totally random pattern
+            self.generate_wind1()
+        elif gens == 2: # wind "layers"
+            self.generate_wind1(0, ['x','^','^','^'],self.WIDTH,1)
+            self.wind_sidewalls()
+        elif gens == 3: # "wiggly" winds
+            self.generate_wind1(1, ['^','<','^','>'],1,1)
+            self.wind_sidewalls()
+        elif gens == 4: # "normal" wind pattern
+            self.wind_sidewalls()
+            dx = (self.WIDTH/2)
+            for x in range(dx-3, dx+3):
+                self.setwind(x,2,'x')
+            for x in range(dx-2):
+                self.setwind(x,2,'>')
+                self.setwind(self.WIDTH-x,2,'<')
+        elif gens == 5: # bubbles are stopped by horizontal walls
+            self.wind_sidewalls()
+            for x in range(self.WIDTH):
+                for y in range(self.HEIGHT-2):
+                    if self.wmap[y][x] == '#':
+                        if self.wmap[y+1][x] == ' ':
+                            self.setwind(x,y+1,'x')
 
     def mess(self, threshold):
         """Random fill of the board with walls.
@@ -395,13 +476,20 @@ class RandomLevel(boarddef.Level):
 
     def dig_vertical_walls(self):
         "Check that no vertical wall spans the whole height of the level"
+        vwall = []
         for x in range(self.WIDTH):
             for y in range(self.HEIGHT):
                 if self.wmap[y][x] == ' ':
                     break
             else:
-                for y in range(1,self.HEIGHT-2,3):
-                    self.clrw(x,y)
+                vwall.append(x)
+        for x in vwall:
+            for y in range(0,self.HEIGHT,randint(2,4)):
+                self.clrw(x,y)
+                for dx in range(-1,2):
+                    for dy in range(-1,2):
+                        if choice([0,1]) == 0:
+                            self.clrw(x+dx,y+dy)
 
     def do_monsters(self):
         """Create monsters based on the requested settings.
@@ -441,6 +529,15 @@ class RandomLevel(boarddef.Level):
             else:
                 self.__class__.walls += ' '
         self.__class__.walls += '##\n'
+
+    def do_winds(self):
+        "Build the actual wind map for the game."
+        self.__class__.winds = ''
+        for y in range(self.HEIGHT):
+            self.__class__.winds += '>>'
+            for x in range(self.WIDTH):
+                self.__class__.winds += self.windmap[y][x]
+            self.__class__.winds += '<<' + '\n'
 
     def do_bonuses(self):
         self.__class__.letter    = choice([0,1])
@@ -542,6 +639,7 @@ class RandomLevel(boarddef.Level):
             self.genwalls.append((RandomLevel.mess,offset+random()*scale))
         if random() < 0.2:
             self.genwalls.append((RandomLevel.close,))
+        self.genwalls.append((RandomLevel.generate_wind, ))
 
 
 Levels = []

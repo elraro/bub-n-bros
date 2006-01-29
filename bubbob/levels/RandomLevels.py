@@ -236,6 +236,7 @@ class Shape:
                                  lambda : choice([0,0,0,1]))) # circle or rectangle
         if self.closed:
             lvl.genwalls.append((RandomLevel.close,))
+        lvl.genwalls.append((RandomLevel.generate_wind, ))
         b = self.bonuses
         for name in Bonuses:
             setattr(lvl, name, b & 1)
