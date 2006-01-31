@@ -70,7 +70,7 @@ class Shape:
     grids = BoolParameter('grids')
     rooms = BoolParameter('rooms')
     holes = BoolParameter('holes')
-    lines = ChoiceParameter('lines', '   -/|')
+    lines = ChoiceParameter('lines', '   -/|!')
     platforms = BoolParameter('platforms')
     platholes = BoolParameter('platholes')
     platfull  = BoolParameter('platfull')
@@ -198,15 +198,18 @@ class Shape:
                                  lambda : uniform(0.8,1.2), # the excentricity of the room
                                  nr))                       # the number of rooms
         if self.lines != ' ':
-            rng_angle = {
-                '-': lambda : 0,
-                '/': None,    # default
-                '|': lambda : math.pi/2,
-                }
-            lvl.genwalls.append((RandomLevel.lines,
-                                  lambda : dice(8,3), # line length
-                                  dice(2,4),          # number of lines
-                                  rng_angle[self.lines]))
+            if self.lines == '!':
+                lvl.genwalls.append((RandomLevel.zigzag,))
+            else:
+                rng_angle = {
+                    '-': lambda : 0,
+                    '/': None,    # default
+                    '|': lambda : math.pi/2,
+                    }
+                lvl.genwalls.append((RandomLevel.lines,
+                                      lambda : dice(8,3), # line length
+                                      dice(2,4),          # number of lines
+                                      rng_angle[self.lines]))
         if self.platforms:
             nplat  = dice(2,4,0)
             if nplat: space  = flat((lvl.HEIGHT-1)/nplat/2,(lvl.HEIGHT-1)/nplat/2-1)

@@ -180,6 +180,60 @@ class RandomLevel(boarddef.Level):
                 if random() < threshold:
                     self.setw(x,y)
 
+    def zigzag_lr(self):
+        """Generate the level with random left-right zig-zags.
+        """
+        first = 1
+        self.wmap = [ [ ' ' for x in range(self.WIDTH)] for y in range(self.HEIGHT) ]
+        self.fmap = [ [ 1 for x in range(self.WIDTH)] for y in range(self.HEIGHT) ]
+        y = choice([0,0,2,3,3,4])
+        while y < (self.HEIGHT-2):
+            if first == 1:
+                first = 0
+                x1 = x2 = randint(2, self.WIDTH-3)
+            else:
+                x2 = randint(2, self.WIDTH-3)
+            while (x2 > (x1-3)) and (x2 < (x1+3)):
+                x2 = randint(2, self.WIDTH-3)
+            for dx in range(min(x1,x2+1), max(x1,x2+1)):
+                self.setw(dx,y)
+            dy = choice([2,2,3,3,3,4])
+            for dy in range(dy+1):
+                self.setw(x2,y+dy)
+            y = y + dy
+            x1 = x2
+
+    def zigzag_ud(self):
+        """Generate the level with random up-down zig-zags.
+        """
+        first = 1
+        self.wmap = [ [ ' ' for x in range(self.WIDTH)] for y in range(self.HEIGHT) ]
+        self.fmap = [ [ 1 for x in range(self.WIDTH)] for y in range(self.HEIGHT) ]
+        x = -1
+        while x < self.WIDTH:
+            if first == 1:
+                first = 0
+                y1 = y2 = randint(2, self.HEIGHT-1)
+            else:
+                y2 = randint(2, self.HEIGHT-1)
+            while (y2 > (y1-2)) and (y2 < (y1+2)):
+                y2 = randint(2, self.HEIGHT-1)
+            for dy in range(min(y1,y2+1), max(y1,y2+1)):
+                self.setw(x,dy)
+            dx = choice([3,4,4,4,5,6])
+            for dx in range(dx+1):
+                self.setw(x+dx,y2)
+            x = x + dx
+            y1 = y2
+
+    def zigzag(self):
+        """Generate a level with a random zig-zag form.
+        """
+        if random() < 0.5:
+            self.zigzag_lr()
+        else:
+            self.zigzag_ud()
+
     def platforms(self, (nplat, space), (rng_holes, rng_width), full=1):
         """Place random platforms.
         args is a tuple with the following fields:
