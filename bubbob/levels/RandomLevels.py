@@ -237,6 +237,8 @@ class Shape:
         if self.closed:
             lvl.genwalls.append((RandomLevel.close,))
         lvl.genwalls.append((RandomLevel.generate_wind, ))
+        if random.random() < 0.90:
+            lvl.genwalls.append((RandomLevel.startplatform, ))
         b = self.bonuses
         for name in Bonuses:
             setattr(lvl, name, b & 1)

@@ -468,6 +468,18 @@ class RandomLevel(boarddef.Level):
                             self.clrw(i,y)
                         x = max(x-side_step, 0)
 
+    def startplatform(self):
+        "Make sure there's free space with wall underneath for dragon start positions"
+        hei = choice([1,1,1,2,2,3])
+        lft = choice([0,1])
+        wid = choice([3,3,3,4,5])
+        for x in range(lft, wid):
+            self.setw(x,self.HEIGHT-1)
+            self.setw(self.WIDTH-x-1,self.HEIGHT-1)
+            for y in range(hei+1):
+                self.clrw(x,self.HEIGHT-2-y)
+                self.clrw(self.WIDTH-x-1,self.HEIGHT-2-y)
+
     def close(self):
         "Just close the level with floor and roof"
         for x in range(self.WIDTH):
@@ -639,6 +651,8 @@ class RandomLevel(boarddef.Level):
             self.genwalls.append((RandomLevel.mess,offset+random()*scale))
         if random() < 0.2:
             self.genwalls.append((RandomLevel.close,))
+        if random() < 0.90:
+            self.genwalls.append((RandomLevel.startplatform,))
         self.genwalls.append((RandomLevel.generate_wind, ))
 
 
