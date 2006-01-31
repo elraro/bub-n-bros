@@ -118,8 +118,8 @@ class Shape:
 
     def test_not_too_often(self, prevlist):
         for param, bad_value, delay in [
-            ('mess', '.', 1),
-            ('mess', '!', 7),
+            ('mess', '.', 2),
+            ('mess', '!', 11),
             ('holes', 1,  1),
             ]:
             if getattr(self, param) == bad_value:
@@ -140,9 +140,9 @@ class Shape:
                 (self.rivers != 0) +
                 (self.lines != ' ') +
                 (self.platforms != 0) +
-                (self.mess != ' ') -
+                2 * (self.mess != ' ') -
                 (self.holes != 0))
-        if not (1 <= fill <= 8):
+        if not (1 <= fill <= 6):
             self.reset()
 
     all_tests = [value for (name, value) in locals().items()
@@ -290,7 +290,7 @@ else:
                 params = self.autogen_shape.__dict__.items()
                 params.sort()
                 for keyvalue in params:
-                    print '%20s: %r' % keyvalue
+                    print '%20s: %s' % keyvalue
                 return result
         s.accept(level)
         Levels.append(level)

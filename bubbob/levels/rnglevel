@@ -560,6 +560,7 @@ class RandomLevel(boarddef.Level):
 
     def generate(self):
         "Generate random level settings."
+        assert 0, "--- THIS IS NO LONGER REALLY USED ---"
         self.mlist = [([
             LNasty, LMonky, LGhosty, LFlappy, LSpringy, LOrcy, LGramy, LBlitzy,
             RNasty, RMonky, RGhosty, RFlappy, RSpringy, ROrcy, RGramy, RBlitzy,
