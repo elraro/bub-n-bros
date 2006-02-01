@@ -54,11 +54,7 @@ class RandomLevel(boarddef.Level):
             return
 
         #print 'Generating a new level'
-
-        # map for the walls
-        self.wmap = [ [' ' for x in range(self.WIDTH)] for y in range(self.HEIGHT) ]
-        # map of the free cells
-        self.fmap = [ [1 for x in range(self.WIDTH)] for y in range(self.HEIGHT) ]
+        self.reset(fill=False)
 
         self.windmap = [ [' ' for x in range(self.WIDTH)] for y in range(self.HEIGHT) ]
 
@@ -81,6 +77,18 @@ class RandomLevel(boarddef.Level):
         self.winds = self.__class__.winds
 
         boarddef.Level.__init__(self,num)
+
+    def reset(self, fill=False):
+        if fill:
+            w = '#'
+            f = 0
+        else:
+            w = ' '
+            f = 1
+        # map for the walls
+        self.wmap = [ [w for x in range(self.WIDTH)] for y in range(self.HEIGHT) ]
+        # map of the free cells
+        self.fmap = [ [f for x in range(self.WIDTH)] for y in range(self.HEIGHT) ]
 
     def setw(self,x,y,c='#'):
         if x > self.WIDTH-1 or x < 0 or y > self.HEIGHT-1 or y < 0:
@@ -184,8 +192,7 @@ class RandomLevel(boarddef.Level):
         """Generate the level with random left-right zig-zags.
         """
         first = 1
-        self.wmap = [ [ ' ' for x in range(self.WIDTH)] for y in range(self.HEIGHT) ]
-        self.fmap = [ [ 1 for x in range(self.WIDTH)] for y in range(self.HEIGHT) ]
+        self.reset(fill=False)
         y = choice([0,0,2,3,3,4])
         while y < (self.HEIGHT-2):
             if first == 1:
@@ -207,8 +214,7 @@ class RandomLevel(boarddef.Level):
         """Generate the level with random up-down zig-zags.
         """
         first = 1
-        self.wmap = [ [ ' ' for x in range(self.WIDTH)] for y in range(self.HEIGHT) ]
-        self.fmap = [ [ 1 for x in range(self.WIDTH)] for y in range(self.HEIGHT) ]
+        self.reset(fill=False)
         x = -1
         while x < self.WIDTH:
             if first == 1:
@@ -361,8 +367,7 @@ class RandomLevel(boarddef.Level):
         0: gaussian chance of each horizontal line part
         1: gaussian chance of each vertical line part
         """
-        self.wmap = [ [ ' ' for x in range(self.WIDTH)] for y in range(self.HEIGHT) ]
-        self.fmap = [ [ 1 for x in range(self.WIDTH)] for y in range(self.HEIGHT) ]
+        self.reset(fill=False)
         xsize = choice([3,3,3,4,4,4,4,5,6])
         ysize = choice([2,3,3,4,4,4,4,5])
         xofs = choice([-1,0,1])
@@ -383,8 +388,7 @@ class RandomLevel(boarddef.Level):
         0: gaussian level of a peg appearance
         1: gaussian level of peg position adjustment
         """
-        self.wmap = [ [ ' ' for x in range(self.WIDTH)] for y in range(self.HEIGHT) ]
-        self.fmap = [ [ 1 for x in range(self.WIDTH)] for y in range(self.HEIGHT) ]
+        self.reset(fill=False)
         xdist = choice([3,3,3,4,4,5]) # distance between pegs
         ydist = choice([2,3,3,3,4,5]) # distance between pegs
         if not thick:
@@ -406,6 +410,41 @@ class RandomLevel(boarddef.Level):
                         self.setw(dx,dy+1)
                         self.setw(dx+1,dy+1)
 
+    def mondrian(self, x1=2,y1=2,x2=-1,y2=-1, horiz=-1, mindepth=3):
+        """Generate a level that looks a bit like a Piet Mondrian painting, or
+        different sized rectangles stacked on top of each other.
+        0-3: the size of the area to be split
+        4: whether the first split is horizontal or vertical
+        5: minimum number of splits to do
+        """
+        if horiz == -1:
+            horiz = choice([0,1])
+        if x2 == -1:
+            x2 = self.WIDTH-2
+        if y2 == -1:
+            y2 = self.HEIGHT-2
+        if (abs(x2-x1) < 6) or (abs(y2-y1) < 5):
+            return
+        mindepth = mindepth - 1
+        if horiz == 1:
+            horiz = 0
+            dy = randint(y1+2,y2-2)
+            for dx in range(min(x1,x2),max(x1,x2)):
+                self.setw(dx,dy)
+            if (random() < 0.75) or (mindepth > 0):
+                self.mondrian(x1,y1,x2,dy, horiz, mindepth)
+            if (random() < 0.75) or (mindepth > 0):
+                self.mondrian(x1,dy,x2,y2, horiz, mindepth)
+        else:
+            horiz = 1
+            dx = randint(x1+3,x2-3)
+            for dy in range(min(y1,y2),max(y1,y2)):
+                self.setw(dx,dy)
+            if (random() < 0.75) or (mindepth > 0):
+                self.mondrian(x1,y1,dx,y2, horiz, mindepth)
+            if (random() < 0.75) or (mindepth > 0):
+                self.mondrian(dx,y1,x2,y2, horiz, mindepth)
+
     def bouncers(self, length, diradj, rev):
         """Generate a level using a down and left or right moving walker
         0: how many steps does the walker take
@@ -413,12 +452,9 @@ class RandomLevel(boarddef.Level):
         2: fill empty level with wall or reverse?
         """
         if rev == 0:
-            wll = '#'
+            self.reset(fill=True)
         else:
-            wll = ' '
-            rev = 1
-        self.wmap = [ [ wll for x in range(self.WIDTH)] for y in range(self.HEIGHT) ]
-        self.fmap = [ [ rev for x in range(self.WIDTH)] for y in range(self.HEIGHT) ]
+            self.reset(fill=False)
         x = randint(0,self.WIDTH-2)
         y = randint(0,self.HEIGHT-2)
         lorr = choice([1, -1])  # move left or right
@@ -452,9 +488,8 @@ class RandomLevel(boarddef.Level):
         2: maximum length it walks straight, before turning
         3: is the trail is 1 or 2 blocks high
         """
-        # all solid map
-        self.wmap = [ ['#' for x in range(self.WIDTH)] for y in range(self.HEIGHT) ]
-        self.fmap = [ [ 0 for x in range(self.WIDTH)] for y in range(self.HEIGHT) ]
+        # We start from a full wall
+        self.reset(fill=True)
         x = randint(0,self.WIDTH-2)
         y = randint(0,self.HEIGHT-2)
         dir = randint(0,4)
@@ -494,10 +529,7 @@ class RandomLevel(boarddef.Level):
         2: side_shift is the maximal size of the side step.
         """
         # We start from a full wall
-        # map for the walls
-        self.wmap = [ ['#' for x in range(self.WIDTH)] for y in range(self.HEIGHT) ]
-        # map of the free cells
-        self.fmap = [ [0 for x in range(self.WIDTH)] for y in range(self.HEIGHT) ]
+        self.reset(fill=True)
         for x in [0, self.WIDTH-2]+[randint(3,self.WIDTH-5) for f in range(max(0, n_flow-2))]:
             for y in range(self.HEIGHT):
                 self.clrw(x,y)

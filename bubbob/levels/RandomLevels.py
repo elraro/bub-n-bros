@@ -63,14 +63,10 @@ class Shape:
     basemnstr = ChoiceParameter('basemnstr', MnstrNames)
     extramnstr = ChoiceParameter('extramnstr', range(4))
     samemnstr = BoolParameter('samemnstr')
-    rivers = BoolParameter('rivers')
-    walkers = BoolParameter('walkers')
-    bouncers = BoolParameter('bouncers')
-    pegs = BoolParameter('pegs')
-    grids = BoolParameter('grids')
+    baseshape = ChoiceParameter('baseshape', '   BGMPRWZ')
     rooms = BoolParameter('rooms')
     holes = BoolParameter('holes')
-    lines = ChoiceParameter('lines', '   -/|!')
+    lines = ChoiceParameter('lines', '   -/|')
     platforms = BoolParameter('platforms')
     platholes = BoolParameter('platholes')
     platfull  = BoolParameter('platfull')
@@ -132,17 +128,13 @@ class Shape:
             self.holes = 1
 
     def test_density(self, prevlist):
-        fill = ((self.rooms != 0) +
-                (self.walkers != 0) +
-                (self.pegs != 0) +
-                (self.grids != 0) +
-                (self.bouncers != 0) +
-                (self.rivers != 0) +
+        fill = ((self.baseshape != ' ') +
+                (self.rooms != 0) +
                 (self.lines != ' ') +
                 (self.platforms != 0) +
-                2 * (self.mess != ' ') -
+                (self.mess != ' ') +
                 (self.holes != 0))
-        if not (1 <= fill <= 6):
+        if fill not in (1, 2, 3):
             self.reset()
 
     all_tests = [value for (name, value) in locals().items()
@@ -165,32 +157,37 @@ class Shape:
 
         lvl.genwalls = []
 
-        if self.grids:
+        if self.baseshape == 'G':
             lvl.genwalls.append((RandomLevel.grids,
                                  uniform(0.7,0.8),
                                  uniform(0.7,0.8)))
-        if self.pegs:
+        if self.baseshape == 'P':
             lvl.genwalls.append((RandomLevel.pegs,
                                   uniform(0.1,0.2),
                                   uniform(0.45,0.7),
                                   choice([0,1,1,1])))
-        if self.bouncers:
+        if self.baseshape == 'B':
             nr = choice([0,0,1])
             lvl.genwalls.append((RandomLevel.bouncers,
                                  dice(1, 100) + 250 - nr*200, # length
                                  uniform(0.7, 1.7),
                                  nr))
-        if self.walkers:
+        if self.baseshape == 'W':
             nr = dice(1, 3) + 2
             lvl.genwalls.append((RandomLevel.walkers,
                                  dice(2, 100) + 100, # length
                                  nr, nr + dice(2, 3),
                                  choice([0,1])))
-        if self.rivers:
+        if self.baseshape == 'R':
             lvl.genwalls.append((RandomLevel.rivers,
                                  randrange(3,(lvl.WIDTH-4)/4), # the number of rivers
                                  uniform(0.3, 1.4), # the side stepping threshold
                                  10))                # the max side stepping size
+        if self.baseshape == 'Z':
+            lvl.genwalls.append((RandomLevel.zigzag,))
+        if self.baseshape == 'M':
+            lvl.genwalls.append((RandomLevel.mondrian,))
+
         if self.rooms:
             nr = dice(2, 6)
             lvl.genwalls.append((RandomLevel.rooms,
@@ -198,18 +195,15 @@ class Shape:
                                  lambda : uniform(0.8,1.2), # the excentricity of the room
                                  nr))                       # the number of rooms
         if self.lines != ' ':
-            if self.lines == '!':
-                lvl.genwalls.append((RandomLevel.zigzag,))
-            else:
-                rng_angle = {
-                    '-': lambda : 0,
-                    '/': None,    # default
-                    '|': lambda : math.pi/2,
-                    }
-                lvl.genwalls.append((RandomLevel.lines,
-                                      lambda : dice(8,3), # line length
-                                      dice(2,4),          # number of lines
-                                      rng_angle[self.lines]))
+            rng_angle = {
+                '-': lambda : 0,
+                '/': None,    # default
+                '|': lambda : math.pi/2,
+                }
+            lvl.genwalls.append((RandomLevel.lines,
+                                  lambda : dice(8,3), # line length
+                                  dice(2,4),          # number of lines
+                                  rng_angle[self.lines]))
         if self.platforms:
             nplat  = dice(2,4,0)
             if nplat: space  = flat((lvl.HEIGHT-1)/nplat/2,(lvl.HEIGHT-1)/nplat/2-1)
