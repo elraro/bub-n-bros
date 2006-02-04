@@ -601,22 +601,49 @@ class RandomLevel(boarddef.Level):
             self.setw(x,0) 
             self.setw(x,self.HEIGHT)
 
+    def largest_vertical_hole(self, x):
+        "Returns the (start, stop) of the largest range of holes in column x."
+        if not (0 <= x < self.WIDTH):
+            return (0, 0)
+        ranges = []
+        best = 0
+        length = 0
+        for y in range(self.HEIGHT+1):
+            if y < self.HEIGHT and self.wmap[y][x] == ' ':
+                length += 1
+            elif length > 0:
+                if length > best:
+                    del ranges[:]
+                    best = length
+                if length == best:
+                    ranges.append((y-length, y))
+                length = 0
+        return choice(ranges or [(0, 0)])
+
     def dig_vertical_walls(self):
         "Check that no vertical wall spans the whole height of the level"
         vwall = []
         for x in range(self.WIDTH):
-            for y in range(self.HEIGHT):
-                if self.wmap[y][x] == ' ':
-                    break
-            else:
+            spaces = 0
+            for y in range(self.HEIGHT-1):   # ignore bottom line spaces
+                spaces += self.wmap[y][x] == ' '
+            if spaces == 0 or (random() < 0.4**spaces):
                 vwall.append(x)
+        shuffle(vwall)
         for x in vwall:
-            for y in range(0,self.HEIGHT,randint(2,4)):
-                self.clrw(x,y)
-                for dx in range(-1,2):
-                    for dy in range(-1,2):
-                        if choice([0,1]) == 0:
-                            self.clrw(x+dx,y+dy)
+            # look for the longest continuous space in each of the two
+            # adjacent columns, and extend these to the current column
+            def dig(y1, y2):
+                for y in range(y1, y2):
+                    self.clrw(x, y)
+                return y1 < y2 and y1 < self.HEIGHT-1
+            progress = False
+            for col in [x-1, x+1]:
+                y1, y2 = self.largest_vertical_hole(col)
+                progress |= dig(y1, y2)
+            while not progress:
+                progress |= dig(randint(0, self.HEIGHT-1),
+                                randint(0, self.HEIGHT-1))
 
     def do_monsters(self):
         """Create monsters based on the requested settings.
@@ -624,7 +651,6 @@ class RandomLevel(boarddef.Level):
         0: the list of monster to uses (each item might be a tuple)
         1: the rng for the number of monsters to pick in the list.
         """
-        from string import ascii_letters
         current = 'a'
         for ms in self.mlist:
             n_monsters = ms[1]()
