@@ -73,7 +73,8 @@ class Shape:
     mess = ChoiceParameter('mess', '        ....!')
     closed = BoolParameter('closed')
     bonuses = ChoiceParameter('bonuses', range(2**len(Bonuses)))
-    
+    smooth = ChoiceParameter('smooth', range(4))
+
     all_parameters = [name for name in locals().keys()
                       if not name.startswith('_')]
 
@@ -233,9 +234,17 @@ class Shape:
                                  lambda : choice([0,0,0,1]))) # circle or rectangle
         if self.closed:
             lvl.genwalls.append((RandomLevel.close,))
-        lvl.genwalls.append((RandomLevel.generate_wind, ))
+        if self.smooth > 0:
+            # smooth away all lone empty spaces
+            lvl.genwalls.append((RandomLevel.smooth, 1.0, 1))
+            # possibly smooth away some lone bricks
+            if self.smooth == 2:
+                lvl.genwalls.append((RandomLevel.smooth, 0.25, 0))
+            elif self.smooth == 3:
+                lvl.genwalls.append((RandomLevel.smooth, 0.75, 0))
         if random.random() < 0.90:
             lvl.genwalls.append((RandomLevel.startplatform, ))
+        lvl.genwalls.append((RandomLevel.generate_wind, ))
         b = self.bonuses
         for name in Bonuses:
             setattr(lvl, name, b & 1)

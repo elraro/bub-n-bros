@@ -178,6 +178,35 @@ class RandomLevel(boarddef.Level):
                         if self.wmap[y+1][x] == ' ':
                             self.setwind(x,y+1,'x')
 
+    def smooth(self, threshold, rev):
+        """Remove wall blocks that are surrounded by 4 empty places.
+        0: probability which a wall cell is turned into space
+        1: smooth away walls or smooth away empty spaces?
+        """
+        # make a copy of self.wmap and adds '#' at the end of line, for
+        # the overflowing indexing below: [x-1] and [x+1]
+        tmpwmap = [ line + ['#'] for line in self.wmap ]
+        if rev == 0:
+            chr = ' '
+        else:
+            chr = '#'
+        for x in range(self.WIDTH):
+            for y in range(1,self.HEIGHT-1):
+                count = 0
+                if tmpwmap[y+1][x] == chr:
+                    count = count + 1
+                if tmpwmap[y-1][x] == chr:
+                    count = count + 1
+                if tmpwmap[y][x+1] == chr:
+                    count = count + 1
+                if tmpwmap[y][x-1] == chr:
+                    count = count + 1
+                if (count >= 4) and (random() < threshold):
+                    if rev == 0:
+                        self.clrw(x,y)
+                    else:
+                        self.setw(x,y)
+
     def mess(self, threshold):
         """Random fill of the board with walls.
         Only one argument, the probability that
