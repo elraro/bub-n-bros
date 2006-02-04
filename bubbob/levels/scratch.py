@@ -1,5 +1,5 @@
 #
-#  This level file is used when bb.py is started with no argument
+#  An experimental level set.
 #
 
 import boarddef
