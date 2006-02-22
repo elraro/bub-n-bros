@@ -188,14 +188,14 @@ class RandomLevel(boarddef.Level):
                             self.setwind(x,y+1,'x')
         elif gens == 6: # bubbles move next the walls, rotating cw or ccw
             clockwise = choice([0,1])
-            for x in range(self.WIDTH-1):
-                for y in range(self.HEIGHT-1):
+            for x in range(self.WIDTH):
+                for y in range(self.HEIGHT):
                     walld = 0
                     if (y-1 < 0) or (self.wmap[y-1][x] == '#'):
                         walld = walld + 1
-                    if (x+1 > self.WIDTH-2) or (self.wmap[y][x+1] == '#'):
+                    if (x+1 > self.WIDTH-1) or (self.wmap[y][x+1] == '#'):
                         walld = walld + 2
-                    if (y+1 > self.HEIGHT-2) or (self.wmap[y+1][x] == '#'):
+                    if (y+1 > self.HEIGHT-1) or (self.wmap[y+1][x] == '#'):
                         walld = walld + 4
                     if (x-1 < 0) or (self.wmap[y][x-1] == '#'):
                         walld = walld + 8
