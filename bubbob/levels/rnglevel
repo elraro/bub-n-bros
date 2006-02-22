@@ -170,11 +170,15 @@ class RandomLevel(boarddef.Level):
         elif gens == 4: # "normal" wind pattern
             self.wind_sidewalls()
             dx = (self.WIDTH/2)
+            if random() < 0.7:
+                dy = 1 # usual height where bubbles collect
+            else:
+                dy = randint(1, self.HEIGHT-1)
             for x in range(dx-3, dx+3):
-                self.setwind(x,2,'x')
+                self.setwind(x,dy,'x')
             for x in range(dx-2):
-                self.setwind(x,2,'>')
-                self.setwind(self.WIDTH-x,2,'<')
+                self.setwind(x,dy,'>')
+                self.setwind(self.WIDTH-x,dy,'<')
         elif gens == 5: # bubbles are stopped by horizontal walls
             self.wind_sidewalls()
             for x in range(self.WIDTH):
