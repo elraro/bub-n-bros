@@ -103,6 +103,11 @@ class RandomLevel(boarddef.Level):
         self.wmap[y][x] = ' '
         self.fmap[y][x] = 1
 
+    def lockw(self,x,y,c=0):
+        if x > self.WIDTH-1 or x < 0 or y > self.HEIGHT-1 or y < 0:
+            return
+        self.fmap[y][x] = c
+
     def setwind(self,x,y,c=' '):
         if x > self.WIDTH-1 or x < 0 or y > self.HEIGHT-1 or y < 0:
             return
@@ -369,8 +374,7 @@ class RandomLevel(boarddef.Level):
                 self.setw(right,y)
             for x in range(left+1,right):
                 for y in range(top+1,bottom):
-                    if x > 0 and x < self.WIDTH-1 and y > 0 and y < self.HEIGHT-1:
-                        self.fmap[y][x] = 0
+                    self.lockw(x,y)
 
     def holes(self, rng_radius, rng_e, n_holes, rng_rect):
         """Generate a set of holes in the level. It takes four args:
