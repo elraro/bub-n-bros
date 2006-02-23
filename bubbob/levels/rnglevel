@@ -113,6 +113,41 @@ class RandomLevel(boarddef.Level):
             return
         self.windmap[y][x] = c
 
+    def make_space(self, gens=-1):
+        "Removes walls from a level, to make it more playable."
+        if gens == -1:
+            gens = randint(0,30)+1
+        if gens & 1: # top
+            for x in range(self.WIDTH):
+                self.clrw(x,1)
+                if random() < 0.5:
+                    self.clrw(x,2)
+        if gens & 2: # bottom
+            for x in range(self.WIDTH):
+                self.clrw(x,self.HEIGHT-1)
+                if random() < 0.5:
+                    self.clrw(x,self.HEIGHT-2)
+        if gens & 4: # middle
+            y = randint(0,self.HEIGHT/10) + (self.HEIGHT/2)
+            for x in range(self.WIDTH):
+                self.clrw(x,y)
+                if random() < 0.5:
+                    self.clrw(x,y-1)
+                if random() < 0.5:
+                    self.clrw(x,y+1)
+        if gens & 8: # left and right
+            x = randint(0,self.WIDTH/4)
+            for y in range(self.HEIGHT):
+                self.clrw(x,y)
+                self.clrw(x+1,y)
+                self.clrw(self.WIDTH-x,y)
+                self.clrw(self.WIDTH-x-1,y)
+        if gens & 16: # center
+            for y in range(self.HEIGHT):
+                self.clrw(self.WIDTH/2,y)
+                self.clrw((self.WIDTH/2)-1,y)
+                self.clrw((self.WIDTH/2)+1,y)
+
     def generate_wind1(self, rndchoice=1, choices=[' ',' ',' ','x','>','<','^','^','v'], xsize=-1,ysize=-1):
         """Makes a random wind pattern. Parameters:
         0: if 1=randomly select from choices, else select in order
@@ -676,6 +711,29 @@ class RandomLevel(boarddef.Level):
             while not progress:
                 progress |= dig(randint(0, self.HEIGHT-1),
                                 randint(0, self.HEIGHT-1))
+
+    def prevent_straight_fall(self):
+        """Make platforms that prevent falling straight from top to bottom, but
+        still leave space for moving.
+        """
+        falls = []
+        for x in range(self.WIDTH):
+            for y in range(self.HEIGHT):
+                if self.wmap[y][x] == '#':
+                    break
+            else:
+                falls = falls + [x]
+        y = oldy = -10
+        for x in falls:
+            while (y < oldy+2) and (y > oldy-2):
+                y = randint(2, self.HEIGHT-2)
+            for dy in range(y-1,y+2):
+                for dx in range(x-3, x+4):
+                    self.clrw(dx,dy)
+            self.setw(x-1,y)
+            self.setw(x+1,y)
+            self.setw(x,y)
+            oldy = y
 
     def do_monsters(self):
         """Create monsters based on the requested settings.
