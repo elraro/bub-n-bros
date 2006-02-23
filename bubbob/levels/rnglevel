@@ -155,10 +155,12 @@ class RandomLevel(boarddef.Level):
             self.setwind(0,y,'^')
             self.setwind(self.WIDTH-1,y,'^')
 
-    def generate_wind(self):
+    def generate_wind(self, gens = -1):
         """Chooses one of the wind pattern generators and uses that to generate the winds.
+	0: choose what generator to use.
         """
-        gens = choice([1,1,2,3,4,4,4,4,5,6])
+	if gens == -1:
+	    gens = choice([1,1,2,3,4,4,4,4,5,6])
         if gens == 1: # totally random pattern
             self.generate_wind1()
         elif gens == 2: # wind "layers"
