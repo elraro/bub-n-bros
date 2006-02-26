@@ -177,7 +177,7 @@ class RandomLevel(boarddef.Level):
                     choicenum = (choicenum + 1) % len(choices)
                 for dx in range(xsize+1):
                     for dy in range(ysize+1):
-                        self.setwind(x+dx,y+dy,wdir)
+                        self.setwind(x*xsize+dx,y*ysize+dy,wdir)
         # make sure that the special bubbles can come into screen
         for x in range(self.WIDTH):
             self.setwind(x, 0, ' ')
