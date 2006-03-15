@@ -2266,6 +2266,8 @@ class levelFinal(boarddef.Level):
 ##                                ##
 ################    ################
 """ #    []      []      []    # """
+# nb.: the previous line has no purpose
+# other than helping with wall alignment
     
     winds = """
 >>              ^^^^              <<
