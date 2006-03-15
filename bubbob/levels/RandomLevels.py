@@ -72,7 +72,7 @@ class Shape:
     platfull  = BoolParameter('platfull')
     mess = ChoiceParameter('mess', '        ....!')
     closed = BoolParameter('closed')
-    bonuses = ChoiceParameter('bonuses', range(2**len(Bonuses)))
+    bonuses = ChoiceParameter('bonuses', xrange(3**len(Bonuses)))
     smooth = ChoiceParameter('smooth', range(4))
 
     all_parameters = [name for name in locals().keys()
@@ -254,8 +254,8 @@ class Shape:
         lvl.genwalls.append((RandomLevel.generate_wind, ))
         b = self.bonuses
         for name in Bonuses:
-            setattr(lvl, name, b & 1)
-            b = b >> 1
+            setattr(lvl, name, (b % 3) == 1)
+            b = b // 3
         lvl.autogen_shape = self
 
 
