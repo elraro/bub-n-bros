@@ -1375,14 +1375,24 @@ class Chestnut(RandomBonus):
     "Relativity. Speed up or slow down the game."
     nimage = Bonuses.chestnut
     sound = None
-    dilatation = [0.5, 2.0]
-    bigbonus = {'dilatation': [1/3.0, 3.0]}
+    big = 0
+    bigbonus = {'big': 1}
     def taken1(self, dragons):
-        m = self.multiply
-        if m > 2:
-            m = 2
-        boards.set_frametime(random.choice(self.dilatation))
-        BubPlayer.MultiplyerReset = BubPlayer.FrameCounter + 500
+        timeout = 500
+        if not self.big:
+            ft = random.choice([0.5, 2.0])
+            boards.set_frametime(ft)
+            if ft == 2.0:
+                timeout = 430
+        else:
+            if random.randrange(0, 2) == 1:
+                # board slower, players faster
+                boards.set_frametime(2.0, privtime=33)
+            else:
+                # board unchanged, players slower
+                boards.set_frametime(1.0, privtime=250)
+                timeout = 690
+        BubPlayer.MultiplyerReset = BubPlayer.FrameCounter + timeout
         self.play(images.Snd.Fruit)
 
 
@@ -1783,7 +1793,7 @@ Classes = [c for c in globals().values()
 Classes.remove(RandomBonus)
 Classes.remove(TemporaryBonus)
 Cheat = []
-#Classes = [Donut, Cactus]  # CHEAT
+#Classes = [Chestnut, Cactus]  # CHEAT
 
 AllOutcomes = ([(c,) for c in Classes if c is not Fruits] +
                2 * [(MonsterBonus, lvl)

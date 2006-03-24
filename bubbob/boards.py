@@ -593,9 +593,10 @@ def next_board(num=0, complete=1):
         gen = normal_play
     BoardGen[0] = gen()
 
-def set_frametime(ft):
+def set_frametime(ft, privtime=100):
     from player import BubPlayer
     BubPlayer.BaseFrametime = ft
+    BubPlayer.PlayersPrivateTime = privtime
     images.loadsounds(1.0 / ft)
 
 def extra_boardgen(gen, at_end=0):

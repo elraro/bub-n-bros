@@ -156,6 +156,7 @@ class Dragon(ActiveSprite):
         hfp = 0
         angryticks = 0
         mytime = 0
+        privatetime = 0
         while 1:
             self.poplist = [self]
             carrying = self.dcap['carrying']
@@ -386,10 +387,13 @@ class Dragon(ActiveSprite):
                 icons = icobubber.transformedicons[imgtransform] = {}
                 icobubber.loadicons(imgtransform)
             self.seticon(icons[mode, dir])
-
             self.watermoveable = not wannajump
-            yield None
-            
+
+            privatetime += BubPlayer.PlayersPrivateTime
+            while privatetime >= 100:
+                yield None
+                privatetime -= 100
+
             if self.angry:
                 if angryticks == 0:
                     s = ActiveSprite(icons[11, self.dir], self.x, self.y)
@@ -513,6 +517,7 @@ class BubPlayer(gamesrv.Player):
     LimitScore = 0
     LimitScoreColor = None
     LimitTime = None
+    PlayersPrivateTime = 100
     #HighScore = 0
     #HighScoreColor = None
 
