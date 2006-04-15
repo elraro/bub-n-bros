@@ -6,7 +6,7 @@ from metastruct import *
 METASERVER = ('codespeak.net', 8055)
 METASERVER_UDP = ('codespeak.net', 8055)
 METASERVER_URL = 'http://codespeak.net:8050/bub-n-bros.html'
-VERSION_TAG = 1501
+VERSION_TAG = 1502
 
 def connect(failure=[]):
     if len(failure) >= 2:
@@ -331,7 +331,7 @@ class MetaClientCli:
                 if msg is not None:
                     if msg[0] == RMSG_UDP_ADDR:
                         if len(msg) > 2:
-                            self.gotudpport = int(msg[2])
+                            self.gotudpport = msg[1], int(msg[2])
                         continue
                     self.inputmsgqueue.append(msg)
                     return
@@ -389,17 +389,19 @@ class MetaClientCli:
                 self._readnextmsg(blocking=False)
                 if self.gotudpport:
                     PORTS['*udpsock*'] = s, self.gotudpport
-                    if self.gotudpport != s.getsockname()[1]:
-                        print >> sys.stderr, ('udp port %d is visible from '
-                                              'outside on port %d' % (
-                            s.getsockname()[1],
-                            self.gotudpport))
+                    print >> sys.stderr, ('udp port %d is visible from '
+                                          'outside on %s:%d' % (
+                        s.getsockname()[1],
+                        self.gotudpport[0], self.gotudpport[1]))
                     break
         finally:
             self.ev2.signal()
 
 
 def meta_connect(serverkey, backconnectport=None):
+    global METASERVER
+    if PORTS.get('SSH_RELAY'):
+        METASERVER = PORTS['SSH_RELAY']
     c = MetaClientCli(serverkey, backconnectport)
     s = c.run()
     c.done()

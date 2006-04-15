@@ -547,8 +547,13 @@ def patget(n, keycol=None):
 def get_lives():
     return gamesrv.game.limitlives
 
+def do_nothing():
+    while True:
+        yield 5
+
 BoardList = []
 curboard = None
+BoardGen = [do_nothing()]
 
 def next_board(num=0, complete=1):
     yield force_singlegen()

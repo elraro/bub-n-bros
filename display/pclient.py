@@ -481,21 +481,24 @@ class Playfield:
             return None
 
     def startplaying(self):
+        args = ()
         if self.udp_over_tcp is not None:
             port = MSG_INLINE_FRAME
         else:
             if '*udpsock*' in PORTS:
-                self.udpsock, port = PORTS['*udpsock*']
+                self.udpsock, (host, port) = PORTS['*udpsock*']
+                args = (host,)
             else:
                 self.udpsock = socket(AF_INET, SOCK_DGRAM)
                 self.udpsock.bind(('', PORTS.get('CLIENT', INADDR_ANY)))
                 host, port = self.udpsock.getsockname()
+            # Send a dummy UDP message to the server.  Some NATs will
+            # then let through the UDP messages from the server.
+            self.udpsock.sendto('.', self.s.getpeername())
             self.iwtd.append(self.udpsock)
             self.initial_iwtd.append(self.udpsock)
         if 'sendudpto' in PORTS:
             args = (PORTS['sendudpto'],)
-        else:
-            args = ()
         self.s.sendall(message(CMSG_UDP_PORT, port, *args))
         if self.snd and self.snd.has_music:
             self.s.sendall(message(CMSG_ENABLE_MUSIC, 1))
