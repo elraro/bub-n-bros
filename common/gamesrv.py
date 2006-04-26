@@ -1257,7 +1257,13 @@ def mainloop():
         else:
           delay = SERVER_SHUTDOWN or 5.0
         iwtd = serversockets.keys()
-        iwtd, owtd, ewtd = select(iwtd, [], iwtd, delay)
+        try:
+          iwtd, owtd, ewtd = select(iwtd, [], iwtd, delay)
+        except Exception, e:
+          from select import error as select_error
+          if not isinstance(e, select_error):
+            raise
+          iwtd, owtd, ewtd = [], [], []
         if ewtd:
           if game:
             game.socketerrors(ewtd)
