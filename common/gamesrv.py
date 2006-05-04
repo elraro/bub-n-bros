@@ -686,7 +686,7 @@ then use the following address:
 
   def set_udp_port(self, port, addr=None, *rest):
     if port == MSG_BROADCAST_PORT:
-      #self.log('set_udp_port: broadcast')
+      self.log('set_udp_port: broadcast')
       broadcast_clients[self] = 1
       #print "++++ Broadcasting ++++ to", self.addr
     else:
@@ -700,7 +700,7 @@ then use the following address:
         import udpovertcp
         self.udpsocket = udpovertcp.SocketMarshaller(self.socket, self)
         s = self.udpsocket.tcpsock
-        #self.log('set_udp_port: udp-over-tcp')
+        self.log('set_udp_port: udp-over-tcp')
       else:
         self.udpsocket = socket(AF_INET, SOCK_DGRAM)
         self.udpsocket.setblocking(0)
@@ -715,7 +715,7 @@ then use the following address:
           if self.proto >= 3:
             self.setup_dyncompress()
         s = self.udpsocket
-        #self.log('set_udp_port: %d' % port)
+        self.log('set_udp_port: %s:%d' % (addr, port))
       if s:
         try:
           s.setsockopt(SOL_IP, IP_TOS, 0x10)  # IPTOS_LOWDELAY
