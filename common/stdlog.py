@@ -69,6 +69,10 @@ class LogFile:
         if self._check():
             self.f.writelines(data)
 
+    def flush(self):
+        if self._check():
+            self.f.flush()
+
 
 class Logger:
     stdout_captured = 0
@@ -96,3 +100,7 @@ class Logger:
     def writelines(self, data):
         for f in self.targets:
             f.writelines(data)
+
+    def flush(self):
+        for f in self.targets:
+            f.flush()
