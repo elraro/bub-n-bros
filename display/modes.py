@@ -176,7 +176,8 @@ def open_snd(mode):
     if snd.has_sound:
         sinfo.options['music'] = 'yes'
         sinfo.setoptions(extraopts)
-        if sinfo.options['music'].startswith('n'):
+        if (sinfo.options['music'].startswith('n') or
+            sinfo.options['music'] == 'off'):
             snd.has_music = 0
         print 'sound driver:', sinfo.currentdriver()
         return snd

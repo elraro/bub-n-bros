@@ -31,30 +31,31 @@ class Bubble(ActiveSprite):
     catch_dragons = None
     nimages = GreenAndBlue.normal_bubbles
 
-    def touched(self, dragon):
+    def touched(self, dragon, rect=None):
+        dx, dy, _, _ = rect or (dragon.x, dragon.y, 0, 0)
         o = []
-        if abs(self.x - dragon.x) >= 25:
-            if self.x < dragon.x:
+        if abs(self.x - dx) >= 25:
+            if self.x < dx:
                 o.append((1,0))
             else:
                 o.append((-1,0))
-        if abs(self.y - dragon.y) >= 25:
-            if self.y < dragon.y:
+        if abs(self.y - dy) >= 25:
+            if self.y < dy:
                 o.append((0,1))
             else:
                 o.append((0,-1))
         if o:
             self.obstacle = o
-        elif (self.catch_dragons and
-              abs(self.x - dragon.x) < 15 and abs(self.y - dragon.y) < 15):
+        elif (self.catch_dragons and not rect and
+              abs(self.x - dx) < 15 and abs(self.y - dy) < 15):
             if dragon not in self.catch_dragons:
                 self.catch_dragons.append(dragon)
         elif not self.pop(dragon.poplist):
-            if self.x < dragon.x:
+            if self.x < dx:
                 o.append((1,0))
             else:
                 o.append((-1,0))
-            if self.y < dragon.y:
+            if self.y < dy:
                 o.append((0,1))
             else:
                 o.append((0,-1))

@@ -151,6 +151,9 @@ class Dragon(ActiveSprite):
 ##        self.dir = -self.dir
 ##        self.dcap['left2right'] *= -1
 
+    def monstervisible(self):
+        return not self.dcap['ring'] and not self.dcap['shield']
+
     def normal_movements(self):
         yfp = 0.0
         hfp = 0
@@ -501,9 +504,12 @@ class Dragon(ActiveSprite):
                 self.dcap['autofire'] -= 1
         if not thrustfactors:
             thrustfactors = [None] * len(angles)
+        import bonuses
         for angle, thrustfactor in zip(angles, thrustfactors):
-            bubbles.DragonBubble(self, x + 4*dir, self.y, dir,
-                                 special_bubbles, angle, thrustfactor)
+            args = (self, x + 4*dir, self.y, dir,
+                    special_bubbles, angle, thrustfactor)
+            bonuses.record_shot(args, self.dcap['shootthrust'])
+            bubbles.DragonBubble(*args)
         #else:
         #    from monsters import DragonShot
         #    DragonShot(self)

@@ -69,16 +69,16 @@ class Board(Copyable):
             x, y, ico = xyicolist.pop()
             sprlist.append(gamesrv.Sprite(ico, x, y))
 
-    def enter(self, complete=1, inplace=0):
+    def enter(self, complete=1, inplace=0, fastreenter=0):
         global curboard
-        if inplace:
+        if inplace or fastreenter:
             print "Re -",
         print "Entering board", self.num+1
         self.set_musics()
         # add board walls
         l = self.sprites.setdefault('walls', [])
         bl = self.sprites.setdefault('borderwalls', [])
-        if inplace:
+        if inplace or fastreenter:
             deltay = 0
         else:
             deltay = bheight
@@ -176,13 +176,14 @@ class Board(Copyable):
             return
         # add players
         from player import BubPlayer, scoreboard
-        if not inplace:
+        if not inplace and not fastreenter:
             random.shuffle(BubPlayer.PlayerList)
         scoreboard(1, inplace=inplace)
         playing = []
         for p in BubPlayer.PlayerList:
             if p.isplaying():
-                p.enterboard(playing)
+                if not fastreenter:
+                    p.enterboard(playing)
                 p.zarkon()
                 playing.append(p)
         # add monsters
@@ -555,7 +556,7 @@ BoardList = []
 curboard = None
 BoardGen = [do_nothing()]
 
-def next_board(num=0, complete=1):
+def next_board(num=0, complete=1, fastreenter=False):
     yield force_singlegen()
     set_frametime(1.0)
     brd = curboard
@@ -563,33 +564,38 @@ def next_board(num=0, complete=1):
     if brd:
         inplace = brd.bonuslevel
         num = brd.num
-        if not brd.bonuslevel:
+        if not brd.bonuslevel and not fastreenter:
             num += gamesrv.game.stepboard
             if num >= len(BoardList):
                 num = len(BoardList)-1
+        if fastreenter:
+            factor = 0.0
+        else:
+            factor = 1.0
         for t in brd.leave(inplace=inplace):
-            yield t
+            yield t * factor
 
     # reset global board state
     from player import BubPlayer
     BubPlayer.__dict__.update(BubPlayer.INIT_BOARD_CAP)
     if not inplace:
         del BubPlayer.MonsterList[:]
-        # wait for at least one player
-        for t in wait_for_one_player():
-            yield t
-        # reload modules if changed
-        if loadmodules():
-            import boards
-            boards.BoardGen = [boards.next_board(num)]
-            return
+        if not fastreenter:
+            # wait for at least one player
+            for t in wait_for_one_player():
+                yield t
+            # reload modules if changed
+            if loadmodules():
+                import boards
+                boards.BoardGen = [boards.next_board(num)]
+                return
 
     if num < 0:
         num = 0
     elif num >= len(BoardList):
         num = len(BoardList)-1
     brd = BoardList[num](num)
-    for t in brd.enter(complete, inplace=inplace):
+    for t in brd.enter(complete, inplace=inplace, fastreenter=fastreenter):
         yield t
 
     if brd.bonuslevel:
@@ -675,15 +681,10 @@ def normal_frame():
 def normal_play():
     from player import BubPlayer
     import bonuses
-    import bubbles
     framecounter = 0
+    bonus_callback = bonuses.start_normal_play()
     while BubPlayer.MonsterList:
-        if random.random() < 0.04:
-            bonuses.cheatnew()
-            if random.random() < 0.15:
-                bonuses.newbonus()
-            else:
-                bubbles.newbubble()
+        bonus_callback()
         yield normal_frame()
         if not BubPlayer.DragonList:
             continue

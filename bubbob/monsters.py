@@ -46,11 +46,10 @@ class Monster(ActiveSprite):
         self.unlist()
         ActiveSprite.kill(self)
 
-    def tagdragon(self):
-        dragons = [d for d in BubPlayer.DragonList
-                   if not d.dcap['ring'] and not d.dcap['shield']]
-        if dragons:
-            return random.choice(dragons)
+    def tagdragonpos(self):
+        poslist = bonuses.getvisibledragonposlist()
+        if poslist:
+            return random.choice(poslist)
         else:
             return None
 
@@ -149,22 +148,26 @@ class Monster(ActiveSprite):
         else:
             self.gen.append(self.falling())
 
-    def seedragon(self, p=None):
-        p = p or self.tagdragon()
-        return p and abs(p.y - self.y) < 16 and self.dir*(p.x-self.x) > 0
+    def seedragon(self, pos=None):
+        pos = pos or self.tagdragonpos()
+        if pos is None:
+            return False
+        px, py = pos
+        return abs(py - self.y) < 16 and self.dir*(px-self.x) > 0
 
     def special(self):
-        p = self.tagdragon()
-        if p is None:
+        pos = self.tagdragonpos()
+        if pos is None:
             return 0
-        if self.seedragon(p) and self.shoot():
+        if self.seedragon(pos) and self.shoot():
             return 1
-        if p.y < self.y-CELL:#and abs(p.x-self.x) < 2*(self.y-p.y):
+        px, py = pos
+        if py < self.y-CELL:#and abs(px-self.x) < 2*(self.y-py):
             for testy in range(self.y-2*CELL, self.y-6*CELL, -CELL):
                 if onground(self.x, testy):
                     if random.random() < 0.5:
                         ndir = self.dir
-                    elif p.x < self.x:
+                    elif px < self.x:
                         ndir = -1
                     else:
                         ndir = 1
@@ -372,7 +375,7 @@ class Monster(ActiveSprite):
     def back_to_dragon(self):
         for t in range(259):
             yield None
-            if BubPlayer.DragonList:
+            if bonuses.getdragonposlist():
                 yield None
                 yield None
                 yield None
@@ -496,20 +499,21 @@ class Monster(ActiveSprite):
         while counter < 5:
             for i in range(50):
                 yield None
-            d = self.tagdragon()
-            if d is None:
+            pos = self.tagdragonpos()
+            if pos is None:
                 counter += 1
             else:
+                px, py = pos
                 counter = 0
-                if abs(d.x-self.x) < abs(d.y-self.y):
+                if abs(px-self.x) < abs(py-self.y):
                     dx = 0
-                    if d.y > self.y:
+                    if py > self.y:
                         dy = 1
                     else:
                         dy = -1
                 else:
                     dy = 0
-                    if d.x > self.x:
+                    if px > self.x:
                         dx = 1
                     else:
                         dx = -1
@@ -522,7 +526,7 @@ class Monster(ActiveSprite):
                     self.angry = []
                     self.step(dx, dy)
                     yield None
-                    dist1 = (d.x-self.x)*(d.x-self.x)+(d.y-self.y)*(d.y-self.y)
+                    dist1 = (px-self.x)*(px-self.x)+(py-self.y)*(py-self.y)
                     if dist1 > distance:
                         break
                     distance = dist1
@@ -741,7 +745,7 @@ class Blitzy(Monster):
     shootcls = DownShot
     vx = 3
 
-    def seedragon(self, p=None):
+    def seedragon(self, pos=None):
         return 0
 
     def special(self):

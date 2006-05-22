@@ -1,5 +1,6 @@
 from __future__ import generators
 import random, os, math
+import random as random_module
 import gamesrv
 import images
 import boards
@@ -58,11 +59,13 @@ class Bonus(ActiveSprite):
         if self.timeout:
             self.kill()
 
-    def touched(self, dragon):
-        if (dragon.x + dragon.ico.w > self.x + 10   and
-            dragon.y + dragon.ico.h > self.y + 8    and
-            self.x + self.ico.w     > dragon.x + 10 and
-            self.y + self.ico.h     > dragon.y + 10):
+    def touched(self, dragon, rect=None):
+        dx, dy, dw, dh = (rect or
+                          (dragon.x, dragon.y, dragon.ico.w, dragon.ico.h))
+        if (dx + dw > self.x + 10 and
+            dy + dh > self.y + 8  and
+            self.x + self.ico.w > dx + 10 and
+            self.y + self.ico.h > dy + 10):
             if not self.taken_by:
                 self.gen = [self.taking()]
                 sound = self.sound
@@ -238,7 +241,7 @@ class Parabolic2(Parabolic):
         if len(imglist) > 1:
             self.setimages(self.cyclic(imglist, imgspeed))
 
-    def touched(self, dragon):
+    def touched(self, dragon, rect=None):
         if self.points:
             points(self.x + self.ico.w/2, self.y + self.ico.h/2 - CELL,
                    dragon, self.points)
@@ -269,7 +272,7 @@ class BonusMaker(Parabolic2):
         else:
             return cls(self.x, self.y, *args)
 
-    def touched(self, dragon):
+    def touched(self, dragon, rect=None):
         pass
 
     def in_bubble(self, bubble):
@@ -688,6 +691,8 @@ class Cactus(RandomBonus):
             if self.extra_cheat_arg:
                 cls = globals()[self.extra_cheat_arg]
                 self.extra_cheat_arg = None
+            elif bigclockticker and bigclockticker.state == 'pre':
+                cls = Clock
             else:
                 cls = random.choice(Classes)
             if makecactusbonus(cls):
@@ -700,11 +705,13 @@ OFFSCREEN = -3*CELL
 def makecactusbonus(cls, *args):
     bonus = cls(OFFSCREEN, 0, *args)
     if not bonus.alive or getattr(bonus, 'bigbonus', None) is None:
+        if bonus.alive:
+            bonus.kill()
         return None
     bonus.__dict__.update(bonus.bigbonus)
     bonus.untouchable()
     bonus.gen = []
-    mb = Cactusbonus(0, -3*CELL, 'cactus', 10000) # temp image
+    mb = Cactusbonus(0, -3*CELL, 'cactus', cls!=Clock and 10000) # temp image
     mb.outcome = (cls,) + args
     mb.outcome_image = bonus.nimage
     mb.bonus = bonus
@@ -741,8 +748,10 @@ class Cactusbonus(Megabonus):
             x = self.x + self.ico.w//2 - CELL
             y = self.y + self.ico.h//2 - CELL
             self.bonus.move(x, y)
-            self.bonus.taken1(d1)
+            res = self.bonus.taken1(d1)
             self.bonus.kill()
+            self.untouchable()
+            return res
 
     def kill(self):
         Megabonus.kill(self)
@@ -1400,6 +1409,7 @@ try:
     import statesaver
 except ImportError:
     print "'statesaver' module not compiled, no clock bonus"
+    Clock = None
 else:
     import new
     def standard_build(self):
@@ -1458,14 +1468,21 @@ else:
         touchable = 0
         points = 0
         nimage = Bonuses.clock
+        ticker = None
         def __init__(self, x, y):
             RandomBonus.__init__(self, -boards.bwidth, 0)
             #print "starting clock"
             self.savedstate = None
             self.savedscreens = []
+            if bigclockticker and bigclockticker.state == 'pre':
+                self.bigbonus = {'ticker': bigclockticker}
+                bigclockticker.state == 'seen'
             self.gen = [self.delayed_show()]
-            boards.extra_boardgen(self.state_saver())
         def delayed_show(self):
+            if bigclockticker:
+                self.kill()   # confusion between the two levels of saving
+                return
+            boards.extra_boardgen(self.state_saver())
             for i in range(10):
                 yield None
             if self.savedstate is not None:
@@ -1480,6 +1497,8 @@ else:
                     return
             self.kill()
         def taken1(self, dragons):
+            if self.ticker:
+                return self.ticker.taken()
             savedstate = self.savedstate
             self.savedstate = None
             if savedstate is not None:
@@ -1534,6 +1553,126 @@ else:
             restoregamestate(savedstate)
             scoreboard()
             yield 2.5
+
+    class BigClockTicker:
+        dragonposlist = None
+        localrandom = random_module.Random()
+
+        def __init__(self):
+            global random
+            random = random_module.Random()
+            self.state = 'pre'
+            self.randombase1 = hash(random_module.random()) * 914971L
+            self.randombase2 = hash(random_module.random()) * 914971L
+            self.saved = []
+            self.firstframecounter = BubPlayer.FrameCounter
+            self.saved_bubber = {}
+            self.shoots1 = []
+            for p in BubPlayer.PlayerList:
+                self.saved_bubber[p] = p.points, p.lives, p.letters.copy()
+            random.seed(self.randombase1)
+            random_module.seed(self.randombase2)
+
+        def common_tick(self, tick, dragonlist):
+            self.dragonposlist = dragonlist
+            random.seed(self.randombase1 - tick)
+            random_module.seed(self.randombase2 - tick)
+            bonus_frame_tick()
+            random.seed(self.randombase1 + tick)
+            random_module.seed(self.randombase2 + tick)
+
+        def frame_tick(self):
+            from player import Dragon
+            from bubbles import DragonBubble
+            tick = len(self.saved) + 1000
+            dragonlist = []
+            for bubber in BubPlayer.PlayerList:
+                if bubber.isplaying():
+                    for d in bubber.dragons:
+                        if isinstance(d, Dragon):
+                            if d.monstervisible():
+                                flag = 'visible'
+                            elif d.dcap['infinite_shield']:
+                                continue
+                            else:
+                                flag = 'hidden'
+                        else:
+                            flag = 'other'
+                        dragonlist.append((d.x, d.y, d.ico, flag, d.bubber))
+            self.common_tick(tick, dragonlist)
+            self.shoots1 = []
+            self.saved.append((tick, dragonlist, self.shoots1))
+
+        def taken(self):
+            self.state = 'restoring'
+            replace_boardgen(self.blink_board())
+            return -1
+
+        def blink_board(self):
+            self.frame_tick()
+            for i in range(7):
+                for s in gamesrv.sprites_by_n.values():
+                    s.setdisplaypos(s.x, s.y)
+                yield 6.0
+                for s in gamesrv.sprites_by_n.values():
+                    if isinstance(s, Cactusbonus) and not s.touchable:
+                        continue
+                    s.setdisplaypos(-2*s.ico.w, -2*s.ico.h)
+                yield 6.0
+            replace_boardgen(next_board(fastreenter=True), 1)
+
+        def restore(self):
+            self.state = 'post'
+            for p in self.saved_bubber:
+                p.points, p.lives, p.letters = self.saved_bubber[p]
+            BubPlayer.FrameCounter = self.firstframecounter
+            random.seed(self.randombase1)
+            random_module.seed(self.randombase2)
+            self.saved.reverse()
+            self.extrasprites = []
+
+        def restore_frame_tick(self):
+            from bubbles import Bubble, DragonBubble
+            from player import Dragon
+            def ghost(x, y, ico):
+                try:
+                    s = extras.next()
+                except StopIteration:
+                    s = gamesrv.Sprite(ico, x, y)
+                else:
+                    s.move(x, y, ico)
+                self.extrasprites.append(s)
+
+            extras = iter([s for s in self.extrasprites if s.alive])
+            self.extrasprites = []
+            if self.saved:
+                tick, dragonlist, shoots1 = self.saved.pop()
+                self.common_tick(tick, dragonlist)
+                for x, y, ico, flag, bubber in dragonlist:
+                    ghost(x, y, images.make_darker(ico, True))
+                    if flag != 'other':
+                        touching = images.touching(x+1, y+1, 30, 30)
+                        touching.reverse()
+                        for s in touching:
+                            if isinstance(s, (Bonus, Parabolic2, Bubble)):
+                                dragons = [d for d in bubber.dragons
+                                           if isinstance(d, Dragon)]
+                                if dragons:
+                                    rect = (x, y, ico.w, ico.h)
+                                    s.touched(self.localrandom.choice(dragons),
+                                              rect)
+
+                for args, shootthrust in shoots1:
+                    dragon = args[0]
+                    dragon.dcap['shootthrust'] = shootthrust
+                    DragonBubble(*args)
+            else:
+                self.dragonposlist = None
+                bonus_frame_tick()
+            for s in extras:
+                s.kill()
+
+    bigclockticker = None
 
 class MultiStones(RandomBonus):
     "Gems. Very demanded stones. It will take time to pick it up."
@@ -1793,7 +1932,7 @@ Classes = [c for c in globals().values()
 Classes.remove(RandomBonus)
 Classes.remove(TemporaryBonus)
 Cheat = []
-#Classes = [Chestnut, Cactus]  # CHEAT
+#Classes = [Clock, Cactus, Bomb]  # CHEAT
 
 AllOutcomes = ([(c,) for c in Classes if c is not Fruits] +
                2 * [(MonsterBonus, lvl)
@@ -1802,7 +1941,29 @@ AllOutcomes = ([(c,) for c in Classes if c is not Fruits] +
 for c in Classes:
     assert (getattr(c, 'points', 0) or 100) in GreenAndBlue.points[0], c
 
+def getdragonposlist():
+    if bigclockticker and bigclockticker.dragonposlist is not None:
+        return [(x, y)
+                for (x, y, ico, flag, bubber) in bigclockticker.dragonposlist
+                if flag != 'other']
+    else:
+        return [(d.x, d.y) for d in BubPlayer.DragonList]
+
+def getvisibledragonposlist():
+    if bigclockticker and bigclockticker.dragonposlist is not None:
+        return [(x, y)
+                for (x, y, ico, flag, bubber) in bigclockticker.dragonposlist
+                if flag == 'visible']
+    else:
+        return [(d.x, d.y) for d in BubPlayer.DragonList if d.monstervisible()]
+
+def record_shot(args, shootthrust):
+    if bigclockticker and bigclockticker.state != 'post':
+        bigclockticker.shoots1.append((args, shootthrust))
+
+
 def chooseground(tries=15):
+    avoidlist = getdragonposlist()
     for i in range(tries):
         x0 = random.randint(2, boards.width-4)
         y0 = random.randint(1, boards.height-3)
@@ -1810,8 +1971,8 @@ def chooseground(tries=15):
             '#' == bget(x0,y0+2) == bget(x0+1,y0+2)):
             x0 *= CELL
             y0 *= CELL
-            for d in BubPlayer.DragonList:
-                if abs(d.x-x0) < 3*CELL and abs(d.y-y0) < 3*CELL:
+            for dx, dy in avoidlist:
+                if abs(dx-x0) < 3*CELL and abs(dy-y0) < 3*CELL:
                     break
             else:
                 return x0, y0
@@ -1852,6 +2013,28 @@ def cheatnew():
                 extra_cheat_arg = cls[1]
             cls = (C,)
         cls[0](x, y)
+
+def bonus_frame_tick():
+    if random.random() < 0.04:
+        cheatnew()
+        if random.random() < 0.15:
+            newbonus()
+        else:
+            import bubbles
+            bubbles.newbubble()
+
+def start_normal_play():
+    global bigclockticker
+    if bigclockticker and bigclockticker.state == 'restoring':
+        bigclockticker.restore()
+        return bigclockticker.restore_frame_tick
+    if (Clock and not boards.curboard.bonuslevel and
+        random.choice(Classes) is Clock):
+        bigclockticker = BigClockTicker()
+        return bigclockticker.frame_tick
+    else:
+        bigclockticker = None
+        return bonus_frame_tick
 
 # hack hack hack!
 def __cheat(c):
