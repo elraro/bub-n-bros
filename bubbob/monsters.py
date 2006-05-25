@@ -46,10 +46,10 @@ class Monster(ActiveSprite):
         self.unlist()
         ActiveSprite.kill(self)
 
-    def tagdragonpos(self):
-        poslist = bonuses.getvisibledragonposlist()
-        if poslist:
-            return random.choice(poslist)
+    def tagdragon(self):
+        lst = bonuses.getvisibledragonlist()
+        if lst:
+            return random.choice(lst)
         else:
             return None
 
@@ -148,26 +148,25 @@ class Monster(ActiveSprite):
         else:
             self.gen.append(self.falling())
 
-    def seedragon(self, pos=None):
-        pos = pos or self.tagdragonpos()
-        if pos is None:
+    def seedragon(self, dragon=None):
+        dragon = dragon or self.tagdragon()
+        if dragon is None:
             return False
-        px, py = pos
-        return abs(py - self.y) < 16 and self.dir*(px-self.x) > 0
+        return abs(dragon.y - self.y) < 16 and self.dir*(dragon.x-self.x) > 0
 
     def special(self):
-        pos = self.tagdragonpos()
-        if pos is None:
+        dragon = self.tagdragon()
+        if dragon is None:
             return 0
-        if self.seedragon(pos) and self.shoot():
+        if self.seedragon(dragon) and self.shoot():
             return 1
-        px, py = pos
-        if py < self.y-CELL:#and abs(px-self.x) < 2*(self.y-py):
+        if dragon.y < self.y-CELL:
+           #and abs(dragon.x-self.x) < 2*(self.y-dragon.y):
             for testy in range(self.y-2*CELL, self.y-6*CELL, -CELL):
                 if onground(self.x, testy):
                     if random.random() < 0.5:
                         ndir = self.dir
-                    elif px < self.x:
+                    elif dragon.x < self.x:
                         ndir = -1
                     else:
                         ndir = 1
@@ -375,7 +374,7 @@ class Monster(ActiveSprite):
     def back_to_dragon(self):
         for t in range(259):
             yield None
-            if bonuses.getdragonposlist():
+            if bonuses.getdragonlist():
                 yield None
                 yield None
                 yield None
@@ -499,12 +498,12 @@ class Monster(ActiveSprite):
         while counter < 5:
             for i in range(50):
                 yield None
-            pos = self.tagdragonpos()
-            if pos is None:
+            dragon = self.tagdragon()
+            if dragon is None:
                 counter += 1
             else:
-                px, py = pos
                 counter = 0
+                px, py = dragon.x, dragon.y
                 if abs(px-self.x) < abs(py-self.y):
                     dx = 0
                     if py > self.y:
@@ -745,7 +744,7 @@ class Blitzy(Monster):
     shootcls = DownShot
     vx = 3
 
-    def seedragon(self, pos=None):
+    def seedragon(self, dragon=None):
         return 0
 
     def special(self):

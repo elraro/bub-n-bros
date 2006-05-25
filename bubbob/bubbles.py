@@ -31,8 +31,8 @@ class Bubble(ActiveSprite):
     catch_dragons = None
     nimages = GreenAndBlue.normal_bubbles
 
-    def touched(self, dragon, rect=None):
-        dx, dy, _, _ = rect or (dragon.x, dragon.y, 0, 0)
+    def touched(self, dragon):
+        dx, dy = dragon.x, dragon.y
         o = []
         if abs(self.x - dx) >= 25:
             if self.x < dx:
@@ -46,11 +46,11 @@ class Bubble(ActiveSprite):
                 o.append((0,-1))
         if o:
             self.obstacle = o
-        elif (self.catch_dragons and not rect and
+        elif (self.catch_dragons and
               abs(self.x - dx) < 15 and abs(self.y - dy) < 15):
             if dragon not in self.catch_dragons:
                 self.catch_dragons.append(dragon)
-        elif not self.pop(dragon.poplist):
+        elif not self.pop(getattr(dragon, 'poplist', None)):
             if self.x < dx:
                 o.append((1,0))
             else:
@@ -69,12 +69,13 @@ class Bubble(ActiveSprite):
         self.gen.append(self.catching_dragons())
 
     def catching_dragons(self):
+        from player import Dragon
         yield None   # time to catch several dragons
-        dragons = self.catch_dragons
+        dragons = [d for d in self.catch_dragons if isinstance(d, Dragon)]
         self.catch_dragons = None
-        author = dragons.pop(0)
-        if dragons:
+        if len(dragons) >= 2:
             import bonuses
+            author = dragons.pop(0)
             imglist = [self.nimages[d.dcap.get('bubbericons', 
                                                d.bubber).pn][i]
                        for d in dragons for i in [1,2,1,0]]
@@ -953,14 +954,13 @@ class SpinningBall(ActiveSprite):
 
 class StarBubble(BonusBubble):
     timeout = 250
-    names = [k for k in Stars.__dict__.keys() if not k.startswith('_')]
     def __init__(self, pn):
-        self.colorname = random.choice(StarBubble.names)
+        self.colorname = random.choice(Stars.COLORS)
         BonusBubble.__init__(self, pn, [('starbub', self.colorname, i)
                                         for i in range(3)])
 ##    def __init__(self, pn):
 ##        BonusBubble.__init__(self, pn)
-##        self.colorname = random.choice(StarBubble.names)
+##        self.colorname = random.choice(Stars.COLORS)
 ##        starimg = [('smstar', self.colorname, 0),
 ##                   ('smstar', self.colorname, 1)]
 ##        smallstar = ActiveSprite(images.sprget(starimg[-1]),

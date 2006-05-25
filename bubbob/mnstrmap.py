@@ -264,6 +264,7 @@ class Stars:
     green   = nrange(946,2)
     magenta = nrange(948,2)
     cyan    = nrange(950,2)
+    COLORS  = ['blue', 'yellow', 'red', 'green', 'magenta', 'cyan']
 
 class SpinningBalls:
     free = nrange(482,4)
