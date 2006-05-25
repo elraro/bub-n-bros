@@ -922,9 +922,10 @@ def skiplevels(blink, skip):
 
 def exit_board(delay=8, music=None, repeatmusic=[]):
     from bubbles import Bubble
-    from bonuses import RandomBonus
+    from bonuses import RandomBonus, end_normal_play
     from player import BubPlayer
     from monsters import Monster
+    end_normal_play()
     curboard.playingboard = 0
     actives = images.ActiveSprites[:]
     for s in actives:

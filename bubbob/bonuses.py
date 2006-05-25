@@ -1853,13 +1853,16 @@ else:
                     dragon.dcap['shootthrust'] = shootthrust
                     DragonBubble(*args)
             else:
-                if self.latest_entries:
-                    images.Snd.Shh.play()
-                    for d, ghost in self.latest_entries.items():
-                        ghost.disintegrate()
-                    self.latest_entries.clear()
-                self.dragonlist = None
+                self.flush_ghosts()
                 bonus_frame_tick()
+
+        def flush_ghosts(self):
+            if self.latest_entries:
+                images.Snd.Shh.play()
+                for d, ghost in self.latest_entries.items():
+                    ghost.disintegrate()
+                self.latest_entries.clear()
+            self.dragonlist = None
 
     bigclockticker = None
 
@@ -2222,6 +2225,10 @@ def start_normal_play():
     else:
         bigclockticker = None
         return bonus_frame_tick
+
+def end_normal_play():
+    if bigclockticker and bigclockticker.state == 'post':
+        bigclockticker.flush_ghosts()
 
 # hack hack hack!
 def __cheat(c):
