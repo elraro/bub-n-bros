@@ -507,8 +507,9 @@ class Dragon(ActiveSprite):
         import bonuses
         for angle, thrustfactor in zip(angles, thrustfactors):
             args = (self, x + 4*dir, self.y, dir,
-                    special_bubbles, angle, thrustfactor)
-            bonuses.record_shot(args, self.dcap['shootthrust'])
+                    special_bubbles, angle, thrustfactor,
+                    self.dcap['shootthrust'])
+            bonuses.record_shot(args)
             bubbles.DragonBubble(*args)
         #else:
         #    from monsters import DragonShot

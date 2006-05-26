@@ -712,7 +712,7 @@ def makecactusbonus(cls, *args):
     bonus.__dict__.update(bonus.bigbonus)
     bonus.untouchable()
     bonus.gen = []
-    mb = Cactusbonus(0, -3*CELL, 'cactus', cls!=Clock and 10000) # temp image
+    mb = Cactusbonus(0, -3*CELL, 'cactus', 10000)   # temp image
     mb.outcome = (cls,) + args
     mb.outcome_image = bonus.nimage
     mb.bonus = bonus
@@ -1569,7 +1569,7 @@ else:
     class DustStar(ActiveSprite):
         localrandom = random.Random()
 
-        def __init__(self, x, y, basedx, basedy, big=1):
+        def __init__(self, x, y, basedx, basedy, big=1, clock=0):
             self.colorname = self.localrandom.choice(Stars.COLORS)
             self.imgspeed = self.localrandom.randrange(3, 6)
             self.rotation_reversed = self.localrandom.random() < 0.5
@@ -1579,6 +1579,9 @@ else:
             self.gen.append(self.fly(basedx, basedy, big))
             if not big:
                 self.make_small()
+            elif clock:
+                self.setimages(None)
+                self.seticon(images.sprget(Bonuses.clock))
 
         def select_ico(self, imglist):
             if self.rotation_reversed:
@@ -1607,7 +1610,7 @@ else:
                 ttl = random.expovariate(1.0 / 12)
                 if ttl > 35:
                     ttl = 35
-                for i in range(int(ttl)+1):
+                for i in range(int(ttl)+4):
                     fx += dx
                     fy += dy
                     self.move(int(fx), int(fy))
@@ -1633,7 +1636,13 @@ else:
             self.dir = entry.dir
             self.poplist = [self]
 
+        def integrate(self):
+            self.play(images.Snd.Shh)
+            for j in range(15):
+                DustStar(self.x, self.y, 0, -3, clock=j==14)
+
         def disintegrate(self):
+            self.play(images.Snd.Shh)
             dx = self.x - self.lastx
             dy = self.y - self.lasty
             if dx < -4: dx = -4
@@ -1641,7 +1650,7 @@ else:
             if dx >  4: dx =  4
             if dy >  4: dy =  4
             for j in range(15):
-                DustStar(self.x, self.y, dx, dy)
+                DustStar(self.x, self.y, dx, dy, clock=j==14)
             self.kill()
 
         def bottom_up(self):
@@ -1658,37 +1667,47 @@ else:
             self.dir = dir
             self.dcap = dcap
 
+    class SavedFrameEntry(object):
+        __slots__ = ['saved_next', 'tick', 'dragonlist', 'shoots1']
+        def __init__(self, tick, dragonlist):
+            self.saved_next = None
+            self.tick = tick
+            self.dragonlist = dragonlist
+            self.shoots1 = []
+
     class BigClockTicker:
         dragonlist = None
+        tick = 1000
 
         def __init__(self):
             global random
             random = random_module.Random()
+            localrandom = DustStar.localrandom
             self.state = 'pre'
-            self.randombase1 = hash(random_module.random()) * 914971L
-            self.randombase2 = hash(random_module.random()) * 914971L
-            self.saved = []
-            self.firstframecounter = BubPlayer.FrameCounter
-            self.saved_bubber = {}
-            self.shoots1 = []
-            for p in BubPlayer.PlayerList:
-                self.saved_bubber[p] = p.points, p.lives, p.letters.copy()
+            self.randombase1 = hash(localrandom.random()) * 914971L
+            self.randombase2 = hash(localrandom.random()) * 914971L
+            self.saved_next = None
+            self.saved_last = self
             random.seed(self.randombase1)
             random_module.seed(self.randombase2)
             self.latest_entries = {}
 
-        def common_tick(self, tick, dragonlist):
-            self.dragonlist = dragonlist
-            random.seed(self.randombase1 - tick)
-            random_module.seed(self.randombase2 - tick)
+        def common_tick(self, entry):
+            self.dragonlist = entry.dragonlist
+            random.seed(self.randombase1 - entry.tick)
+            random_module.seed(self.randombase2 - entry.tick)
             bonus_frame_tick()
-            random.seed(self.randombase1 + tick)
-            random_module.seed(self.randombase2 + tick)
+            random.seed(self.randombase1 + entry.tick)
+            random_module.seed(self.randombase2 + entry.tick)
 
         def save_frame_tick(self):
+            entry = self.save_frame()
+            self.common_tick(entry)
+
+        def save_frame(self):
             from player import Dragon
             from bubbles import DragonBubble
-            tick = len(self.saved) + 1000
+            tick = self.saved_last.tick + 1
             dragonlist = []
             new_entries = {}
             for bubber in BubPlayer.PlayerList:
@@ -1713,120 +1732,32 @@ else:
                         new_entries[d] = entry
                         dragonlist.append(entry)
             self.latest_entries = new_entries
-            self.common_tick(tick, dragonlist)
-            self.shoots1 = []
-            self.saved.append((tick, dragonlist, self.shoots1))
+            entry = SavedFrameEntry(tick, dragonlist)
+            self.saved_last.saved_next = entry
+            self.saved_last = entry
+            return entry
 
         def taken(self, dragons):
-            if dragons:
-                d = random.choice(dragons)
-                center = d.x + CELL, d.y + CELL
-            else:
-                center = boards.bwidth // 2, boards.bheight // 2
-            boards.replace_boardgen(self.board2dust(center))
+            boards.replace_boardgen(self.jump_to_past())
 
-        def board2dust(self, (cx, cy)):
-            gamesrv.set_musics([], [])
-            images.Snd.Shh.play()
-            dist = 0
-            distmaxlist = []
-            for x in [0, boards.bwidth]:
-                for y in [0, boards.bheight]:
-                    d2 = (cx-x)*(cx-x)*0.75 + (cy-y)*(cy-y)
-                    distmaxlist.append(math.sqrt(d2 + 10.0))
-            distmax = max(distmaxlist)
-            duststars = {}
-            darkdragons = {}
-            speedf = 15.0
-            frametimef = 1.0
-            while frametimef < 4.0:
-                self.save_frame_tick()
-                dist += 5
-                if dist > distmax:
-                    frametimef += 0.15
-                speedf *= 0.99
-                ry = 1.0 / (dist*dist)
-                rx = ry * 0.75
-                dragons = {}
-                for p in BubPlayer.PlayerList:
-                    if p.isplaying():
-                        for d in p.dragons:
-                            dragons[d] = True
-                for s in gamesrv.sprites_by_n.values():
-                    if not s.alive:
-                        continue
-                    if isinstance(s, DustStar) or s in duststars:
-                        continue
-                    if (cx-s.x)*(cx-s.x)*rx + (cy-s.y)*(cy-s.y)*ry < 1.0:
-                        if s in dragons:
-                            darkdragons[s] = True
-                            continue
-                        ds = DustStar(s.x, s.y, speedf * (s.x-cx) / dist,
-                                                speedf * (s.y-cy) / dist,
-                                      s.ico.w >= 2*CELL)
-                        if isinstance(s, ActiveSprite):
-                            s.kill()
-                        else:
-                            duststars[s] = ds
-                t = boards.normal_frame()
-                for s in duststars:
-                    if s.alive:
-                        s.setdisplaypos(-2*s.ico.w, -2*s.ico.h)
-                for s in dragons:
-                    if s in darkdragons:
-                        ico = images.make_darker(s.ico, True)
-                        s.setdisplayicon(ico)
-                yield t * frametimef
-            yield 9.0
-            for s in gamesrv.sprites_by_n.values():
-                if s.alive:
-                    s.kill()
+        def jump_to_past(self):
             self.state = 'restoring'
-            self.saved.reverse()
-            self.latest_entries = {}
-            n = 0
-            images.Snd.Shh.play()
-            for i in range(len(self.saved)):
-                images.action(images.ActiveSprites[:])
-                tick, dragonlist, shoots1 = self.saved[i]
-                self.show_ghosts(dragonlist, None)
-                for args, shootthrust in shoots1:
-                    x, y = args[1:3]
-                    DustStar(x, y, 0, 0)
-                if frametimef > 1.0:
-                    frametimef = max(1.0, frametimef - 0.3)
-                elif n:
-                    n -= 1
-                else:
-                    images.Snd.Shh.play()
-                    n = 40
-                    min_frametime = 1.0 - 0.2 * (len(self.saved) - i) / 40
-                    if min_frametime < 0.3186:
-                        min_frametime = 0.3186
-                    frametimef -= 0.2
-                    if frametimef < min_frametime:
-                        frametimef = min_frametime
-                yield frametimef
             boards.replace_boardgen(boards.next_board(fastreenter=True), 1)
 
         def restore(self):
-            self.state = 'post'
-            for p in self.saved_bubber:
-                p.points, p.lives, p.letters = self.saved_bubber[p]
-            BubPlayer.FrameCounter = self.firstframecounter
+            self.ghosts = {}
             random.seed(self.randombase1)
             random_module.seed(self.randombase2)
-            self.latest_entries = {}
 
         def show_ghosts(self, dragonlist, interact):
-            new_entries = {}
+            new_ghosts = {}
             for entry in dragonlist:
                 try:
-                    ghost = self.latest_entries[entry.d]
+                    ghost = self.ghosts[entry.d]
                 except KeyError:
                     ghost = DragonGhost(entry)
                 ghost.setentry(entry)
-                new_entries[entry.d] = ghost
+                new_ghosts[entry.d] = ghost
                 if (interact and entry.flag != 'other' and
                     not entry.dcap.get('infinite_shield')):
                     touching = images.touching(entry.x+1, entry.y+1, 30, 30)
@@ -1834,32 +1765,29 @@ else:
                     for s in touching:
                         if isinstance(s, interact):
                             s.touched(ghost)
-            for d, ghost in self.latest_entries.items():
-                if d not in new_entries:
+            for d, ghost in self.ghosts.items():
+                if d not in new_ghosts:
                     ghost.kill()
-            self.latest_entries = new_entries
+            self.ghosts = new_ghosts
 
         def restore_frame_tick(self):
             from bubbles import Bubble, DragonBubble
-            from player import Dragon
             interact = (Bonus, Parabolic2, Bubble)
-
-            if self.saved:
-                tick, dragonlist, shoots1 = self.saved.pop()
-                self.common_tick(tick, dragonlist)
-                self.show_ghosts(dragonlist, interact)
-                for args, shootthrust in shoots1:
-                    dragon = args[0]
-                    dragon.dcap['shootthrust'] = shootthrust
-                    DragonBubble(*args)
-            else:
-                self.flush_ghosts()
-                bonus_frame_tick()
+            self.save_frame()
+            entry = self.saved_next
+            self.saved_next = entry.saved_next
+            self.common_tick(entry)
+            self.show_ghosts(entry.dragonlist, interact)
+            for args in entry.shoots1:
+                DragonBubble(*args)
+            if self.state == 'restoring' and self.ghosts:
+                self.state = 'post'
+                for ghost in self.ghosts.values():
+                    ghost.integrate()
 
         def flush_ghosts(self):
             if self.latest_entries:
-                images.Snd.Shh.play()
-                for d, ghost in self.latest_entries.items():
+                for ghost in self.ghosts.values():
                     ghost.disintegrate()
                 self.latest_entries.clear()
             self.dragonlist = None
@@ -2135,21 +2063,23 @@ for c in Classes:
 
 def getdragonlist():
     if bigclockticker and bigclockticker.dragonlist is not None:
-        return [entry.d for entry in bigclockticker.dragonlist
+        return [entry for entry in bigclockticker.dragonlist
                 if entry.flag != 'other']
     else:
         return BubPlayer.DragonList
 
 def getvisibledragonlist():
     if bigclockticker and bigclockticker.dragonlist is not None:
-        return [entry.d for entry in bigclockticker.dragonlist
+        return [entry for entry in bigclockticker.dragonlist
                 if entry.flag == 'visible']
     else:
         return [d for d in BubPlayer.DragonList if d.monstervisible()]
 
-def record_shot(args, shootthrust):
-    if bigclockticker and bigclockticker.state != 'post':
-        bigclockticker.shoots1.append((args, shootthrust))
+def record_shot(args):
+    if bigclockticker:
+        entry = bigclockticker.saved_last
+        if hasattr(entry, 'shoots1'):
+            entry.shoots1.append(args)
 
 
 def chooseground(tries=15):

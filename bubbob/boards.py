@@ -69,16 +69,16 @@ class Board(Copyable):
             x, y, ico = xyicolist.pop()
             sprlist.append(gamesrv.Sprite(ico, x, y))
 
-    def enter(self, complete=1, inplace=0, fastreenter=0):
+    def enter(self, complete=1, inplace=0):
         global curboard
-        if inplace or fastreenter:
+        if inplace:
             print "Re -",
         print "Entering board", self.num+1
         self.set_musics()
         # add board walls
         l = self.sprites.setdefault('walls', [])
         bl = self.sprites.setdefault('borderwalls', [])
-        if inplace or fastreenter:
+        if inplace:
             deltay = 0
         else:
             deltay = bheight
@@ -176,23 +176,41 @@ class Board(Copyable):
             return
         # add players
         from player import BubPlayer, scoreboard
-        if not inplace and not fastreenter:
-            random.shuffle(BubPlayer.PlayerList)
         scoreboard(1, inplace=inplace)
-        playing = []
-        for p in BubPlayer.PlayerList:
-            if p.isplaying():
-                if not fastreenter:
+        if not inplace:
+            random.shuffle(BubPlayer.PlayerList)
+            playing = []
+            for p in BubPlayer.PlayerList:
+                if p.isplaying():
                     p.enterboard(playing)
-                p.zarkon()
-                playing.append(p)
+                    p.zarkon()
+                    playing.append(p)
+        else:
+            # kill stuff left over from leave(inplace=1) (Big Clock bonus only)
+            import bonuses
+            keepme = bonuses.Points
+            dragons = {}
+            playing = []
+            for p in BubPlayer.PlayerList:
+                if p.isplaying():
+                    for d in p.dragons:
+                        if hasattr(d, 'dcap'):
+                            d.dcap['shield'] = 90
+                        dragons[d] = True
+                    playing.append(p)
+            for s in images.ActiveSprites[:]:
+                if isinstance(s, keepme) or s in dragons:
+                    pass
+                else:
+                    s.kill()
         # add monsters
         import monsters
         f_monsters = gamesrv.game.f_monsters
         if f_monsters < 0.1:
             f_monsters = max(1.0, min(2.0, (len(playing)-2)/2.2+1.0))
         for mdef in self.monsters:
-            yield 2
+            if not inplace:
+                yield 2
             cls = getattr(monsters, mdef.__class__.__name__)
             dir = mdef.dir
             i = random.random()
@@ -562,40 +580,35 @@ def next_board(num=0, complete=1, fastreenter=False):
     brd = curboard
     inplace = 0
     if brd:
-        inplace = brd.bonuslevel
+        inplace = brd.bonuslevel or fastreenter
         num = brd.num
-        if not brd.bonuslevel and not fastreenter:
+        if not inplace:
             num += gamesrv.game.stepboard
             if num >= len(BoardList):
                 num = len(BoardList)-1
-        if fastreenter:
-            factor = 0.0
-        else:
-            factor = 1.0
         for t in brd.leave(inplace=inplace):
-            yield t * factor
+            yield t
 
     # reset global board state
     from player import BubPlayer
     BubPlayer.__dict__.update(BubPlayer.INIT_BOARD_CAP)
     if not inplace:
         del BubPlayer.MonsterList[:]
-        if not fastreenter:
-            # wait for at least one player
-            for t in wait_for_one_player():
-                yield t
-            # reload modules if changed
-            if loadmodules():
-                import boards
-                boards.BoardGen = [boards.next_board(num)]
-                return
+        # wait for at least one player
+        for t in wait_for_one_player():
+            yield t
+        # reload modules if changed
+        if loadmodules():
+            import boards
+            boards.BoardGen = [boards.next_board(num)]
+            return
 
     if num < 0:
         num = 0
     elif num >= len(BoardList):
         num = len(BoardList)-1
     brd = BoardList[num](num)
-    for t in brd.enter(complete, inplace=inplace, fastreenter=fastreenter):
+    for t in brd.enter(complete, inplace=inplace):
         yield t
 
     if brd.bonuslevel:

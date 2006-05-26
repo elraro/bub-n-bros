@@ -274,7 +274,7 @@ class DragonBubble(Bubble):
     touchable = 0
 
     def __init__(self, d, x, y, dir, special_bubble=None, angle=0,
-                 thrustfactor=None):
+                 thrustfactor=None, shootthrust=None):
         self.d = d
         pn = d.bubber.pn
         imglist1 = GreenAndBlue.new_bubbles[pn]
@@ -285,7 +285,9 @@ class DragonBubble(Bubble):
             asin, acos = 0, 1
         Bubble.__init__(self, images.sprget(imglist1[0]), x + 12*dir, y)
         self.setimages(self.imgseq(imglist1[1:] + imglist2[2:3], 4))
-        hspeed = dir*d.dcap['shootthrust']
+        if shootthrust is None:
+            shootthrust = d.dcap['shootthrust']
+        hspeed = dir * shootthrust
         if thrustfactor is not None:
             negative = hspeed < 0
             hspeed = (abs(hspeed) - 4.0) * thrustfactor + 4.0
