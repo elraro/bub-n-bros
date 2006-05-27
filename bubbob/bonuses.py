@@ -28,6 +28,7 @@ class Bonus(ActiveSprite):
     sound = 'Fruit'
     endaction = None
     multiply = 1
+    killgens = 1
 
     def __init__(self, x, y, nimage=None, points=None, falling=1):
         if nimage is not None:
@@ -66,7 +67,9 @@ class Bonus(ActiveSprite):
             self.x + self.ico.w > dx + 10 and
             self.y + self.ico.h > dy + 10):
             if not self.taken_by:
-                self.gen = [self.taking()]
+                if self.killgens:
+                    self.gen = []
+                self.gen.append(self.taking())
                 sound = self.sound
                 if sound:
                     if isinstance(sound, str):
@@ -712,8 +715,9 @@ def makecactusbonus(cls, *args):
     bonus.__dict__.update(bonus.bigbonus)
     bonus.untouchable()
     bonus.gen = []
-    mb = Cactusbonus(0, -3*CELL, 'cactus', 10000)   # temp image
-    mb.outcome = (cls,) + args
+    megacls = bonus.bigbonus.get('megacls', Cactusbonus)
+    mb = megacls(0, -3*CELL, 'cactus', 10000)   # temp image
+    mb.outcome = (cls,) + (args or bonus.bigbonus.get('outcome_args', ()))
     mb.outcome_image = bonus.nimage
     mb.bonus = bonus
     mb.gen.append(mb.prepare_image())
@@ -750,14 +754,23 @@ class Cactusbonus(Megabonus):
             y = self.y + self.ico.h//2 - CELL
             self.bonus.move(x, y)
             res = self.bonus.taken1(d1)
-            self.bonus.kill()
             self.untouchable()
+            if res == -1:
+                self.taken_by = []
+                self.gen.append(self.touchdelay(10))
+                self.bonus.move(OFFSCREEN, 0)
+            else:
+                self.bonus.kill()
             return res
 
     def kill(self):
         Megabonus.kill(self)
         if self.bonus.alive:
             self.bonus.kill()
+
+class LongDurationCactusbonus(Cactusbonus):
+    timeout = 500
+    killgens = 0
 
 def starexplosion(x, y, multiplyer, killmonsters=0, outcomes=[]):
     outcomes = list(outcomes)
@@ -1801,17 +1814,30 @@ class MultiStones(RandomBonus):
               (Bonuses.sapphire,   2000),
               (Bonuses.ruby,       3000),
               ]
-    def __init__(self, x, y):
-        mode = random.choice(MultiStones.Stones)
+    killgens = 0
+    big = 0
+    def __init__(self, x, y, mode=None):
+        mode = mode or random.choice(MultiStones.Stones)
         RandomBonus.__init__(self, x, y, *mode)
+        self.bigbonus = {'big': 1, 'outcome_args': (mode,),
+                         'megacls': LongDurationCactusbonus}
         self.multi = 10
     def taken1(self, dragons):
+        if self.big:
+            self.repulse(dragons)
         self.multi -= (len(dragons) or 1)
         if self.multi > 0:
             self.taken_by = []
             self.untouchable()
             self.gen.append(self.touchdelay(5))
             return -1     # don't go away
+    def repulse(self, dragons):
+        from bubbles import Bubble
+        for d in dragons:
+            ico = images.sprget(GreenAndBlue.normal_bubbles[d.bubber.pn][0])
+            b = Bubble(ico, d.x, d.y)
+            d.become_bubblingeyes(b)
+            b.pop()
 
 class Slippy(TemporaryBonus):
     "Greased Feet. Do you want some ice skating?"
@@ -2052,7 +2078,7 @@ Classes = [c for c in globals().values()
 Classes.remove(RandomBonus)
 Classes.remove(TemporaryBonus)
 Cheat = []
-#Classes = [Clock, Cactus, Bomb]  # CHEAT
+#Classes = [MultiStones, Cactus]  # CHEAT
 
 AllOutcomes = ([(c,) for c in Classes if c is not Fruits] +
                2 * [(MonsterBonus, lvl)
