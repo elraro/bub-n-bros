@@ -6,6 +6,8 @@ import boards
 from boards import CELL, HALFCELL, bget
 from player import Dragon, BubPlayer
 from mnstrmap import Monky
+from bubbles import Bubble
+from bonuses import Bonus
 
 LocalDir = os.path.basename(os.path.dirname(__file__))
 
@@ -138,6 +140,12 @@ class Tron:
             self.build_trons()
             yield t
             tc.update(t)
+            if (BubPlayer.FrameCounter & 15) == 7:
+                for s in images.ActiveSprites:
+                    if isinstance(s, Bubble):
+                        s.pop()
+                    elif isinstance(s, Bonus):
+                        s.kill()
 
         self.ready = 0
         tc.restore()

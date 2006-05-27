@@ -5,6 +5,7 @@ from images import ActiveSprite
 from boards import CELL, HALFCELL, bget
 from mnstrmap import GreenAndBlue, Ghost
 from bonuses import Bonus
+from bubbles import Bubble
 
 LocalDir = os.path.basename(os.path.dirname(__file__))
 
@@ -104,7 +105,6 @@ class Pac(PacSprite):
         ActiveSprite.to_front(self)
 
     def kill(self):
-        from bubbles import Bubble
         self.play(images.Snd.Pop)
         self.bubble.gen = [self.bubble.die(Bubble.exploding_bubbles)]
         self.pacman.latestposition[self.bubber] = self.x, self.y
@@ -267,6 +267,10 @@ class Pacman:
             tc.update(t)
             if tc.time == 0.0:
                 break
+            if (BubPlayer.FrameCounter & 15) == 7:
+                for s in images.ActiveSprites:
+                    if isinstance(s, Bubble):
+                        s.pop()
 
         tc.restore()
         self.ready = 0

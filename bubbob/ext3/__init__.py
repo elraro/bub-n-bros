@@ -7,7 +7,8 @@ from boards import CELL, HALFCELL, bget
 from mnstrmap import GreenAndBlue, Fire
 from bonuses import Bonus
 from player import Dragon, BubPlayer
-import monsters, bubbles
+import monsters
+from bubbles import Bubble
 
 LocalDir = os.path.basename(os.path.dirname(__file__))
 
@@ -79,7 +80,6 @@ class Ship(ActiveSprite):
             yield None
 
     def kill(self):
-        from bubbles import Bubble
         try:
             self.bubber.dragons.remove(self)
         except ValueError:
@@ -99,7 +99,7 @@ class Ship(ActiveSprite):
         ActiveSprite.kill(self)
 
 
-class Shot(bubbles.Bubble):
+class Shot(Bubble):
     touchable = 0
     
     def straightup(self, ship):
@@ -242,6 +242,10 @@ class Galaga:
             #        break
             #else:
             #    finish = 0
+            if (BubPlayer.FrameCounter & 15) == 7:
+                for s in images.ActiveSprites:
+                    if isinstance(s, Bubble) and not isinstance(s, Shot):
+                        s.pop()
 
         for t in boards.result_ranking(self.scores, self.nbmonsters):
             self.build_ships()

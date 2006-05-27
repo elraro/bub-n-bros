@@ -4,7 +4,7 @@ import images, gamesrv
 from images import ActiveSprite
 from boards import CELL, HALFCELL
 from mnstrmap import GreenAndBlue
-from bubbles import BubblingEyes
+from bubbles import BubblingEyes, Bubble
 from bonuses import Bonus
 
 LocalDir = os.path.basename(os.path.dirname(__file__))
@@ -140,7 +140,6 @@ class Paddle(ActiveSprite):
             self.kill()
 
     def kill(self):
-        from bubbles import Bubble
         images.Snd.Pop.play(1.0, pad=0.0)
         images.Snd.Pop.play(1.0, pad=1.0)
         ico = images.sprget(Bubble.exploding_bubbles[0])
@@ -253,7 +252,6 @@ class Ball(ActiveSprite):
         return total
 
     def pop(self):
-        from bubbles import Bubble
         self.play(images.Snd.Pop)
         self.gen = [self.die(Bubble.exploding_bubbles)]
 
@@ -295,6 +293,8 @@ class Arkanoid:
                 for s in images.ActiveSprites:
                     if isinstance(s, Bonus):
                         s.timeout = 0   # bonuses stay
+                    elif isinstance(s, Bubble):
+                        s.pop()
 
         tc.restore()
         self.ready = 0

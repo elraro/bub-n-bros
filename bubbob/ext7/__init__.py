@@ -6,6 +6,7 @@ import boards
 from boards import CELL
 from player import Dragon, BubPlayer
 from bubbles import Bubble
+from bonuses import Bonus
 from mnstrmap import PlayerBubbles
 from mnstrmap import Monky
 import bonuses
@@ -301,6 +302,12 @@ class Camel:
             self.build_planes()
             yield t
             tc.update(t)
+            if (BubPlayer.FrameCounter & 15) == 7:
+                for s in images.ActiveSprites:
+                    if isinstance(s, Bubble):
+                        s.pop()
+                    elif isinstance(s, Bonus):
+                        s.kill()
 
         tc.restore()
         score = {}

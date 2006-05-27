@@ -4,7 +4,7 @@ import images, gamesrv
 from images import ActiveSprite
 from boards import CELL, HALFCELL, bget
 from mnstrmap import GreenAndBlue
-from bubbles import BubblingEyes
+from bubbles import BubblingEyes, Bubble
 from bonuses import Bonus, points
 
 LocalDir = os.path.basename(os.path.dirname(__file__))
@@ -176,7 +176,6 @@ class BrickEyes(BubblingEyes):
                 if x2-x1 < 2:
                     continue
                 # full line
-                from bubbles import Bubble
                 ico = images.sprget(Bubble.exploding_bubbles[0])
                 self.tetris.score[self.bubber] = self.tetris.score.get(
                     self.bubber, 0) + 1
@@ -309,6 +308,12 @@ class Tetris:
                 finished += not self.still_playing()
                 if finished > 16:
                     break
+            if (BubPlayer.FrameCounter & 15) == 7:
+                for s in images.ActiveSprites:
+                    if isinstance(s, Bubble):
+                        s.pop()
+                    elif isinstance(s, Bonus):
+                        s.kill()
 
         tc.restore()
         for t in boards.result_ranking(self.score):
