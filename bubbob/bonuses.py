@@ -1805,7 +1805,7 @@ else:
                 self.latest_entries.clear()
             self.dragonlist = None
 
-    bigclockticker = None
+bigclockticker = None
 
 class MultiStones(RandomBonus):
     "Gems. Very demanded stones. It will take time to pick it up."
