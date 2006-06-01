@@ -863,7 +863,7 @@ class WaterBubble(FireBubble):
     "Water Bubbles. Your bubbles will now be filled with water."
     nimage = Bonuses.beer
     bubkind = 'WaterBubble'
-    #bigbonus = {'bubkind': 'SolidBubble'}
+    bigbonus = {'bubkind': 'SnookerBubble'}
 
 class LightningBubble(FireBubble):
     "Lightning Bubbles."
@@ -2078,7 +2078,7 @@ Classes = [c for c in globals().values()
 Classes.remove(RandomBonus)
 Classes.remove(TemporaryBonus)
 Cheat = []
-#Classes = [MultiStones, Cactus]  # CHEAT
+#Classes = [Cactus, WaterBubble]  # CHEAT
 
 AllOutcomes = ([(c,) for c in Classes if c is not Fruits] +
                2 * [(MonsterBonus, lvl)

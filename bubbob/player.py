@@ -280,14 +280,13 @@ class Dragon(ActiveSprite):
                     f = - self.dcap['vslippy'] * (self.dcap['slippy']+1)/3.0
                     self.dcap['vslippy'] = max(min(f, 10.0), -10.0)
                     hfp = 0
-            onbubble = False
+            onbubble = None
             if not self.dcap['infinite_shield']:
                 touching = images.touching(self.x+1, self.y+1, 30, 30)
                 touching.reverse()
                 for s in touching:
                     if s.touched(self):
-##                        onbubble = max(onbubble, getattr(s,'solidbubble',0)+1)
-                        onbubble = True
+                        onbubble = s
             elif bubber.key_left or bubber.key_right or bubber.key_jump or bubber.key_fire:
                 self.dcap['infinite_shield'] = 0
 
@@ -320,13 +319,12 @@ class Dragon(ActiveSprite):
                     self.vertical_warp()
             else:
                 # going down or staying on ground
-                ground = onground1(self.x, self.y)
-                if ground or (wannajump and onbubble):
-##                            and not self.dcap['nojump']) or onbubble>1:
-##                    if self.dcap['nojump']:
-##                        mode = 0
-##                        self.glueddown = (0, (1,-1)[bottom_up])
-##                    elif
+                if wannajump and onbubble:
+                    ground = True
+                    onbubble.dragon_jumped = True, bottom_up
+                else:
+                    ground = onground1(self.x, self.y)
+                if ground:
                     if wannajump:
                         self.play(images.Snd.Jump)
                         yfp = 0.0
