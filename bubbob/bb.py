@@ -56,6 +56,7 @@ class BubBobGame(gamesrv.Game):
         self.openserver()
 
     def openboard(self, num=None):
+        self.End = 0
         if num is None:
             num = self.beginboard-1
         import boards
@@ -72,7 +73,6 @@ class BubBobGame(gamesrv.Game):
         self.openboard()
         for p in player.BubPlayer.PlayerList:
             p.reset()
-        self.End = 0
 
     def FnPlayers(self):
         from player import BubPlayer
@@ -85,7 +85,7 @@ class BubBobGame(gamesrv.Game):
         if self.metaregister:
             self.do_updatemetaserver()
         frametime = 0.0
-        while frametime < 1.1:
+        for i in xrange(500):
             import boards
             for gen in boards.BoardGen[:]:
                 try:
@@ -95,6 +95,12 @@ class BubBobGame(gamesrv.Game):
                         boards.BoardGen.remove(gen)
                     except ValueError:
                         pass
+            if frametime >= 1.1:
+                break
+        else:
+            # should normally never occur
+            boards.BoardGen[:] = [boards.next_board()]
+            frametime = 1.0
         if self.game_reset_gen is None:
             if self.End and self.autoreset:
                 self.game_reset_gen = boards.game_reset()

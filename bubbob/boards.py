@@ -69,7 +69,7 @@ class Board(Copyable):
             x, y, ico = xyicolist.pop()
             sprlist.append(gamesrv.Sprite(ico, x, y))
 
-    def enter(self, complete=1, inplace=0):
+    def enter(self, complete=1, inplace=0, fastreenter=False):
         global curboard
         if inplace:
             print "Re -",
@@ -176,8 +176,10 @@ class Board(Copyable):
             return
         # add players
         from player import BubPlayer, scoreboard
-        scoreboard(1, inplace=inplace)
         if not inplace:
+            random.shuffle(BubPlayer.PlayerList)
+        scoreboard(1, inplace=inplace)
+        if not fastreenter:
             random.shuffle(BubPlayer.PlayerList)
             playing = []
             for p in BubPlayer.PlayerList:
@@ -209,7 +211,7 @@ class Board(Copyable):
         if f_monsters < 0.1:
             f_monsters = max(1.0, min(2.0, (len(playing)-2)/2.2+1.0))
         for mdef in self.monsters:
-            if not inplace:
+            if not fastreenter:
                 yield 2
             cls = getattr(monsters, mdef.__class__.__name__)
             dir = mdef.dir
@@ -608,7 +610,7 @@ def next_board(num=0, complete=1, fastreenter=False):
     elif num >= len(BoardList):
         num = len(BoardList)-1
     brd = BoardList[num](num)
-    for t in brd.enter(complete, inplace=inplace):
+    for t in brd.enter(complete, inplace=inplace, fastreenter=fastreenter):
         yield t
 
     if brd.bonuslevel:
@@ -731,7 +733,7 @@ def normal_play():
                     framecounter = 2*BASE
             if framecounter == 0:
                 curboard.set_musics()
-    replace_boardgen(last_monster_killed())
+    replace_boardgen(last_monster_killed(), 1)
 
 ##def normal_play():
 ##    # TESTING!!
@@ -760,8 +762,7 @@ def last_monster_killed(end_delay=390, music=None):
         yield t
     if curboard.bonuslevel:
         curboard.playingboard = 1
-        play_again = bonus_play()
-        for t in play_again:
+        for t in bonus_play():
             yield t
             end_delay -= 1
             if end_delay <= 0:
@@ -793,7 +794,7 @@ def last_monster_killed(end_delay=390, music=None):
 ##    # special board end
 ##    import monsters
 ##    monsters.argh_em_all()
-##    replace_boardgen(last_monster_killed())
+##    replace_boardgen(last_monster_killed(), 1)
 
 class TimeCounter(Copyable):
     def __init__(self, limittime, blink=0):
@@ -845,7 +846,7 @@ def bonus_play():
     # special board end
     import monsters
     monsters.argh_em_all()
-    replace_boardgen(last_monster_killed())
+    replace_boardgen(last_monster_killed(), 1)
 
 def game_over():
     yield force_singlegen()
