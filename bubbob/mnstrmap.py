@@ -381,3 +381,9 @@ class GreenAndBlue:
         })
     gameover = birange(497,498,1)
     digits = birange(499,509,10)
+
+class Butterfly(Monster1):
+    right  = [('butterfly', 'fly', n) for n in range(2)]
+    left   = [Bonuses.insect, Bonuses.butterfly]
+    jailed = [('butterfly', 'jailed', n) for n in range(3)]
+    dead   = [('butterfly', 'dead', n) for n in range(4)]

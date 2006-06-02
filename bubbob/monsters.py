@@ -18,6 +18,7 @@ class Monster(ActiveSprite):
     vy = 0
     vdir = -1
     is_ghost = 0
+    MonsterBonus = bonuses.MonsterBonus
 
     def __init__(self, mnstrdef, x=None, y=None, dir=None, in_list=None):
         self.mdef = mnstrdef
@@ -267,12 +268,15 @@ class Monster(ActiveSprite):
 
     def touched(self, dragon):
         if self.gen:
-            dragon.die()
+            self.killdragon(dragon)
             if self.is_ghost:
                 self.gen = [self.default_mode()]
                 self.resetimages()
         else:
             self.argh(getattr(self, 'poplist', None))  # frozen monster
+
+    def killdragon(self, dragon):
+        dragon.die()
 
     def in_bubble(self, bubble):
         self.untouchable()
@@ -317,7 +321,7 @@ class Monster(ActiveSprite):
         poplist.append(self)
         level = len(poplist) - 2
         bonuses.BonusMaker(self.x, self.y, self.mdef.dead, onplace=onplace,
-                           outcome=(bonuses.MonsterBonus, level))
+                           outcome=(self.MonsterBonus, level))
         self.kill()
 
     def freeze(self, poplist):
@@ -764,3 +768,52 @@ class Blitzy(Monster):
 MonsterClasses = [c for c in globals().values()
                   if type(c)==type(Monster) and issubclass(c, Monster)]
 MonsterClasses.remove(Monster)
+
+
+class Butterfly(Monster):
+    MonsterBonus = bonuses.IceMonsterBonus
+
+    def __init__(self, x, y):
+        import mnstrmap
+        dir = random.choice([-1, 1])
+        self.fly_away = False
+        Monster.__init__(self, mnstrmap.Butterfly, x, y, dir)
+
+    def waiting(self, delay=0):
+        return Monster.waiting(self, delay)
+
+    def imgrange(self):
+        self.angry = []
+        return Monster.imgrange(self)
+
+    def killdragon(self, dragon):
+        self.fly_away = True, dragon.x
+
+    def flying(self):
+        repeat = 0
+        while 1:
+            r = random.random()
+            if self.x < 64:
+                bump = self.dir < 0
+            elif self.x > boards.bwidth - 64:
+                bump = self.dir > 0
+            elif self.fly_away:
+                bump = self.dir * (self.fly_away[1] - self.x) > 0
+                if repeat:
+                    self.fly_away = False
+                    repeat = 0
+                else:
+                    repeat = 1
+            else:
+                bump = r < 0.07
+            if bump:
+                self.dir = -self.dir
+                self.resetimages()
+            elif r > 0.92:
+                self.vdir = -self.vdir
+            self.step(self.dir * (2 + (r < 0.5)), self.vdir * 2)
+            self.vertical_warp()
+            if not repeat:
+                yield None
+
+    default_mode = flying

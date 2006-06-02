@@ -295,10 +295,20 @@ class MonsterBonus(Bonus):
         Bonus.__init__(self, x, y, forceimg or img, pts)
 
     def buildoutcome(self):
-        return (MonsterBonus, self.level)
+        return (self.__class__, self.level)
 
     def taken(self, dragon):
         dragon.carrybonus(self, 543)
+
+class IceMonsterBonus(MonsterBonus):
+
+    def __init__(self, x, y, multiple):
+        self.level = multiple
+        if multiple >= 1:
+            img, pts = Bonuses.violet_ice, 750
+        else:
+            img, pts = Bonuses.cyan_ice, 700
+        Bonus.__init__(self, x, y, img, pts)
 
 
 class RandomBonus(Bonus):
@@ -965,8 +975,16 @@ class AutoFire(TemporaryBonus):
 class Insect(RandomBonus):
     "Crush World."
     nimage = Bonuses.insect
+    big = 0
+    bigbonus = {'big': 1}
     def taken1(self, dragons):
-        boards.extra_boardgen(boards.extra_walls_falling())
+        if self.big:
+            from monsters import Butterfly
+            for i in range(17):
+                Butterfly(self.x + random.randrange(-40, 41),
+                          self.y + random.randrange(-30, 31))
+        else:
+            boards.extra_boardgen(boards.extra_walls_falling())
 
 class Ring(TemporaryBonus):
     "The One Ring."
@@ -2078,7 +2096,7 @@ Classes = [c for c in globals().values()
 Classes.remove(RandomBonus)
 Classes.remove(TemporaryBonus)
 Cheat = []
-#Classes = [Cactus, WaterBubble]  # CHEAT
+#Classes = [Cactus, Insect]  # CHEAT
 
 AllOutcomes = ([(c,) for c in Classes if c is not Fruits] +
                2 * [(MonsterBonus, lvl)
