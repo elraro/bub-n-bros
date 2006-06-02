@@ -979,10 +979,12 @@ class Insect(RandomBonus):
     bigbonus = {'big': 1}
     def taken1(self, dragons):
         if self.big:
-            from monsters import Butterfly
+            import mnstrmap, monsters
             for i in range(17):
-                Butterfly(self.x + random.randrange(-40, 41),
-                          self.y + random.randrange(-30, 31))
+                monsters.Butterfly(mnstrmap.Butterfly,
+                                   self.x + random.randrange(-40, 41),
+                                   self.y + random.randrange(-30, 31),
+                                   random.choice([-1, 1]))
         else:
             boards.extra_boardgen(boards.extra_walls_falling())
 

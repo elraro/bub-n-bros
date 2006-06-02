@@ -772,12 +772,7 @@ MonsterClasses.remove(Monster)
 
 class Butterfly(Monster):
     MonsterBonus = bonuses.IceMonsterBonus
-
-    def __init__(self, x, y):
-        import mnstrmap
-        dir = random.choice([-1, 1])
-        self.fly_away = False
-        Monster.__init__(self, mnstrmap.Butterfly, x, y, dir)
+    fly_away = False
 
     def waiting(self, delay=0):
         return Monster.waiting(self, delay)
@@ -787,7 +782,10 @@ class Butterfly(Monster):
         return Monster.imgrange(self)
 
     def killdragon(self, dragon):
-        self.fly_away = True, dragon.x
+        if self.is_ghost:
+            Monster.killdragon(self, dragon)
+        else:
+            self.fly_away = True, dragon.x
 
     def flying(self):
         repeat = 0
