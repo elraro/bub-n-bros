@@ -65,6 +65,9 @@ def playernames(options):
     return result
 
 def indexloader(**options):
+    if 'cheat' in options:
+        for opt in options.pop('cheat'):
+            __cheat(opt)
     import gamesrv
     if gamesrv.game is None:
         indexdata = EMPTY_PAGE

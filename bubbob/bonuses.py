@@ -2206,17 +2206,9 @@ def end_normal_play():
 
 # hack hack hack!
 def __cheat(c):
-    __cheat.clist.append(c)
-import __builtin__
-if hasattr(__builtin__, '__cheat'):
-    __cheat.clist = __builtin__.__cheat.clist
-else:
-    __cheat.clist = []
-__builtin__.__cheat = __cheat
-
-while __cheat.clist:
-    c = __cheat.clist.pop(0)
     c = c.split(',')
     c[0] = globals()[c[0]]
     assert issubclass(c[0], Bonus)
     Cheat.append(tuple(c))
+import __builtin__
+__builtin__.__cheat = __cheat

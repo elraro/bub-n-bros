@@ -226,12 +226,8 @@ class PageServer:
 
     def indexloader(self, headers, cheat=[], **options):
         if cheat:
-            import bonuses
             for c in cheat:
-                c = c.split(',')
-                c[0] = getattr(bonuses, c[0])
-                assert issubclass(c[0], bonuses.Bonus)
-                bonuses.Cheat.append(tuple(c))
+                __cheat(cheat)
         else:
             self.localservers = None
         return self.mainpage(headers, juststarted=('juststarted' in options))
