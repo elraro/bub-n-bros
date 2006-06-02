@@ -458,6 +458,7 @@ class DragonBubble(Bubble):
                     break
                 y -= 1
             self.move(x, y, ico)
+            self.vertical_warp()
             yfrac = deltay
             yield None
         self.pop()
