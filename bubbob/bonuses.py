@@ -354,7 +354,18 @@ class CoffeeSpeed(RandomBonus):
 class Butterfly(TemporaryBonus):
     "Lunar Gravity. Allows you to jump twice as high as before."
     nimage = Bonuses.butterfly
-    bigbonus = {'multiply': 2}
+    big = 0
+    bigbonus = {'big': 1}
+    def taken1(self, dragons):
+        if self.big:
+            import mnstrmap, monsters
+            for i in range(17):
+                monsters.Butterfly(mnstrmap.Butterfly,
+                                   self.x + random.randrange(-40, 41),
+                                   self.y + random.randrange(-30, 31),
+                                   random.choice([-1, 1]))
+        else:
+            TemporaryBonus.taken1(self, dragons)
     def taken(self, dragon):
         dragon.dcap['gravity'] *= 0.5
         self.carried(dragon)
@@ -975,18 +986,8 @@ class AutoFire(TemporaryBonus):
 class Insect(RandomBonus):
     "Crush World."
     nimage = Bonuses.insect
-    big = 0
-    bigbonus = {'big': 1}
     def taken1(self, dragons):
-        if self.big:
-            import mnstrmap, monsters
-            for i in range(17):
-                monsters.Butterfly(mnstrmap.Butterfly,
-                                   self.x + random.randrange(-40, 41),
-                                   self.y + random.randrange(-30, 31),
-                                   random.choice([-1, 1]))
-        else:
-            boards.extra_boardgen(boards.extra_walls_falling())
+        boards.extra_boardgen(boards.extra_walls_falling())
 
 class Ring(TemporaryBonus):
     "The One Ring."
