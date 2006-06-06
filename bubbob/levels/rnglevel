@@ -659,6 +659,34 @@ class RandomLevel(boarddef.Level):
                             self.clrw(i,y)
                         x = max(x-side_step, 0)
 
+    def platforms_symm(self):
+        """Generate random symmetric platforms.
+        """
+        self.reset(fill=False)
+        yadjs = [-2,-1,0,0,0,0,0,0,0,0,1,2]
+        y = randint(2,4)
+        yinc = randint(2,6)
+        yincadj = choice(yadjs)
+        ymax = self.HEIGHT-choice([1,1,1,1,1,2,2,2,3,3,4])-1
+        while y < ymax:
+            holes = randint(choice([0,1,1,1]),5)
+            for x in range(0, self.WIDTH):
+                self.setw(x,y)
+            for i in range(holes):
+                x = randint(0, (self.WIDTH-2)/2)
+                self.clrw(x,y)
+                self.clrw(x+1,y)
+                self.clrw(self.WIDTH-x-1,y)
+                self.clrw(self.WIDTH-x-2,y)
+            y = y + yinc
+            yinc = yinc + yincadj
+            if yinc < 2:
+                yinc = 2
+                yincadj = choice(yadjs)
+            if yinc > 6:
+                yinc = 6
+                yincadj = choice(yadjs)
+
     def startplatform(self):
         "Make sure there's free space with wall underneath for dragon start positions"
         hei = choice([1,1,1,2,2,3])

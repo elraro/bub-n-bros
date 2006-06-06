@@ -63,7 +63,7 @@ class Shape:
     basemnstr = ChoiceParameter('basemnstr', MnstrNames)
     extramnstr = ChoiceParameter('extramnstr', range(4))
     samemnstr = BoolParameter('samemnstr')
-    baseshape = ChoiceParameter('baseshape', '   BGMPRWZ')
+    baseshape = ChoiceParameter('baseshape', '   BGMPRWZSSSSSSSSSSSSSSSS')
     rooms = BoolParameter('rooms')
     holes = BoolParameter('holes')
     lines = ChoiceParameter('lines', '   -/|')
@@ -130,6 +130,7 @@ class Shape:
 
     def test_density(self, prevlist):
         fill = ((self.baseshape != ' ') +
+                2*(self.baseshape == 'S') +
                 (self.rooms != 0) +
                 (self.lines != ' ') +
                 (self.platforms != 0) +
@@ -188,6 +189,8 @@ class Shape:
             lvl.genwalls.append((RandomLevel.zigzag,))
         if self.baseshape == 'M':
             lvl.genwalls.append((RandomLevel.mondrian,))
+        if self.baseshape == 'S':
+            lvl.genwalls.append((RandomLevel.platforms_symm,))
 
         if self.rooms:
             nr = dice(2, 6)
@@ -262,7 +265,7 @@ class Shape:
 def generate_shape(prevlist):
     tests = Shape.all_tests
     s = Shape()
-    for i in range(50):
+    for i in range(100):
         s1 = Shape(s)
         random.shuffle(tests)
         for test in tests:
