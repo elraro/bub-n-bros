@@ -311,6 +311,64 @@ class IceMonsterBonus(MonsterBonus):
         Bonus.__init__(self, x, y, img, pts)
 
 
+
+class DustStar(ActiveSprite):
+    localrandom = random.Random()
+
+    def __init__(self, x, y, basedx, basedy, big=1, clock=0):
+        self.colorname = self.localrandom.choice(Stars.COLORS)
+        self.imgspeed = self.localrandom.randrange(3, 6)
+        self.rotation_reversed = self.localrandom.random() < 0.5
+        ico, imggen = self.select_ico(getattr(Stars, self.colorname))
+        ActiveSprite.__init__(self, ico, x, y)
+        self.setimages(imggen)
+        self.gen.append(self.fly(basedx, basedy, big))
+        if not big:
+            self.make_small()
+        elif clock:
+            self.setimages(None)
+            self.seticon(images.sprget(Bonuses.clock))
+
+    def select_ico(self, imglist):
+        if self.rotation_reversed:
+            imglist = list(imglist)
+            imglist.reverse()
+        return (images.sprget(imglist[-1]),
+                self.cyclic(imglist, self.imgspeed))
+
+    def make_small(self):
+        images = [('smstar', self.colorname, k) for k in range(2)]
+        ico, imggen = self.select_ico(images)
+        self.seticon(ico)
+        self.setimages(imggen)
+
+    def fly(self, dx, dy, big):
+        random = self.localrandom
+        dx += (random.random() - 0.5) * 2.8
+        dy += (random.random() - 0.5) * 2.8
+        fx = self.x
+        fy = self.y
+        if big:
+            j = 0
+        else:
+            j = 2
+        while j < 3:
+            ttl = random.expovariate(1.0 / 12)
+            if ttl > 35:
+                ttl = 35
+            for i in range(int(ttl)+4):
+                fx += dx
+                fy += dy
+                self.move(int(fx), int(fy))
+                yield None
+            if j == 0:
+                self.make_small()
+                fx += 8
+                fy += 8
+            j += 1
+        self.kill()
+
+
 class RandomBonus(Bonus):
     timeout = 500
 
@@ -986,8 +1044,18 @@ class AutoFire(TemporaryBonus):
 class Insect(RandomBonus):
     "Crush World."
     nimage = Bonuses.insect
+    big = 0
+    bigbonus = {'big': 1}
     def taken1(self, dragons):
-        boards.extra_boardgen(boards.extra_walls_falling())
+        if self.big:
+            if dragons:
+                d = random.choice(dragons)
+                cx, cy = d.x, d.y
+            else:
+                cx, cy = None, None
+            boards.extra_boardgen(boards.extra_make_random_level(cx, cy))
+        else:
+            boards.extra_boardgen(boards.extra_walls_falling())
 
 class Ring(TemporaryBonus):
     "The One Ring."
@@ -1599,62 +1667,6 @@ else:
             restoregamestate(savedstate)
             scoreboard()
             yield 2.5
-
-    class DustStar(ActiveSprite):
-        localrandom = random.Random()
-
-        def __init__(self, x, y, basedx, basedy, big=1, clock=0):
-            self.colorname = self.localrandom.choice(Stars.COLORS)
-            self.imgspeed = self.localrandom.randrange(3, 6)
-            self.rotation_reversed = self.localrandom.random() < 0.5
-            ico, imggen = self.select_ico(getattr(Stars, self.colorname))
-            ActiveSprite.__init__(self, ico, x, y)
-            self.setimages(imggen)
-            self.gen.append(self.fly(basedx, basedy, big))
-            if not big:
-                self.make_small()
-            elif clock:
-                self.setimages(None)
-                self.seticon(images.sprget(Bonuses.clock))
-
-        def select_ico(self, imglist):
-            if self.rotation_reversed:
-                imglist = list(imglist)
-                imglist.reverse()
-            return (images.sprget(imglist[-1]),
-                    self.cyclic(imglist, self.imgspeed))
-
-        def make_small(self):
-            images = [('smstar', self.colorname, k) for k in range(2)]
-            ico, imggen = self.select_ico(images)
-            self.seticon(ico)
-            self.setimages(imggen)
-
-        def fly(self, dx, dy, big):
-            random = self.localrandom
-            dx += (random.random() - 0.5) * 2.8
-            dy += (random.random() - 0.5) * 2.8
-            fx = self.x
-            fy = self.y
-            if big:
-                j = 0
-            else:
-                j = 2
-            while j < 3:
-                ttl = random.expovariate(1.0 / 12)
-                if ttl > 35:
-                    ttl = 35
-                for i in range(int(ttl)+4):
-                    fx += dx
-                    fy += dy
-                    self.move(int(fx), int(fy))
-                    yield None
-                if j == 0:
-                    self.make_small()
-                    fx += 8
-                    fy += 8
-                j += 1
-            self.kill()
 
     class DragonGhost(ActiveSprite):
         def __init__(self, entry):

@@ -63,6 +63,8 @@ class Shape:
     basemnstr = ChoiceParameter('basemnstr', MnstrNames)
     extramnstr = ChoiceParameter('extramnstr', range(4))
     samemnstr = BoolParameter('samemnstr')
+    # NB. the 'S' shape is not as common as it seems, because test_density()
+    # will often reject it
     baseshape = ChoiceParameter('baseshape', '   BGMPRWZSSSSSSSSSSSSSSSS')
     rooms = BoolParameter('rooms')
     holes = BoolParameter('holes')
@@ -288,14 +290,8 @@ def makeshapes(nblevels=25):
         if len(shapelist) == 10:
             del shapelist[:]
 
-if __name__ == '__main__':
-    for s in makeshapes():
-        print s.__dict__
-else:
+def GenerateLevels():
     print 'generating levels',
-    rnglevel = {}
-    execfile('levels/rnglevel', rnglevel)
-    RandomLevel = rnglevel['RandomLevel']
     Levels = []
     for s in makeshapes():
         class level(RandomLevel):
@@ -319,3 +315,20 @@ else:
         genwalls = [(RandomLevel.platforms,(5,3),(lambda:flat(2,1),lambda:flat(6,2)),1),
                     (RandomLevel.close,)]
     Levels.append(levelfinal)
+    return Levels
+
+def GenerateSingleLevel(width, height):
+    [s] = makeshapes(1)
+    class level(RandomLevel):
+        WIDTH = width
+        HEIGHT = height
+    s.accept(level)
+    return level
+
+if __name__ == '__main__':
+    for s in makeshapes():
+        print s.__dict__
+else:
+    rnglevel = {}
+    execfile('levels/rnglevel', rnglevel)
+    RandomLevel = rnglevel['RandomLevel']

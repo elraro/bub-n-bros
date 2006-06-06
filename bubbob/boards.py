@@ -470,8 +470,8 @@ def loadmodules(force=0):
             levels = {}
             print 'Source level file:', levelfilename
             execfile(levelfilename, levels)
-            if 'Levels' in levels:
-                levels = levels['Levels']
+            if 'GenerateLevels' in levels:
+                levels = levels['GenerateLevels']()
                 if isinstance(levels, list):
                     levels = dict(zip(range(len(levels)), levels))
         else:
@@ -1255,6 +1255,65 @@ def extra_catch_all_monsters(dragons=[], everything=False):
             yield 0
             yield 0
 
+def extra_make_random_level(cx=None, cy=None, repeat_delay=200):
+    from bonuses import DustStar
+    # generate any random level
+    localdir = os.path.dirname(__file__)
+    filename = os.path.join(localdir, 'levels', 'RandomLevels.py')
+    d = {}
+    execfile(filename, d)
+    Level = d['GenerateSingleLevel'](curboard.width, curboard.height)
+    lvl = Level(curboard.num)
+    changewalls = {}
+    for y in range(curboard.height):
+        for x in range(2, curboard.width-2):
+            if lvl.walls[y][x] == '#' and curboard.walls[y][x] == ' ':
+                changewalls[y, x] = '#'
+            elif lvl.walls[y][x] == ' ' and curboard.walls[y][x] == '#':
+                changewalls[y, x] = ' '
+
+    # dynamically replace the current level's walls with the new level's
+    if cx is None: cx = bwidth // 2
+    if cy is None: cy = bheight // 2
+    dist = 0
+    distmaxlist = []
+    for x in [0, bwidth]:
+        for y in [0, bheight]:
+            d2 = (cx-x)*(cx-x)*0.75 + (cy-y)*(cy-y)
+            distmaxlist.append(math.sqrt(d2 + 10.0))
+    distmax = max(distmaxlist)
+    duststars = {}
+    speedf = 15.0
+    while dist < distmax:
+        dist += 4
+        speedf *= 0.99
+        ry = 1.0 / (dist*dist)
+        rx = ry * 0.75
+        added = 0
+        for y, x in changewalls.keys():
+            sx = x*16
+            sy = y*16
+            if (cx-sx)*(cx-sx)*rx + (cy-sy)*(cy-sy)*ry < 1.0:
+                if changewalls.pop((y, x)) == ' ':
+                    curboard.killwall(x, y)
+                else:
+                    curboard.putwall(x, y)
+                    added = 1
+                for i in range(2):
+                    DustStar(sx, sy, speedf * (sx-cx) / dist,
+                                     speedf * (sy-cy) / dist,
+                             big=0)
+        if added:
+            curboard.reorder_walls()
+        yield 0
+    # patch the winds too
+    curboard.winds = lvl.winds
+    # wait a bit and restart
+    if repeat_delay < 1000:
+        for i in range(repeat_delay):
+            yield 0
+        extra_boardgen(extra_make_random_level(
+            repeat_delay = repeat_delay * 3 // 2))
 
 def register(dict):
     global width, height, bwidth, bheight, bheightmod
