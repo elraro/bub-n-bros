@@ -933,7 +933,7 @@ class FireBubble(RandomBonus):
     nimage = Bonuses.hamburger
     bubkind = 'FireBubble'
     bubcount = 10
-    #bigbonus = {'bubkind': 'BombBubble'}
+    bigbonus = {'bubkind': 'BigFireBubble'}
     def taken(self, dragon):
         dragon.dcap['shootbubbles'] = [self.bubkind] * self.bubcount
         dragon.carrybonus(self)
@@ -1867,10 +1867,14 @@ class MultiStones(RandomBonus):
     def repulse(self, dragons):
         from bubbles import Bubble
         for d in dragons:
-            ico = images.sprget(GreenAndBlue.normal_bubbles[d.bubber.pn][0])
-            b = Bubble(ico, d.x, d.y)
-            d.become_bubblingeyes(b)
-            b.pop()
+            repluse_dragon(d)
+
+def repulse_dragon(d):
+    if hasattr(d, 'become_bubblingeyes'):
+        ico = images.sprget(GreenAndBlue.normal_bubbles[d.bubber.pn][0])
+        b = Bubble(ico, d.x, d.y)
+        d.become_bubblingeyes(b)
+        b.pop()
 
 class Slippy(TemporaryBonus):
     "Greased Feet. Do you want some ice skating?"

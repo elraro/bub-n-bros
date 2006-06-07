@@ -90,8 +90,8 @@ class PlayerBubbles:
     appearing = nrange(952,5)
     bubble    = nrange(910,3)
     explosion = nrange(913,3)
-    left_weapon  = nrange(464,4) # NOT_USED
-    right_weapon = nrange(468,4) # NOT_USED
+    left_weapon  = nrange(464,4)
+    right_weapon = nrange(468,4)
     decay_weapon = []
 
 class LetterBubbles:

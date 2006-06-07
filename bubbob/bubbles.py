@@ -302,6 +302,12 @@ class DragonBubble(Bubble):
         stop = 0
         withmonster = 0
         specialangle = (acos,asin) != (1,0)
+        if special_bubble == 'BigFireBubble':
+            if not specialangle:
+                BigFireBubble(self.x, self.y, hspeed, self.d)
+            self.kill()
+            return
+
         self.warp = 0
         while abs(hspeed) >= 4.0:
             touched_monsters = [s for s in self.touching(9)
@@ -1045,6 +1051,65 @@ class BigLightBubble(LightningBubble):
             FiredLightning(self.x, self.y, math.cos(base+a), self.poplist,
                                    diry = -math.sin(base+a))
         return 100
+
+
+class BigFireBubble(ActiveSprite):
+    touchable = 1
+
+    def __init__(self, x, y, hspeed, author):
+        if hspeed > 0:
+            imgs = PlayerBubbles.right_weapon
+        else:
+            imgs = PlayerBubbles.left_weapon
+        ActiveSprite.__init__(self, images.sprget(imgs[-1]), x, y)
+        self.setimages(self.cyclic(imgs, 2))
+        self.author = author
+        self.gen.append(self.moving(hspeed))
+        self.play(images.Snd.Shh)
+
+    def moving(self, hspeed):
+        from monsters import Monster
+        if abs(hspeed) < 3:
+            if hspeed > 0:
+                hspeed = 3
+            else:
+                hspeed = -3
+        if hspeed > 0:
+            deltax = CELL*2-1
+        else:
+            deltax = 0
+        fx = self.x
+        poplist = []
+        while 1:
+            fx += hspeed
+            self.move(int(fx), self.y)
+            xc = int(fx+deltax)//CELL
+            yc = (self.y+HALFCELL)//CELL
+            if bget(xc,yc) == '#' == bget(xc, yc+1):
+                break
+            yield None
+            for s in self.touching(4):
+                if isinstance(s, Monster):
+                    s.argh(poplist)
+        from bonuses import DustStar
+        for x in (xc-1, xc, xc+1):
+            if 2 <= x < boards.curboard.width-2:
+                for y in (yc-1, yc, yc+1):
+                    if 0 <= y < boards.curboard.height:
+                        if bget(x, y) == '#':
+                            w = boards.curboard.killwall(x, y)
+                            s = ActiveSprite(w.ico, w.x, w.y)
+                            dxy = [hspeed+random.random()-0.5,
+                                   -random.random()*3.0]
+                            DustStar(w.x, w.y, dxy[0], dxy[1], big=0)
+                            s.gen.append(s.parabolic(dxy))
+        self.kill()
+
+    def touched(self, dragon):
+        if dragon is not self.author:
+            import bonuses
+            bonuses.repulse_dragon(dragon)
+
 
 class SpinningBall(ActiveSprite):
     def __init__(self, x, y, poplist):
