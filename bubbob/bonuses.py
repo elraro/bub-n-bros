@@ -948,7 +948,7 @@ class LightningBubble(FireBubble):
     "Lightning Bubbles."
     nimage = Bonuses.french_fries
     bubkind = 'LightningBubble'
-    #bigbonus = {'bubkind': 'BigLightBubble'}
+    bigbonus = {'bubkind': 'BigLightBubble'}
 
 class Megadiamond(Megabonus):
     nimage = BigImages.red
