@@ -1264,54 +1264,60 @@ def extra_make_random_level(cx=None, cy=None, repeat_delay=200):
     execfile(filename, d)
     Level = d['GenerateSingleLevel'](curboard.width, curboard.height)
     lvl = Level(curboard.num)
-    changewalls = {}
-    for y in range(curboard.height):
-        for x in range(2, curboard.width-2):
-            if lvl.walls[y][x] == '#' and curboard.walls[y][x] == ' ':
-                changewalls[y, x] = '#'
-            elif lvl.walls[y][x] == ' ' and curboard.walls[y][x] == '#':
-                changewalls[y, x] = ' '
-
-    # dynamically replace the current level's walls with the new level's
+    walllist = []
     if cx is None: cx = bwidth // 2
     if cy is None: cy = bheight // 2
+    for y in range(curboard.height):
+        dy = cy - (y*16+8)
+        dy2 = dy*dy*0.75
+        for x in range(2, curboard.width-2):
+            dx = cx - (x*16+8)
+            d2 = dx*dx + dy2
+            walllist.append((d2, x, y))
+    walllist.sort()
+
+    # dynamically replace the current level's walls with the new level's
     dist = 0
-    distmaxlist = []
-    for x in [0, bwidth]:
-        for y in [0, bheight]:
-            d2 = (cx-x)*(cx-x)*0.75 + (cy-y)*(cy-y)
-            distmaxlist.append(math.sqrt(d2 + 10.0))
-    distmax = max(distmaxlist)
-    duststars = {}
     speedf = 15.0
-    while dist < distmax:
-        dist += 4
-        speedf *= 0.99
-        ry = 1.0 / (dist*dist)
-        rx = ry * 0.75
-        added = 0
-        for y, x in changewalls.keys():
-            sx = x*16
-            sy = y*16
-            if (cx-sx)*(cx-sx)*rx + (cy-sy)*(cy-sy)*ry < 1.0:
-                if changewalls.pop((y, x)) == ' ':
-                    curboard.killwall(x, y)
-                else:
-                    curboard.putwall(x, y)
-                    added = 1
-                for i in range(2):
-                    DustStar(sx, sy, speedf * (sx-cx) / dist,
-                                     speedf * (sy-cy) / dist,
-                             big=0)
-        if added:
-            curboard.reorder_walls()
-        yield 0
+    added = 0
+    for d2, x, y in walllist:
+        while d2 > dist*dist:
+            if added:
+                curboard.reorder_walls()
+                added = 0
+            yield 0
+            dist += 4.1
+            speedf *= 0.99
+        if curboard.walls[y][x] == ' ':
+            if lvl.walls[y][x] == ' ':
+                continue
+            else:
+                curboard.putwall(x, y)
+                added = 1
+                big = 1
+        else:
+            if lvl.walls[y][x] == ' ':
+                curboard.killwall(x, y)
+                big = 1
+            else:
+                big = 0
+        sx = x*16
+        sy = y*16
+        DustStar(sx - 8*big,
+                 sy - 8*big,
+                 speedf * (sx-cx) / dist,
+                 speedf * (sy-cy) / dist,
+                 big=big)
     # patch the winds too
     curboard.winds = lvl.winds
+    curboard.reorder_walls()
+    yield 0
     # wait a bit and restart
     if repeat_delay < 1000:
         for i in range(repeat_delay):
             yield 0
+            if curboard.cleaning_gen_state:
+                return
         extra_boardgen(extra_make_random_level(
             repeat_delay = repeat_delay * 3 // 2))
 
