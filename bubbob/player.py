@@ -42,6 +42,10 @@ class Dragon(ActiveSprite):
         'bigflower': None,
         'overlayglasses': 0,
         'carrying': (),
+        'key_left':  'key_left',
+        'key_right': 'key_right',
+        'key_jump':  'key_jump',
+        'key_fire':  'key_fire',
         }
     SAVE_CAP = {'hspeed': 1,
                 'firerate': 2,
@@ -161,8 +165,9 @@ class Dragon(ActiveSprite):
         mytime = 0
         privatetime = 0
         while 1:
+            dcap = self.dcap
             self.poplist = [self]
-            carrying = self.dcap['carrying']
+            carrying = dcap['carrying']
             while carrying and carrying[0][0] < BubPlayer.FrameCounter:
                 timeout, bonus = carrying.pop(0)
                 if bonus.endaction:
@@ -170,34 +175,34 @@ class Dragon(ActiveSprite):
                 del bonus
 
             bubber = self.bubber
-            wannafire = bubber.key_fire
-            wannajump = bubber.key_jump
-            wannago = bubber.wannago(self.dcap)
+            wannafire = bubber.getkey(dcap, 'key_fire')
+            wannajump = bubber.getkey(dcap, 'key_jump')
+            wannago = bubber.wannago(dcap)
             bottom_up = self.bottom_up()
             onground1 = (onground,underground)[bottom_up]
 
-            if self.dcap['autofire']:
+            if dcap['autofire']:
                 wannafire = 1
-            if self.dcap['pinball']:
+            if dcap['pinball']:
                 wannajump = 1
-                if self.dcap['pinball'] > 1:
+                if dcap['pinball'] > 1:
                     if self.up:
-                        self.up *= 0.982 ** self.dcap['pinball']
-            if self.dcap['hotstuff']:
+                        self.up *= 0.982 ** dcap['pinball']
+            if dcap['hotstuff']:
                 if not wannago:
                     if self.dir * (random.random()-0.07) < 0:
                         wannago = -1
                     else:
                         wannago = 1
                 wannafire = 1
-                if self.fire > (11 // self.dcap['hotstuff']):
+                if self.fire > (11 // dcap['hotstuff']):
                     self.fire = 0
             if wannago:
-                self.dir = wannago * self.dcap['lookforward']
+                self.dir = wannago * dcap['lookforward']
             if self.x & 1:
                 self.step(self.dir, 0)
-            if self.dcap['slippy']:
-                vx = self.dcap['vslippy']
+            if dcap['slippy']:
+                vx = dcap['vslippy']
                 if wannago:
                     vx += wannago * 0.05
                 else:
@@ -206,20 +211,20 @@ class Dragon(ActiveSprite):
                     wannago = -1
                 else:
                     wannago = 1
-                self.dcap['vslippy'] = vx
-                mytime = (mytime+self.dcap['lookforward']) % 12
+                dcap['vslippy'] = vx
+                mytime = (mytime+dcap['lookforward']) % 12
                 hfp += abs(vx)
             else:
-                hfp += self.dcap['hspeed']
+                hfp += dcap['hspeed']
 
 ##            if self.glueddown:
-##                if wannajump or not self.dcap['nojump']:
+##                if wannajump or not dcap['nojump']:
 ##                    del self.glueddown
 ##                else:
 ##                    # glued gliding movements
 ##                    self.step(self.x & 1, self.y & 1)
 ##                    if wannago:
-##                        mytime = (mytime+self.dcap['lookforward']) % 12
+##                        mytime = (mytime+dcap['lookforward']) % 12
 ##                    else:
 ##                        hfp = 0
 ##                    while hfp > 0 and self.glueddown:
@@ -275,20 +280,20 @@ class Dragon(ActiveSprite):
                         dir = +1
                 self.step(2*dir, 0)
                 if dir:
-                    mytime = (mytime+self.dcap['lookforward']) % 12
+                    mytime = (mytime+dcap['lookforward']) % 12
                 else:
-                    f = - self.dcap['vslippy'] * (self.dcap['slippy']+1)/3.0
-                    self.dcap['vslippy'] = max(min(f, 10.0), -10.0)
+                    f = - dcap['vslippy'] * (dcap['slippy']+1)/3.0
+                    dcap['vslippy'] = max(min(f, 10.0), -10.0)
                     hfp = 0
             onbubble = None
-            if not self.dcap['infinite_shield']:
+            if not dcap['infinite_shield']:
                 touching = images.touching(self.x+1, self.y+1, 30, 30)
                 touching.reverse()
                 for s in touching:
                     if s.touched(self):
                         onbubble = s
             elif bubber.key_left or bubber.key_right or bubber.key_jump or bubber.key_fire:
-                self.dcap['infinite_shield'] = 0
+                dcap['infinite_shield'] = 0
 
             dir = self.dir
             imgtransform = 'vflip' * bottom_up
@@ -307,10 +312,9 @@ class Dragon(ActiveSprite):
             if self.up:
                 # going up
                 mode = 9
-                self.up -= self.dcap['gravity']
+                self.up -= dcap['gravity']
                 if (self.up,-self.up)[bottom_up] < 4.0:
                     self.up = 0.0
-                    #self.key_jump = 0
                     mode = 10
                 else:
                     ny = self.y + yfp - self.up
@@ -334,9 +338,9 @@ class Dragon(ActiveSprite):
                         mode = mytime // 4
                 else:
                     mode = 10
-                    if self.dcap['fly']:
+                    if dcap['fly']:
                         self.fly_counter += 1
-                        if self.fly_counter < self.dcap['fly']:
+                        if self.fly_counter < dcap['fly']:
                             ny = self.y
                         else:
                             del self.fly_counter
@@ -362,26 +366,26 @@ class Dragon(ActiveSprite):
                     mode = 4
                     self.hatangle = 3
                 self.fire += 1
-                if self.fire >= 64 // self.dcap['firerate']:
+                if self.fire >= 64 // dcap['firerate']:
                     self.fire = 0
 
-            s = self.dcap['shield']
+            s = dcap['shield']
             if s:
-                if self.dcap['infinite_shield'] and s < 20:
+                if dcap['infinite_shield'] and s < 20:
                     s += 4
                 s -= 1
-                if self.dcap['overlayglasses']:
+                if dcap['overlayglasses']:
                     self.overlayyoffset = {3: 2, 4: 0,
                                            9: 3, 10: 5}.get(mode, 4)
                 elif s & 2:
                     mode = 11
-                self.dcap['shield'] = s
-            if self.dcap['ring']:# and random.random() > 0.1:
-                if self.dcap['ring'] > 1:
+                dcap['shield'] = s
+            if dcap['ring']:# and random.random() > 0.1:
+                if dcap['ring'] > 1:
                     mode = 12
                 else:
                     mode = 11
-            icobubber = self.dcap.get('bubbericons', self.bubber)
+            icobubber = dcap.get('bubbericons', self.bubber)
             try:
                 icons = icobubber.transformedicons[imgtransform]
             except KeyError:
@@ -724,16 +728,24 @@ class BubPlayer(gamesrv.Player):
             self.lives -= 1
             scoreboard()
 
+    def getkey(self, dcap, key_name):
+        return getattr(self, dcap[key_name])
+
+    def setkey(self, dcap, key_name, value):
+        setattr(self, dcap[key_name], value)
+
     def wannago(self, dcap):
-        return dcap['left2right'] * cmp(self.key_right, self.key_left)
+        return dcap['left2right'] * cmp(self.getkey(dcap, 'key_right'),
+                                        self.getkey(dcap, 'key_left'))
 
     def turn_single_shot(self, dcap):
-        if self.key_left < 999997 and self.key_left != 1:
-            self.key_left = 0
-        if self.key_right < 999997 and self.key_right != 1:
-            self.key_right = 0
+        for name in ('key_left', 'key_right'):
+            n = self.getkey(dcap, name)
+            if n < 999997 and n != 1:
+                self.setkey(dcap, name, 0)
         wannago = self.wannago(dcap)
-        self.key_left = self.key_right = 0
+        for name in ('key_left', 'key_right'):
+            self.setkey(dcap, name, 0)
         return wannago
 
     def givepoints(self, points):

@@ -1076,11 +1076,24 @@ class GreenPepper(TemporaryBonus):
 class Lollipop(TemporaryBonus):
     "Yo Man! Makes you walk backward."
     nimage = Bonuses.lollipop
+    big = 0
+    bigbonus = {'big': 1}
     def taken(self, dragon):
         dragon.dcap['left2right'] = -dragon.dcap['left2right']
+        if self.big:
+            perm = range(4)
+            while perm[0] == 0 or perm[1] == 1 or perm[2] == 2 or perm[3] == 3:
+                random.shuffle(perm)
+            names = ('key_left', 'key_right', 'key_jump', 'key_fire')
+            dragon.dcap['key_right'] = names[perm[0]]
+            dragon.dcap['key_left']  = names[perm[1]]
+            dragon.dcap['key_jump']  = names[perm[2]]
+            dragon.dcap['key_fire']  = names[perm[3]]
         self.carried(dragon)
     def endaction(self, dragon):
         dragon.dcap['left2right'] = -dragon.dcap['left2right']
+        for name in ('key_left', 'key_right', 'key_jump', 'key_fire'):
+            dragon.dcap[name] = name
 
 class Chickpea(TemporaryBonus):
     "Basilik. Allows you to touch the monsters."
