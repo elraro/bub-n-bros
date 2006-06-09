@@ -497,7 +497,7 @@ class VioletNecklace(RandomBonus):
     "Monster Duplicator. Double the number of free monsters."
     points = 650
     nimage = Bonuses.violet_necklace
-    bigbonus = {'multiply': 3}
+    #bigbonus = {'multiply': 3}
     def taken1(self, dragons):
         for s in BubPlayer.MonsterList[:]:
             if s.regular():

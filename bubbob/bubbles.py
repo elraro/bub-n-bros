@@ -50,22 +50,25 @@ class Bubble(ActiveSprite):
               abs(self.x - dx) < 15 and abs(self.y - dy) < 15):
             if dragon not in self.catch_dragons:
                 self.catch_dragons.append(dragon)
-        elif not self.pop(getattr(dragon, 'poplist', None)):
-            if self.x < dx:
-                o.append((1,0))
-            else:
-                o.append((-1,0))
-            if self.y < dy:
-                o.append((0,1))
-            else:
-                o.append((0,-1))
-            self.obstacle = o
+##        elif not self.pop(getattr(dragon, 'poplist', None)):
+##            if self.x < dx:
+##                o.append((1,0))
+##            else:
+##                o.append((-1,0))
+##            if self.y < dy:
+##                o.append((0,1))
+##            else:
+##                o.append((0,-1))
+##            self.obstacle = o
+        else:
+            self.pop(getattr(dragon, 'poplist', None))
         return o == self.check_onbubble[dragon.bottom_up()]
 
     def can_catch_dragons(self, author, catch_myself=0):
         self.catch_dragons = [author]
         if catch_myself:
             self.catch_dragons.append(author)
+            self.move(author.x, author.y)
         self.gen.append(self.catching_dragons())
 
     def catching_dragons(self):
