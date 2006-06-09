@@ -1222,6 +1222,14 @@ def newbubble(): #force=0):
             return
     sendbubble(cls)
 
+def newforcedbubble():
+    choices = [PlainBubble] * 4
+    for cls in [FireBubble, WaterBubble, LightningBubble]:
+        if cls.__dict__['condition']():
+            choices.append(cls)
+    cls = random.choice(choices)
+    sendbubble(cls, top = random.choice([0,0,0, 1,1,1, 2,2, 3,3]))
+
 def sendbubble(cls, *args, **kw):
     from player import BubPlayer
     players = [p for p in BubPlayer.PlayerList if p.isplaying()]

@@ -1022,25 +1022,19 @@ class Mushroom(TemporaryBonus):
     captime = 625
     bigbonus = {'captime': captime*2, 'multiply': 2}
 
-##class Glue(TemporaryBonus):
-##    "Glue. Keep your feet on the ground."
-##    nimage = 'glue'
-##    points = 850
-##    capname = 'nojump'
-##    captime = 635
-
-##class Glue(RandomBonus):
-##    nimage = 'glue'
-##    points = 850
-##    def taken1(self, dragons):
-##        boards.extra_boardgen(boards.extra_light_off(567))
-
 class AutoFire(TemporaryBonus):
     "Auto Fire. Makes you fire continuously."
     nimage = Bonuses.rape
     points = 800
     capname = 'autofire'
     captime = 675
+    big = 0
+    bigbonus = {'big': 1}
+    def taken1(self, dragons):
+        if self.big:
+            boards.extra_boardgen(boards.extra_bubbles(900))
+        else:
+            TemporaryBonus.taken1(self, dragons)
 
 class Insect(RandomBonus):
     "Crush World."
