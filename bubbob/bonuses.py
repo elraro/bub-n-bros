@@ -435,6 +435,7 @@ class Cocktail(TemporaryBonus):
     nimage = Bonuses.cocktail
     points = 2000
     capname = 'bubbledelay'
+    bigbonus = {'multiply': 3}
 
 class Extend(RandomBonus):
     "E X T E N D. Gives you your missing letters and clear the level. "

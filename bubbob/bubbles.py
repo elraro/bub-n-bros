@@ -487,9 +487,21 @@ class DragonBubble(Bubble):
                 b.can_catch_dragons(self.d, hspeed == 0)
                 self.kill()
                 return
-        self.startnormalbubble(timeout=self.d.dcap['bubbledelay'] or 800)
+        bubbledelay = self.d.dcap['bubbledelay']
+        if bubbledelay:
+            timeout = 1
+            if bubbledelay > 1:
+                self.gen.append(self.delayed_pop(7))
+        else:
+            timeout = 800
+        self.startnormalbubble(timeout=timeout)
         if not withmonster:
             self.can_catch_dragons(self.d, hspeed == 0)
+
+    def delayed_pop(self, delay):
+        for i in range(delay):
+            yield None
+        self.pop()
 
 
 class BubblingEyes(ActiveSprite):
