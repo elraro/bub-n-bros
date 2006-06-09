@@ -1684,10 +1684,10 @@ else:
             ActiveSprite.__init__(self, entry.ico, entry.x, entry.y)
 
         def setentry(self, entry):
-            ico = images.make_darker(entry.ico, True)
+            #ico = images.make_darker(entry.ico, True)
             self.lastx = self.x
             self.lasty = self.y
-            self.move(entry.x, entry.y, ico)
+            self.move(entry.x, entry.y, entry.ico)
             self.entry = entry
             self.bubber = entry.d.bubber
             self.dir = entry.dir
