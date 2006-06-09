@@ -1916,12 +1916,19 @@ class Slippy(TemporaryBonus):
 class Aubergine(TemporaryBonus):
     "Mirror. The left hand is the one with the thumb on the right, right?"
     nimage = Bonuses.aubergine
-    #bigbonus = {'multiply': 3}
+    big = 0
+    bigbonus = {'big': 1, 'multiply': 2}
     def taken(self, dragon):
-        dragon.dcap['lookforward'] = -dragon.dcap['lookforward']
+        if self.big:
+            dragon.dcap['teleport'] = 1
+        else:
+            dragon.dcap['lookforward'] = -dragon.dcap['lookforward']
         self.carried(dragon)
     def endaction(self, dragon):
-        dragon.dcap['lookforward'] = -dragon.dcap['lookforward']
+        if self.big:
+            pass
+        else:
+            dragon.dcap['lookforward'] = -dragon.dcap['lookforward']
 
 class WhiteCarrot(TemporaryBonus):
     "Fly. Become a great flying dragon!"

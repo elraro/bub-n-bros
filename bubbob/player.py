@@ -41,6 +41,7 @@ class Dragon(ActiveSprite):
         'flower': 1,
         'bigflower': None,
         'overlayglasses': 0,
+        'teleport': 0,
         'carrying': (),
         'key_left':  'key_left',
         'key_right': 'key_right',
@@ -311,7 +312,13 @@ class Dragon(ActiveSprite):
 ##                    }[self.glueddown]
 ##                if self.glueddown == (0, -1):
 ##                    dir = -self.dir
-##            elif
+            icobubber = dcap.get('bubbericons', self.bubber)
+            try:
+                icons = icobubber.transformedicons[imgtransform]
+            except KeyError:
+                icons = icobubber.transformedicons[imgtransform] = {}
+                icobubber.loadicons(imgtransform)
+
             if self.up:
                 # going up
                 mode = 9
@@ -339,6 +346,10 @@ class Dragon(ActiveSprite):
                         mode = 9
                     else:
                         mode = mytime // 4
+                        if (wannago and dcap['teleport'] and
+                            BubPlayer.FrameCounter % 5 == 3):
+                            for t in self.teleport(wannago, icons):
+                                yield t
                 else:
                     mode = 10
                     if dcap['fly']:
@@ -388,12 +399,6 @@ class Dragon(ActiveSprite):
                     mode = 12
                 else:
                     mode = 11
-            icobubber = dcap.get('bubbericons', self.bubber)
-            try:
-                icons = icobubber.transformedicons[imgtransform]
-            except KeyError:
-                icons = icobubber.transformedicons[imgtransform] = {}
-                icobubber.loadicons(imgtransform)
             self.seticon(icons[mode, dir])
             self.watermoveable = not wannajump
 
@@ -412,6 +417,45 @@ class Dragon(ActiveSprite):
             #    s = ActiveSprite(icons[11, -self.dir],
             #                     boards.bwidth - 2*CELL - self.x, self.y)
             #    s.gen.append(s.die([None], speed=2))
+
+    def teleport(self, wannago, icons):
+        if self.dcap['shield']:
+            return
+        from bonuses import Bonus, Megabonus
+        best_dx = boards.bwidth
+        centerx = self.x + self.ico.w // 2
+        basey = self.y + self.ico.h
+        for s in images.ActiveSprites:
+            if (isinstance(s, Bonus) and s.y+s.ico.h == basey and s.touchable
+                and (onground(s.x, s.y) or isinstance(s, Megabonus))):
+                dx = (s.x + (wannago < 0 and s.ico.w)) - centerx
+                if dx*wannago > 0:
+                    dx = abs(dx) + CELL
+                    if dx < best_dx:
+                        best_dx = dx
+        if not (42 <= best_dx < boards.bwidth):
+            return
+        dx = best_dx
+        self.dir = wannago
+        ico = images.make_darker(icons[0, wannago], True)
+        # speed up
+        fx = self.x
+        curdx = 0.0
+        stepx = 2.0
+        while 1:
+            if curdx < 0.5*dx:
+                stepx *= 1.1
+            else:
+                stepx /= 1.1
+            fx += wannago * stepx
+            curdx += stepx
+            if curdx >= dx:
+                fx += wannago * (dx - curdx)
+                break
+            self.move(int(fx), self.y, ico)
+            yield None
+        self.move(int(fx), self.y)
+        self.dcap['shield'] = 50
 
     def to_front(self):
         ActiveSprite.to_front(self)
