@@ -498,12 +498,30 @@ class VioletNecklace(RandomBonus):
     "Monster Duplicator. Double the number of free monsters."
     points = 650
     nimage = Bonuses.violet_necklace
-    #bigbonus = {'multiply': 3}
+    big = 0
+    bigbonus = {'big': 1}
     def taken1(self, dragons):
-        for s in BubPlayer.MonsterList[:]:
-            if s.regular():
-                for i in range(self.multiply):
-                    s.__class__(s.mdef, s.x, s.y, -s.dir * (-1)**i)
+        if self.big:
+            import monsters, mnstrmap
+            mlist = 2*['Nasty', 'Monky', 'Springy', 'Orcy', 'Gramy', 'Blitzy']
+            wrange = (boards.bwidth - 8*CELL) // 2
+            for dir in [1, -1]:
+                for i in range(len(mlist)):
+                    name = mlist[i]
+                    mdef = getattr(mnstrmap, name)
+                    cls = getattr(monsters, name)
+                    x = wrange * i // len(mlist)
+                    if dir == 1:
+                        x = 2*CELL + HALFCELL + x
+                    else:
+                        x = boards.bwidth - 4*CELL - HALFCELL - x
+                    y = -2*CELL - i * 2*CELL
+                    cls(mdef, x, y, dir)
+        else:
+            for s in BubPlayer.MonsterList[:]:
+                if s.regular():
+                    for i in range(self.multiply):
+                        s.__class__(s.mdef, s.x, s.y, -s.dir * (-1)**i)
 
 class WandBonus(RandomBonus):
     "Wand/Chest. Turn the bubble into bonuses at the end of the level."
