@@ -197,6 +197,9 @@ class Dragon(ActiveSprite):
                 wannafire = 1
                 if self.fire > (11 // dcap['hotstuff']):
                     self.fire = 0
+                    if dcap['hotstuff'] > 1 and random.random() < 0.4:
+                        from bubbles import FireDrop
+                        FireDrop(self.x + HALFCELL, self.y + HALFCELL)
             if wannago:
                 self.dir = wannago * dcap['lookforward']
             if self.x & 1:

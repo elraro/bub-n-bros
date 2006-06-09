@@ -211,6 +211,103 @@ class Bubble(ActiveSprite):
                                     imglist[1],
                                     imglist[0]]))
 
+    def startsnookerbubble(self, timeout, hspeed, monsterpoplist=None):
+        self.gen.append(self.snooker_movements(dir=hspeed, timeout=timeout))
+        self.gen.append(self.kill_touching_monsters(monsterpoplist))
+        colorname = random.choice(Stars.COLORS)
+        imglist = [('smstar', colorname, k) for k in range(2)]
+        self.to_front()
+        s = images.ActiveSprite(images.sprget(imglist[-1]), self.x, self.y)
+        s.setimages(s.cyclic(imglist, speed=2))
+        s.gen.append(s.following(self))
+
+    def snooker_movements(self, dir, dy=0.3, timeout=500):
+        icons = [images.sprget(n)
+                 for n in GreenAndBlue.normal_bubbles[self.d.bubber.pn]]
+        icotimeout = 0
+        ico = icons[1]
+        yfrac = 0.0
+        self.dragon_jumped = False
+        for i in xrange(timeout):
+            hspeed = random.randrange(2, 4)
+            if ico is not icons[1]:
+                icotimeout += 1
+                if icotimeout >= 16:
+                    ico = icons[1]
+                    icotimeout = 0
+            elif abs(dy) > 16:
+                if dy > 0:
+                    dy = 16.0
+                else:
+                    dy = -16.0
+            self.touchable = 1
+            if self.dragon_jumped:
+                self.untouchable()
+                if self.dragon_jumped[1]:   # bottom-up dragon
+                    dy = -abs(dy)
+                else:
+                    dy = abs(dy)
+            self.dragon_jumped = False
+            stepx = 0
+            y1 = (self.y + 27) // CELL
+            if dir < 0:
+                x1 = (self.x + 5) // CELL
+                if bget(x1, y1) == ' ' == bget(x1, y1-1):
+                    stepx = -hspeed
+                else:
+                    ico = icons[0]
+                    dir = 1
+            else:
+                x1 = (self.x + 26) // CELL
+                if bget(x1, y1) == ' ' == bget(x1, y1-1):
+                    stepx = hspeed
+                else:
+                    ico = icons[0]
+                    dir = -1
+            x = self.x
+            deltay = yfrac
+            if x < 32:
+                x += hspeed
+                dir = 1
+            elif x > boards.bwidth - 64:
+                x -= hspeed
+                dir = -1
+            else:
+                x += stepx
+                dy += 0.21
+                deltay = yfrac + dy
+            y = self.y
+            while deltay >= 1.0:
+                deltay -= 1.0
+                if onground(x, y-4):
+                    ico = icons[2]
+                    deltay = -deltay
+                    dy = -abs(dy)
+                else:
+                    y += 1
+            while deltay < 0.0:
+                deltay += 1.0
+                if underground(x, y+4):
+                    ico = icons[2]
+                    dy = abs(dy) * 0.95
+                    break
+                y -= 1
+            self.move(x, y, ico)
+            self.vertical_warp()
+            yfrac = deltay
+            yield None
+        self.pop()
+
+    def kill_touching_monsters(self, poplist=None):
+        from monsters import Monster
+        poplist = poplist or [self.d]
+        while 1:
+            yield None
+            for s in self.touching(10):
+                if isinstance(s, Monster):
+                    s.argh(poplist)
+            yield None
+
 
 class NormalBubble(Bubble):
     warp = 1
@@ -220,6 +317,16 @@ class NormalBubble(Bubble):
         Bubble.__init__(self, images.sprget(imglist1[0]), x, y)
         self.d = dragon
         self.startnormalbubble(timeout=timeout)
+
+class SnookerBubble(Bubble):
+    warp = 1
+    touchable = 0
+
+    def __init__(self, dragon, x, y, timeout=500):
+        imglist1 = GreenAndBlue.new_bubbles[dragon.bubber.pn]
+        Bubble.__init__(self, images.sprget(imglist1[0]), x, y)
+        self.d = dragon
+        self.startsnookerbubble(timeout=timeout, hspeed=dragon.dir)
 
 
 class BigBubbleCatcher(ActiveSprite):
@@ -312,15 +419,14 @@ class DragonBubble(Bubble):
             return
 
         self.warp = 0
+        monsterpoplist = [self.d]
         while abs(hspeed) >= 4.0:
             touched_monsters = [s for s in self.touching(9)
                                 if isinstance(s, Monster)]
             if touched_monsters:
                 if special_bubble == 'SnookerBubble':
                     for monster in touched_monsters:
-                        if not hasattr(self, 'poplist'):
-                            self.poplist = [self.d]
-                        monster.argh(self.poplist)
+                        monster.argh(monsterpoplist)
                 else:
                     monster = random.choice(touched_monsters)
                     in_bubble = monster.in_bubble(self)
@@ -355,7 +461,7 @@ class DragonBubble(Bubble):
             if stop > 1:
                 hspeed = -hspeed
             self.startsnookerbubble(self.d.dcap['bubbledelay'] or 800,
-                                    hspeed)
+                                    hspeed, monsterpoplist)
             return
         if not withmonster:
             from bonuses import Bonus, BonusMaker
@@ -384,104 +490,6 @@ class DragonBubble(Bubble):
         self.startnormalbubble(timeout=self.d.dcap['bubbledelay'] or 800)
         if not withmonster:
             self.can_catch_dragons(self.d, hspeed == 0)
-
-    def startsnookerbubble(self, timeout, hspeed):
-        self.gen.append(self.snooker_movements(dir=hspeed, timeout=timeout))
-        self.gen.append(self.kill_touching_monsters())
-        colorname = random.choice(Stars.COLORS)
-        imglist = [('smstar', colorname, k) for k in range(2)]
-        self.to_front()
-        s = images.ActiveSprite(images.sprget(imglist[-1]), self.x, self.y)
-        s.setimages(s.cyclic(imglist, speed=2))
-        s.gen.append(s.following(self))
-
-    def snooker_movements(self, dir, dy=0.3, timeout=500):
-        icons = [images.sprget(n)
-                 for n in GreenAndBlue.normal_bubbles[self.d.bubber.pn]]
-        icotimeout = 0
-        ico = icons[1]
-        yfrac = 0.0
-        self.dragon_jumped = False
-        for i in xrange(timeout):
-            hspeed = random.randrange(2, 4)
-            if ico is not icons[1]:
-                icotimeout += 1
-                if icotimeout >= 16:
-                    ico = icons[1]
-                    icotimeout = 0
-            elif abs(dy) > 16:
-                if dy > 0:
-                    dy = 16.0
-                else:
-                    dy = -16.0
-            self.touchable = 1
-            if self.dragon_jumped:
-                self.untouchable()
-                if self.dragon_jumped[1]:   # bottom-up dragon
-                    dy = -abs(dy)
-                else:
-                    dy = abs(dy)
-            self.dragon_jumped = False
-            stepx = 0
-            y1 = (self.y + 27) // CELL
-            if dir < 0:
-                x1 = (self.x + 5) // CELL
-                if bget(x1, y1) == ' ' == bget(x1, y1-1):
-                    stepx = -hspeed
-                else:
-                    ico = icons[0]
-                    dir = 1
-            else:
-                x1 = (self.x + 26) // CELL
-                if bget(x1, y1) == ' ' == bget(x1, y1-1):
-                    stepx = hspeed
-                else:
-                    ico = icons[0]
-                    dir = -1
-            x = self.x
-            deltay = yfrac
-            if x < 32:
-                x += hspeed
-                dir = 1
-            elif x > boards.bwidth - 64:
-                x -= hspeed
-                dir = -1
-            else:
-                x += stepx
-                dy += 0.21
-                deltay = yfrac + dy
-            y = self.y
-            while deltay >= 1.0:
-                deltay -= 1.0
-                if onground(x, y-4):
-                    ico = icons[2]
-                    deltay = -deltay
-                    dy = -abs(dy)
-                else:
-                    y += 1
-            while deltay < 0.0:
-                deltay += 1.0
-                if underground(x, y+4):
-                    ico = icons[2]
-                    dy = abs(dy) * 0.95
-                    break
-                y -= 1
-            self.move(x, y, ico)
-            self.vertical_warp()
-            yfrac = deltay
-            yield None
-        self.pop()
-
-    def kill_touching_monsters(self):
-        from monsters import Monster
-        while 1:
-            yield None
-            for s in self.touching(10):
-                if isinstance(s, Monster):
-                    if not hasattr(self, 'poplist'):
-                        self.poplist = [self.d]
-                    s.argh(self.poplist)
-            yield None
 
 
 class BubblingEyes(ActiveSprite):

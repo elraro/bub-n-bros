@@ -1338,16 +1338,19 @@ class Bubblizer(RandomBonus):
     "Bubblizer."
     points = 750
     nimage = Bonuses.gold_crux
-    #big = 0
-    #bigbonus = {'big': 1}
+    big = 0
+    bigbonus = {'big': 1}
     def taken(self, dragon):
-        if 0:  # self.big:
-            from bubbles import BombBubble, BigLightBubble
-            bcls = random.choice([BombBubble, BigLightBubble])
+        args = (dragon.bubber.pn,)
+        if self.big:
+            from bubbles import SnookerBubble, BigLightBubble
+            bcls = random.choice([SnookerBubble, BigLightBubble])
+            if bcls is SnookerBubble:
+                args = (dragon, dragon.x, dragon.y, 1000000)
         else:
             from bubbles import FireBubble, WaterBubble, LightningBubble
             bcls = random.choice([FireBubble, WaterBubble, LightningBubble])
-        b = bcls(dragon.bubber.pn)
+        b = bcls(*args)
         b.move(dragon.x, dragon.y)
         if not dragon.become_bubblingeyes(b):
             b.kill()
