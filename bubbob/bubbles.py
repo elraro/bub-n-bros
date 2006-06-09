@@ -220,6 +220,10 @@ class Bubble(ActiveSprite):
         s = images.ActiveSprite(images.sprget(imglist[-1]), self.x, self.y)
         s.setimages(s.cyclic(imglist, speed=2))
         s.gen.append(s.following(self))
+        def to_front():
+            Bubble.to_front(self)
+            s.to_front()
+        self.to_front = to_front
 
     def snooker_movements(self, dir, dy=0.3, timeout=500):
         icons = [images.sprget(n)
