@@ -813,7 +813,7 @@ class TimeCounter(Copyable):
         if self.blink and BubPlayer.LimitTime - next >= 0.5:
             BubPlayer.LimitTime = next = None
         if self.prev != next:
-            scoreboard()
+            scoreboard(compresslimittime=1)
             self.prev = next
     def restore(self):
         from player import BubPlayer

@@ -841,7 +841,7 @@ def xyiconumber(digits, x, y, pts, lst, width=7):
             break
     return lst[-1][0]
 
-def scoreboard(reset=0, inplace=0):
+def scoreboard(reset=0, inplace=0, compresslimittime=0):
     endgame = 1
     if reset:
         for p in BubPlayer.PlayerList:
@@ -980,7 +980,6 @@ def scoreboard(reset=0, inplace=0):
                 p.letters[name] = 2
                 s.kill()
     compressable = len(lst)
-    ymin = 0
     #if BubPlayer.HighScoreColor is not None:
     #    x = xyiconumber(GreenAndBlue.digits[BubPlayer.HighScoreColor],
     #                    x0+2*CELL, HALFCELL, BubPlayer.HighScore, lst)
@@ -1001,6 +1000,11 @@ def scoreboard(reset=0, inplace=0):
         ico = images.sprget(DigitsMisc.digits_white[seconds % 10])
         lst.append((x0+6*CELL+ico.w, HALFCELL, ico))
         ymin = HALFCELL + ico.h
+    elif compresslimittime:
+        ico = images.sprget(DigitsMisc.digits_white[0])
+        ymin = HALFCELL + ico.h
+    else:
+        ymin = 0
     if not brd.bonuslevel:
         xyiconumber(DigitsMisc.digits_white, 2, 2, brd.num+1, lst, width=2)
 
