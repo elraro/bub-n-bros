@@ -1878,12 +1878,12 @@ class MultiStones(RandomBonus):
             self.gen.append(self.touchdelay(5))
             return -1     # don't go away
     def repulse(self, dragons):
-        from bubbles import Bubble
         for d in dragons:
-            repluse_dragon(d)
+            repulse_dragon(d)
 
 def repulse_dragon(d):
     if hasattr(d, 'become_bubblingeyes'):
+        from bubbles import Bubble
         ico = images.sprget(GreenAndBlue.normal_bubbles[d.bubber.pn][0])
         b = Bubble(ico, d.x, d.y)
         d.become_bubblingeyes(b)
