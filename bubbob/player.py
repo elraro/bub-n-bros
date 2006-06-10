@@ -433,15 +433,18 @@ class Dragon(ActiveSprite):
                     dx = abs(dx) + CELL
                     if dx < best_dx:
                         best_dx = dx
+                        best = s
         if not (42 <= best_dx < boards.bwidth):
             return
         dx = best_dx
+        s = best
         self.dir = wannago
         ico = images.make_darker(icons[0, wannago], True)
         # speed up
         fx = self.x
         curdx = 0.0
         stepx = 2.0
+        t = 0
         while 1:
             if curdx < 0.5*dx:
                 stepx *= 1.1
@@ -453,6 +456,13 @@ class Dragon(ActiveSprite):
                 fx += wannago * (dx - curdx)
                 break
             self.move(int(fx), self.y, ico)
+            # make the target bonus jump a bit
+            if s.alive:
+                dy = (t & 7) * 4
+                if dy > 16:
+                    dy = 32-dy
+                s.move(s.x, basey - s.ico.h - dy)
+            t += 1
             yield None
         self.move(int(fx), self.y)
         self.dcap['shield'] = 50
