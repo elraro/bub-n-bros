@@ -63,9 +63,9 @@ class Shape:
     basemnstr = ChoiceParameter('basemnstr', MnstrNames)
     extramnstr = ChoiceParameter('extramnstr', range(4))
     samemnstr = BoolParameter('samemnstr')
-    # NB. the 'S' shape is not as common as it seems, because test_density()
-    # will often reject it
-    baseshape = ChoiceParameter('baseshape', '   BGMPRWZSSSSSSSSSSSSSSSS')
+    # NB. the 'S' and 'D' shapes are not as common as it seems, because test_density()
+    # will often reject them
+    baseshape = ChoiceParameter('baseshape', '   DDDDDDDDDDDDDDDDDBGMPRWZSSSSSSSSSSSSSSSS')
     rooms = BoolParameter('rooms')
     holes = BoolParameter('holes')
     lines = ChoiceParameter('lines', '   -/|')
@@ -133,6 +133,7 @@ class Shape:
     def test_density(self, prevlist):
         fill = ((self.baseshape != ' ') +
                 2*(self.baseshape == 'S') +
+                2*(self.baseshape == 'D') +
                 (self.rooms != 0) +
                 (self.lines != ' ') +
                 (self.platforms != 0) +
@@ -193,6 +194,8 @@ class Shape:
             lvl.genwalls.append((RandomLevel.mondrian,))
         if self.baseshape == 'S':
             lvl.genwalls.append((RandomLevel.platforms_symm,))
+        if self.baseshape == 'D':
+            lvl.genwalls.append((RandomLevel.discrete_blocks,))
 
         if self.rooms:
             nr = dice(2, 6)

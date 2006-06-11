@@ -393,6 +393,41 @@ class RandomLevel(boarddef.Level):
                 for h in range(hx-hw/2,hx+hw/2):
                     self.clrw(h,y)
 
+    def discrete_blocks(self, blocks = -1):
+	"""Put certain size blocks randomly, but so that they don't touch each other.
+	"""
+        self.reset(fill=False)
+	if blocks == -1:
+	    if random() < 0.75:
+		blocks = [(4,2),(2,4)] # CompactLevels, level 16
+		if random() < 0.30:
+		    blocks.append((2,2))
+		if random() < 0.20:
+		    blocks.append((6,2))
+		if random() < 0.10:
+		    blocks.append((8,2))
+	    elif random() < 0.25:
+		blocks = [(1,1)]
+	    else:
+		blocks = [(3,1),(4,1),(5,1),(6,1)]
+	ntry = 300
+	while ntry:
+	    ntry -= 1
+	    doput = 1
+	    block = choice(blocks)
+	    wid = block[0]
+	    hei = block[1]
+	    x = randint(0,self.WIDTH-wid-2)
+	    y = randint(1,self.HEIGHT-hei-3)
+	    for dx in range(x,x+wid+2):
+		for dy in range(y,y+hei+2):
+		    if self.wmap[dy][dx] == '#':
+			doput = 0
+	    if doput:
+		for dx in range(x+1,x+wid+1):
+		    for dy in range(y+1,y+hei+1):
+			self.setw(dx,dy)
+
     def lines(self, rng_len, nlines, rng_angle=None):
         """Generate a set of lines in any direction. It takes three
         arguments, a rng for the length the lines, the number of lines,
