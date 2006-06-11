@@ -41,7 +41,7 @@ for i in range(n_lvls):
     print '%4d:' % i,
     d = {'__name__': 'RandomLevels'}
     execfile('levels/RandomLevels.py', d)
-    for i, Lvl in enumerate(d['Levels']):
+    for i, Lvl in enumerate(d['GenerateLevels']()):
         level = Lvl(i)
         printlvl(level)
         for x in range(2, level.width-2):
