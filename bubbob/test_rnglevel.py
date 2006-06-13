@@ -7,22 +7,32 @@
 # this test accepts the following parameters:
 # -wall    show the level layout
 # -wind    show the level wind pattern
+# -seed N  use random seed N for the generation
 #
 
 import sys
+import random
 sys.path.append('..')
 sys.path.append('../common')
 
 n_lvls = 100
 show_lvl = 0
 
-for arg in sys.argv:
+idx = 0
+while idx < len(sys.argv):
+    arg = sys.argv[idx]
+    idx += 1
     if arg == '-wall':
         show_lvl |= 1
         n_lvls = 2
     if arg == '-wind':
         show_lvl |= 2
         n_lvls = 2
+    if arg == '-seed':
+	arg = sys.argv[idx]
+	idx += 1
+	print "Using seed: " + arg + "\n"
+	random.seed(arg)
 
 def printlvl(level):
     if show_lvl:
