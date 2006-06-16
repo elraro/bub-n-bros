@@ -796,7 +796,12 @@ class Butterfly(Monster):
             elif self.x > boards.bwidth - 64:
                 bump = self.dir > 0
             elif self.fly_away:
-                bump = self.dir * (self.fly_away[1] - self.x) > 0
+                wannago = self.x - self.fly_away[1]
+                if self.x < 100:
+                    wannago = 1
+                elif self.x > boards.bwidth - 100:
+                    wannago = -1
+                bump = self.dir * wannago < 0
                 if repeat:
                     self.fly_away = False
                     repeat = 0

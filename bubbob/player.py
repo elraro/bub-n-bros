@@ -331,6 +331,9 @@ class Dragon(ActiveSprite):
                     self.move(self.x, int(ny))
                     yfp = ny - self.y
                     self.vertical_warp()
+                if wannago and dcap['teleport']:
+                    for t in self.teleport(wannago, icons):
+                        yield t
             else:
                 # going down or staying on ground
                 if wannajump and onbubble:
@@ -368,6 +371,9 @@ class Dragon(ActiveSprite):
                         nx -= 2
                     self.move(nx, ny)
                     self.vertical_warp()
+                    if wannago and dcap['teleport']:
+                        for t in self.teleport(wannago, icons):
+                            yield t
 
             if wannafire and not self.fire:
                 self.firenow()
@@ -419,12 +425,12 @@ class Dragon(ActiveSprite):
             #    s.gen.append(s.die([None], speed=2))
 
     def teleport(self, wannago, icons):
-        if self.dcap['shield']:
-            return
+        #if self.dcap['shield']:
+        #    return
         from bonuses import Bonus, Megabonus
         best_dx = boards.bwidth
         centerx = self.x + self.ico.w // 2
-        basey = self.y + self.ico.h
+        basey = (self.y + self.ico.h + 8) & ~15
         for s in images.ActiveSprites:
             if (isinstance(s, Bonus) and s.y+s.ico.h == basey and s.touchable
                 and (onground(s.x, s.y) or isinstance(s, Megabonus))):
@@ -436,6 +442,8 @@ class Dragon(ActiveSprite):
                         best = s
         if not (42 <= best_dx < boards.bwidth):
             return
+        self.play(images.Snd.Shh)
+        self.up = 0.0
         dx = best_dx
         s = best
         self.dir = wannago
@@ -444,6 +452,7 @@ class Dragon(ActiveSprite):
         fx = self.x
         curdx = 0.0
         stepx = 2.0
+        targety = basey - self.ico.h
         t = 0
         while 1:
             if curdx < 0.5*dx:
@@ -456,7 +465,7 @@ class Dragon(ActiveSprite):
                 fx += wannago * (dx - curdx)
                 break
             self.move(int(fx), self.y, ico)
-            # make the target bonus jump a bit
+            # make the target bonus bounce a bit
             if s.alive:
                 dy = (t & 7) * 4
                 if dy > 16:
@@ -464,6 +473,8 @@ class Dragon(ActiveSprite):
                 s.move(s.x, basey - s.ico.h - dy)
             t += 1
             yield None
+            if self.y != targety:
+                self.step(0, max(-4, min(4, targety - self.y)))
         self.move(int(fx), self.y)
         self.dcap['shield'] = 50
 
