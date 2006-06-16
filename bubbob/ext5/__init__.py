@@ -177,10 +177,10 @@ class Lemming(Monster):
     def leaveboard(self, bubble):
         if hasattr(bubble, 'd'):
             bubble.play(images.Snd.Extra)
-            bonuses.points(bubble.x, bubble.y, bubble.d, 500)
             score = self.lemmings.score
             bubber = bubble.d.bubber
             score[bubber] = score.get(bubber, 0) + 1
+            bonuses.points(bubble.x, bubble.y, bubble.d, 500)
         self.kill()
 
     default_mode = walking
@@ -189,16 +189,14 @@ class Lemming(Monster):
 class Lemmings:
     
     def bgen(self, limittime = 60.1): # 0:60
-        for t in boards.exit_board(0, repeatmusic=[music]):
-            yield t
-        for t in curboard.clean_gen_state():
+        self.score = {}
+        for t in boards.initsubgame(music, self.displaypoints):
             yield t
         self.lemmap = {}
         for key in localmap:
             self.lemmap[key] = images.sprget(key)
 
         tc = boards.TimeCounter(limittime)
-        self.score = {}
         self.lemlist = []
         self.lemtotal = 0
         for t in self.frame():
@@ -217,6 +215,9 @@ class Lemmings:
                 s.pop()
         for t in boards.result_ranking(self.score.copy(), self.lemtotal):
             yield t
+
+    def displaypoints(self, bubber):
+        return self.score.get(bubber, 0)
 
     def frame(self):
         windline = '>>' + '^'*(curboard.width-4) + '<<'

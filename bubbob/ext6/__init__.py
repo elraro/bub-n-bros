@@ -124,15 +124,13 @@ class TronHead(ActiveSprite):
 class Tron:
     
     def bgen(self, limittime = 60.1): # 1:00
-        for t in boards.exit_board(0, repeatmusic=[music]):
-            yield t
-        for t in curboard.clean_gen_state():
+        self.score = {}
+        for t in boards.initsubgame(music, self.displaypoints):
             yield t
 
         self.ready = 0
         self.trons = []
         self.trailsprites = []
-        self.score = {}
         self.playerlist = BubPlayer.PlayerList[:]
         tc = boards.TimeCounter(limittime)
         for t in self.frame(tc):
@@ -155,6 +153,9 @@ class Tron:
                     d.kill()
             yield t
         self.remove_trons()
+
+    def displaypoints(self, bubber):
+        return self.score.get(bubber, 0)
 
     def build_trons(self):
         if self.ready == 0:
@@ -238,7 +239,9 @@ class Tron:
                 yield None
 
             if len(self.trons) == 1:
-                self.score[self.trons[0].bubber] += 1
+                bubber = self.trons[0].bubber
+                self.score[bubber] += 1
+                bubber.givepoints(100)
                 self.trons[0].stop()
                 self.ready = 99
 

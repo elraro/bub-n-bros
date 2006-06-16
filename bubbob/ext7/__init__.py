@@ -4,7 +4,7 @@ import images, gamesrv
 from images import ActiveSprite
 import boards
 from boards import CELL
-from player import Dragon, BubPlayer
+from player import Dragon, BubPlayer, scoreboard
 from bubbles import Bubble
 from bonuses import Bonus
 from mnstrmap import PlayerBubbles
@@ -201,7 +201,10 @@ class Plane(ActiveSprite):
 
     def godowninflames(self, hit_by_plane=None):
         if hit_by_plane and hit_by_plane in self.shotlist:
-            del self.shotlist[hit_by_plane]
+            hittime = self.shotlist[hit_by_plane]
+            if BubPlayer.FrameCounter < hittime + 60:
+                del self.shotlist[hit_by_plane]
+                scoreboard()
         self.seticon(self.getico())
         self.gen.append(self.fly())
         trail = [(self.x, self.y)] * 7
@@ -274,7 +277,7 @@ class Shot(ActiveSprite):
                     self.kill()
                     if s.controlled():
                         s.gen = [s.godowninflames(self.plane)]
-                        self.plane.shotlist[s] = True
+                        self.plane.shotlist[s] = BubPlayer.FrameCounter
                     bonuses.points(self.x + 4 - CELL, self.y + 12 - CELL,
                                    self.plane, 100)
                     return
@@ -290,12 +293,10 @@ class Shot(ActiveSprite):
 class Camel:
     
     def bgen(self, limittime = 90.1): # 1:30
-        for t in boards.exit_board(0, repeatmusic=[music]):
-            yield t
-        for t in curboard.clean_gen_state():
+        self.score = {}
+        for t in boards.initsubgame(music, self.displaypoints):
             yield t
 
-        self.score = {}
         tc = boards.TimeCounter(limittime)
         for t in self.frame(tc):
             t = boards.normal_frame()
@@ -319,6 +320,9 @@ class Camel:
                     d.kill()
             yield t
         self.remove_planes()
+
+    def displaypoints(self, bubber):
+        return len(self.score.get(bubber, ()))
 
     def build_planes(self):
         for p in BubPlayer.PlayerList:

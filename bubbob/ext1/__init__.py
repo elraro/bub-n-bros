@@ -262,15 +262,13 @@ class Arkanoid:
         import boards
         from player import BubPlayer
 
-        for t in boards.exit_board(0, repeatmusic=[music]):
-            yield t
-        for t in curboard.clean_gen_state():
+        self.bricks = {}
+        for t in boards.initsubgame(music, self.displaypoints):
             yield t
 
         tc = boards.TimeCounter(limittime)
         self.ready = 0
         self.builddelay = {}
-        self.bricks = {}
         self.nbbricks = 0
         self.order = []
         self.paddles = []
@@ -306,6 +304,9 @@ class Arkanoid:
             yield t
         self.remove_paddles()
         self.unframe()
+
+    def displaypoints(self, bubber):
+        return self.bricks.get(bubber, 0)
 
     def frame(self):
         for y in range(curboard.height-1, curboard.height//2, -1):

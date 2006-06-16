@@ -117,6 +117,7 @@ class Shot(Bubble):
                 alien.kill()
                 scores = ship.galaga.scores
                 scores[ship.bubber] = scores.get(ship.bubber, 0) + 1
+                ship.bubber.givepoints(100)
                 return
             yield None
 
@@ -222,14 +223,12 @@ class Galaga:
     gameover = 0
     
     def bgen(self):
-        for t in boards.exit_board(0, repeatmusic=[music]):
-            yield t
-        for t in curboard.clean_gen_state():
+        self.scores = {}
+        for t in boards.initsubgame(music, self.displaypoints):
             yield t
 
         self.ships = []
         self.builddelay = {}
-        self.scores = {}
         self.nbmonsters = 0
         #finish = 0
         for t in self.frame():
@@ -253,6 +252,9 @@ class Galaga:
         for s in images.ActiveSprites[:]:
             if isinstance(s, (Alien, Ship)):
                 s.kill()
+
+    def displaypoints(self, bubber):
+        return self.scores.get(bubber, 0)
 
     def frame(self):
         curboard.walls_by_pos.clear()

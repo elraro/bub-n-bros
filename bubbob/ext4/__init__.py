@@ -288,15 +288,13 @@ class Tetris:
         import boards
         from player import BubPlayer
 
-        for t in boards.exit_board(0, repeatmusic=[music]):
-            yield t
-        for t in curboard.clean_gen_state():
+        self.score = {}
+        for t in boards.initsubgame(music, self.displaypoints):
             yield t
 
         tc = boards.TimeCounter(limittime)
         self.ready = 0
         self.staticbricks = {}
-        self.score = {}
         finished = 0
         for t in self.frame():
             t = boards.normal_frame()
@@ -321,6 +319,9 @@ class Tetris:
             yield t
         for s in self.staticbricks.values():
             s.remove()
+
+    def displaypoints(self, bubber):
+        return self.score.get(bubber, 0)
 
     def frame(self):
         heights = {1: curboard.height,

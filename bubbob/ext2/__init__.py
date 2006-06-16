@@ -236,6 +236,7 @@ class Pacman:
         from player import BubPlayer
 
         self.ready = 0
+        self.dots = []
         monsters = BubPlayer.MonsterList[:]
         random.shuffle(monsters)
         keep = len([p for p in BubPlayer.PlayerList if p.isplaying()])
@@ -243,13 +244,10 @@ class Pacman:
         for d in monsters:
             PacGhost(self, d.x, d.y)
 
-        for t in boards.exit_board(0, repeatmusic=[music]):
-            yield t
-        for t in curboard.clean_gen_state():
+        for t in boards.initsubgame(music, self.displaypoints):
             yield t
 
         tc = boards.TimeCounter(limittime)
-        self.dots = []
         self.builddelay = {}
         self.latestposition = {}
         self.pacs = []
@@ -286,6 +284,14 @@ class Pacman:
             if isinstance(s, Bonus):
                 s.kill()
 
+    def displaypoints(self, bubber):
+        result = 0
+        for b in self.dots:
+            for d in b.taken_by:
+                if d.bubber is bubber:
+                    result += 1
+        return result
+
     def frame(self):
         import boards
         from bonuses import Fruits
@@ -299,6 +305,10 @@ class Pacman:
                         return 1
             return 0
 
+        def give_one_point(dragon):
+            dragon.bubber.displaypoints += 1
+            scoreboard()
+
         dots = self.dots
         ico = images.sprget('pac-dot')
         for x in range(boards.width):
@@ -310,6 +320,7 @@ class Pacman:
                                   'pac-dot', points=-100, falling=0)
                         b.sound = 'Extra'
                         b.timeout = 0
+                        b.taken = give_one_point
                         dots.append(b)
             
             for s in images.ActiveSprites:

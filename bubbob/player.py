@@ -606,6 +606,7 @@ class BubPlayer(gamesrv.Player):
         'LeaveBonus': None,
 ##        'Moebius': 0,
         'OverridePlayerIcon': None,
+        'DisplayPoints': None,
         }
     TRANSIENT_DATA = ('_client', 'key_left', 'key_right',
                       'key_jump', 'key_fire', 'pn', 'nameicons',
@@ -936,11 +937,15 @@ def scoreboard(reset=0, inplace=0, compresslimittime=0):
             if p.keepalive < time.time():
                 p.reset()
                 continue
-        if p.team == -1:
-            plist.append((p.points, p, None))
+        if BubPlayer.DisplayPoints is not None:
+            points = BubPlayer.DisplayPoints(p)
         else:
-            teamslist[p.team].append((p.points,p))
-            teamspoints[p.team] += p.points
+            points = p.points
+        if p.team == -1:
+            plist.append((points, p, None))
+        else:
+            teamslist[p.team].append((points,p))
+            teamspoints[p.team] += points
     teamslist[0].sort()
     teamslist[1].sort()
     plist.append((teamspoints[0], None, teamslist[0]))

@@ -1333,6 +1333,15 @@ def extra_bubbles(timeout):
         yield 0
 
 
+def initsubgame(music, displaypoints):
+    from player import BubPlayer, scoreboard
+    for t in exit_board(0, repeatmusic=[music]):
+        yield t
+    BubPlayer.DisplayPoints = displaypoints
+    scoreboard()
+    for t in curboard.clean_gen_state():
+        yield t
+
 def register(dict):
     global width, height, bwidth, bheight, bheightmod
     items = dict.items()
