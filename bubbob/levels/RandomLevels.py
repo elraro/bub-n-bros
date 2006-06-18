@@ -20,11 +20,11 @@ class Parameter(object):
 
 class ChoiceParameter(Parameter):
     def __init__(self, name, list):
-        Parameter.__init__(self, name, lambda list=list: choice(list))
+        Parameter.__init__(self, name, lambda : choice(list))
 
 class BoolParameter(Parameter):
-    def __init__(self, name):
-        Parameter.__init__(self, name, lambda : randrange(0, 2))
+    def __init__(self, name, prob=0.5):
+        Parameter.__init__(self, name, lambda : random.random() < prob)
 
 def flat(mean,var):
     return randrange(mean-var,mean+var+1)
@@ -74,9 +74,9 @@ class Shape:
     closed = BoolParameter('closed')
     bonuses = ChoiceParameter('bonuses', xrange(3**len(Bonuses)))
     smooth = ChoiceParameter('smooth', range(4))
-    startplats = random.random() < 0.9
-    makespace = random.random() < 0.8
-    straightfall = random.random() < 0.8
+    startplats = BoolParameter('startplats', 0.9)
+    makespace = BoolParameter('makespace', 0.8)
+    straightfall = BoolParameter('straightfall', 0.8)
 
     all_parameters = [name for name in locals().keys()
                       if not name.startswith('_')]
