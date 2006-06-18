@@ -63,8 +63,6 @@ class Shape:
     basemnstr = ChoiceParameter('basemnstr', MnstrNames)
     extramnstr = ChoiceParameter('extramnstr', range(4))
     samemnstr = BoolParameter('samemnstr')
-    # NB. the 'S' and 'D' shapes are not as common as it seems, because test_density()
-    # will often reject them
     baseshape = ChoiceParameter('baseshape', '   DBGMPRWZS')
     rooms = BoolParameter('rooms')
     holes = BoolParameter('holes')
