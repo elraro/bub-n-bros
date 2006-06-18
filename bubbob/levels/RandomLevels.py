@@ -65,7 +65,7 @@ class Shape:
     samemnstr = BoolParameter('samemnstr')
     # NB. the 'S' and 'D' shapes are not as common as it seems, because test_density()
     # will often reject them
-    baseshape = ChoiceParameter('baseshape', '   DDDDDDDDDDDDDDDDDBGMPRWZSSSSSSSSSSSSSSSS')
+    baseshape = ChoiceParameter('baseshape', '   DBGMPRWZS')
     rooms = BoolParameter('rooms')
     holes = BoolParameter('holes')
     lines = ChoiceParameter('lines', '   -/|')
@@ -76,6 +76,9 @@ class Shape:
     closed = BoolParameter('closed')
     bonuses = ChoiceParameter('bonuses', xrange(3**len(Bonuses)))
     smooth = ChoiceParameter('smooth', range(4))
+    startplats = random.random() < 0.9
+    makespace = random.random() < 0.8
+    straightfall = random.random() < 0.8
 
     all_parameters = [name for name in locals().keys()
                       if not name.startswith('_')]
@@ -84,6 +87,14 @@ class Shape:
         if shape:
             self.__dict__.update(shape.__dict__)
         self.modified = 0
+
+    def set_gens(self, rooms=0, platforms=0, holes=0, smooth=0, mess=' ', lines=' '):
+        self.rooms = rooms
+        self.platforms = platforms
+        self.holes = holes
+        self.smooth = smooth
+        self.mess = mess
+        self.lines = lines
 
     def reset(self, attrname=None):
         if attrname:
@@ -130,18 +141,6 @@ class Shape:
         if self.mess == '!':
             self.holes = 1
 
-    def test_density(self, prevlist):
-        fill = ((self.baseshape != ' ') +
-                2*(self.baseshape == 'S') +
-                2*(self.baseshape == 'D') +
-                (self.rooms != 0) +
-                (self.lines != ' ') +
-                (self.platforms != 0) +
-                (self.mess != ' ') +
-                (self.holes != 0))
-        if fill not in (1, 2, 3):
-            self.reset()
-
     all_tests = [value for (name, value) in locals().items()
                  if name.startswith('test_')]
 
@@ -166,36 +165,52 @@ class Shape:
             lvl.genwalls.append((RandomLevel.grids,
                                  uniform(0.7,0.8),
                                  uniform(0.7,0.8)))
+            self.set_gens()
         if self.baseshape == 'P':
             lvl.genwalls.append((RandomLevel.pegs,
                                   uniform(0.1,0.2),
                                   uniform(0.45,0.7),
                                   choice([0,1,1,1])))
+            self.set_gens(smooth=3)
+            self.closed = random.random() < 0.80
         if self.baseshape == 'B':
             nr = choice([0,0,1])
             lvl.genwalls.append((RandomLevel.bouncers,
                                  dice(1, 100) + 250 - nr*200, # length
                                  uniform(0.7, 1.7),
                                  nr))
+            self.set_gens(smooth=3)
         if self.baseshape == 'W':
             nr = dice(1, 3) + 2
             lvl.genwalls.append((RandomLevel.walkers,
                                  dice(2, 100) + 100, # length
                                  nr, nr + dice(2, 3),
                                  choice([0,1])))
+            self.set_gens()
         if self.baseshape == 'R':
             lvl.genwalls.append((RandomLevel.rivers,
                                  randrange(3,(lvl.WIDTH-4)/4), # the number of rivers
                                  uniform(0.3, 1.4), # the side stepping threshold
                                  10))                # the max side stepping size
+            self.set_gens()
         if self.baseshape == 'Z':
             lvl.genwalls.append((RandomLevel.zigzag,))
+            self.set_gens()
         if self.baseshape == 'M':
             lvl.genwalls.append((RandomLevel.mondrian,))
+            self.set_gens()
         if self.baseshape == 'S':
             lvl.genwalls.append((RandomLevel.platforms_symm,))
+            self.set_gens()
+            self.makespace = random.random() < 0.1
+            if self.closed:
+                self.startplats = 0
         if self.baseshape == 'D':
             lvl.genwalls.append((RandomLevel.discrete_blocks,))
+            self.set_gens()
+            self.makespace = random.random() < 0.1
+            if self.closed:
+                self.startplats = 0
 
         if self.rooms:
             nr = dice(2, 6)
@@ -250,13 +265,13 @@ class Shape:
                 lvl.genwalls.append((RandomLevel.smooth, 0.25, 0))
             elif self.smooth == 3:
                 lvl.genwalls.append((RandomLevel.smooth, 0.75, 0))
-        if random.random() < 0.90:
+        if self.startplats:
             lvl.genwalls.append((RandomLevel.startplatform, ))
 
-        if random.random() < 0.8:
+        if self.makespace:
             lvl.genwalls.append((RandomLevel.make_space, ))
 
-        if random.random() < 0.8:
+        if self.straightfall:
             lvl.genwalls.append((RandomLevel.prevent_straight_fall, ))
 
         lvl.genwalls.append((RandomLevel.generate_wind, ))
