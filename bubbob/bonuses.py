@@ -1289,27 +1289,25 @@ class BlueNecklace(RandomBonus):
     "Self Duplicator. Mirror yourself."
     points = 1000
     nimage = Bonuses.blue_necklace
-    big = 0
-    bigbonus = {'big': 1}
+    copies = 1
+    bigbonus = {'copies': 3}
     def taken(self, dragon):
-        if len(dragon.bubber.dragons) >= 7:
-            # avoid burning the server with two much dragons
-            return
-        if self.big:
-            from bubbles import Bubble
-            ico = images.sprget(GreenAndBlue.normal_bubbles[dragon.bubber.pn][0])
-            for sign in [-1, 1, -1]:
-                d = self.makecopy(dragon, sign)
-                b = Bubble(ico, d.x, d.y)
-                d.become_bubblingeyes(b)
-        else:
-            d1 = random.choice([dragon, self.makecopy(dragon)])
-            d1.carrybonus(self, 250)
+        dragons = [dragon]
+        modes = [(-1, 1), (1, -1), (-1, -1)][:self.copies]
+        modes.reverse()
+        for sign, gravity in modes:
+            if len(dragon.bubber.dragons) >= 7:
+                break  # avoid burning the server with two much dragons
+            d1 = self.makecopy(dragon, sign, gravity)
+            dragons.append(d1)
+        d1 = random.choice(dragons)
+        d1.carrybonus(self, 250)
 
-    def makecopy(self, dragon, sign=-1):
+    def makecopy(self, dragon, sign=-1, gravity=1):
         from player import Dragon
         d = Dragon(dragon.bubber, dragon.x, dragon.y, -dragon.dir, dragon.dcap)
         d.dcap['left2right'] = sign * d.dcap['left2right']
+        d.dcap['gravity'] = gravity * d.dcap['gravity']
         d.up = dragon.up
         s = (dragon.dcap['shield'] + 12) & ~3
         dragon.dcap['shield'] = s+2
