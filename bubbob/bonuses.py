@@ -1184,18 +1184,6 @@ class Conch(RandomBonus):
     def taken1(self, dragons):
         boards.extra_boardgen(boards.extra_water_flood())
 
-##class Umbrella(RandomBonus):
-##    Umbrellas = [(Bonuses.brown_umbrella,  2),
-##                 (Bonuses.grey_umbrella,   3),
-##                 (Bonuses.violet_umbrella, 4)]
-##    points = 0
-##    def __init__(self, x, y):
-##        self.mode = random.choice(Umbrella.Umbrellas)
-##        RandomBonus.__init__(self, x, y, self.mode[0])
-##    def taken1(self, dragons):
-##        boards.replace_boardgen(boards.umbrella(self, self.mode[1]))
-##        return -1
-
 def fire_rain(x, poplist):
     from bubbles import FireDrop
     FireDrop(x, -CELL, poplist)
