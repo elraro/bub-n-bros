@@ -1295,22 +1295,26 @@ class BlueNecklace(RandomBonus):
         dragons = [dragon]
         modes = [(-1, 1), (1, -1), (-1, -1)][:self.copies]
         modes.reverse()
+        dcap = dragon.dcap.copy()
         for sign, gravity in modes:
             if len(dragon.bubber.dragons) >= 7:
                 break  # avoid burning the server with two much dragons
-            d1 = self.makecopy(dragon, sign, gravity)
+            d1 = self.makecopy(dragon, sign, gravity, dcap)
             dragons.append(d1)
         d1 = random.choice(dragons)
         d1.carrybonus(self, 250)
 
-    def makecopy(self, dragon, sign=-1, gravity=1):
+    def makecopy(self, dragon, sign=-1, gravity=1, dcap=None):
         from player import Dragon
-        d = Dragon(dragon.bubber, dragon.x, dragon.y, -dragon.dir, dragon.dcap)
-        d.dcap['left2right'] = sign * d.dcap['left2right']
-        d.dcap['gravity'] = gravity * d.dcap['gravity']
+        dcap = dcap or dragon.dcap
+        d = Dragon(dragon.bubber, dragon.x, dragon.y, -dragon.dir, dcap)
+        d.dcap['left2right'] = sign * dcap['left2right']
+        d.dcap['gravity'] = gravity * dcap['gravity']
         d.up = dragon.up
-        s = (dragon.dcap['shield'] + 12) & ~3
+        s = (dcap['shield'] + 12) & ~3
         dragon.dcap['shield'] = s+2
+        if sign*gravity > 0:
+            s += 2
         d.dcap['shield'] = s
         dragon.bubber.dragons.append(d)
         return d
