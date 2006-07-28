@@ -113,6 +113,12 @@ class RandomLevel(boarddef.Level):
             return
         self.windmap[y][x] = c
 
+    def mirror(self):
+	"Mirror the level vertically."
+	for y in range(self.HEIGHT):
+	    for x in range(self.WIDTH/2):
+		self.wmap[y][x] = self.wmap[y][self.WIDTH-x-1]
+
     def make_space(self, gens=-1):
         "Removes walls from a level, to make it more playable."
         if gens == -1:
