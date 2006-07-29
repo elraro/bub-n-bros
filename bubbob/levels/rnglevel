@@ -239,16 +239,17 @@ class RandomLevel(boarddef.Level):
             for x in range(self.WIDTH):
                 for y in range(self.HEIGHT):
                     walld = 0
-                    if (y-1 < 0) or (self.getw(x,y-1) == '#'):
-                        walld = walld + 1
-                    if (x+1 > self.WIDTH-1) or (self.getw(x+1,y) == '#'):
-                        walld = walld + 2
-                    if (y+1 > self.HEIGHT-1) or (self.getw(x,y+1) == '#'):
-                        walld = walld + 4
-                    if (x-1 < 0) or (self.getw(x-1,y) == '#'):
-                        walld = walld + 8
                     if self.getw(x,y) == '#':
                         walld = 16
+		    else:
+			if self.getw(x,y-1) == '#':
+			    walld = walld + 1
+			if self.getw(x+1,y) == '#':
+			    walld = walld + 2
+			if self.getw(x,y+1) == '#':
+			    walld = walld + 4
+			if self.getw(x-1,y) == '#':
+			    walld = walld + 8
                     if clockwise:
                         #            0   1   2   3   4   5   6   7   8   9  10  11  12  13  14  15  16
                         winddirs = [' ','>','v','v','<',' ','<','<','^','>',' ','v','^','>','^','x','x']
