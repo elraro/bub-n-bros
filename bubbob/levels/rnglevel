@@ -412,10 +412,12 @@ class RandomLevel(boarddef.Level):
 		    blocks.append((6,2))
 		if random() < 0.10:
 		    blocks.append((8,2))
-	    elif random() < 0.25:
-		blocks = [(1,1)]
 	    else:
-		blocks = [(3,1),(4,1),(5,1),(6,1)]
+		blocks = []
+		while len(blocks) == 0:
+		    for bz in range(10):
+			if random() < 0.3:
+			    blocks.append((bz+1,1))
 	ntry = 300
 	while ntry:
 	    ntry -= 1
