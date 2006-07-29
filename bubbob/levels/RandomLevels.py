@@ -199,7 +199,7 @@ class Shape:
             lvl.genwalls.append((RandomLevel.mondrian,))
             self.set_gens()
         if self.baseshape == 'S':
-            lvl.genwalls.append((RandomLevel.platforms_symm,))
+            lvl.genwalls.append((RandomLevel.platforms_reg,))
             self.set_gens()
             self.makespace = random.random() < 0.1
             if self.closed:

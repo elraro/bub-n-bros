@@ -700,8 +700,8 @@ class RandomLevel(boarddef.Level):
                             self.clrw(i,y)
                         x = max(x-side_step, 0)
 
-    def platforms_symm(self):
-        """Generate random symmetric platforms.
+    def platforms_reg(self):
+        """Generate random platforms at regular y-intervals.
         """
         self.reset(fill=False)
         yadjs = [-2,-1,0,0,0,0,0,0,0,0,1,2]
@@ -710,15 +710,13 @@ class RandomLevel(boarddef.Level):
         yincadj = choice(yadjs)
         ymax = self.HEIGHT-choice([1,1,1,1,1,2,2,2,3,3,4])-1
         while y < ymax:
-            holes = randint(choice([0,1,1,1]),5)
+            holes = randint(choice([0,1,1,1,1]),7)
             for x in range(0, self.WIDTH):
                 self.setw(x,y)
             for i in range(holes):
-                x = randint(0, (self.WIDTH-2)/2)
+                x = randint(0, self.WIDTH-2)
                 self.clrw(x,y)
                 self.clrw(x+1,y)
-                self.clrw(self.WIDTH-x-1,y)
-                self.clrw(self.WIDTH-x-2,y)
             y = y + yinc
             yinc = yinc + yincadj
             if yinc < 2:
