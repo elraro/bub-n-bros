@@ -97,6 +97,11 @@ class RandomLevel(boarddef.Level):
             self.wmap[y][x] = c
             self.fmap[y][x] = 0
 
+    def getw(self,x,y):
+        if x > self.WIDTH-1 or x < 0 or y > self.HEIGHT-1 or y < 0:
+            return '#'
+	return self.wmap[y][x]
+
     def clrw(self,x,y):
         if x > self.WIDTH-1 or x < 0 or y > self.HEIGHT-1 or y < 0:
             return
@@ -226,23 +231,23 @@ class RandomLevel(boarddef.Level):
             self.wind_sidewalls()
             for x in range(self.WIDTH):
                 for y in range(self.HEIGHT-2):
-                    if self.wmap[y][x] == '#':
-                        if self.wmap[y+1][x] == ' ':
+                    if self.getw(x,y) == '#':
+                        if self.getw(x,y+1) == ' ':
                             self.setwind(x,y+1,'x')
         elif gens == 6: # bubbles move next the walls, rotating cw or ccw
             clockwise = choice([0,1])
             for x in range(self.WIDTH):
                 for y in range(self.HEIGHT):
                     walld = 0
-                    if (y-1 < 0) or (self.wmap[y-1][x] == '#'):
+                    if (y-1 < 0) or (self.getw(x,y-1) == '#'):
                         walld = walld + 1
-                    if (x+1 > self.WIDTH-1) or (self.wmap[y][x+1] == '#'):
+                    if (x+1 > self.WIDTH-1) or (self.getw(x+1,y) == '#'):
                         walld = walld + 2
-                    if (y+1 > self.HEIGHT-1) or (self.wmap[y+1][x] == '#'):
+                    if (y+1 > self.HEIGHT-1) or (self.getw(x,y+1) == '#'):
                         walld = walld + 4
-                    if (x-1 < 0) or (self.wmap[y][x-1] == '#'):
+                    if (x-1 < 0) or (self.getw(x-1,y) == '#'):
                         walld = walld + 8
-                    if self.wmap[y][x] == '#':
+                    if self.getw(x,y) == '#':
                         walld = 16
                     if clockwise:
                         #            0   1   2   3   4   5   6   7   8   9  10  11  12  13  14  15  16
@@ -440,7 +445,7 @@ class RandomLevel(boarddef.Level):
 	    y = randint(1,self.HEIGHT-hei-3)
 	    for dx in range(x,x+wid+2):
 		for dy in range(y,y+hei+2):
-		    if self.wmap[dy][dx] == '#':
+		    if self.getw(dx,dy) == '#':
 			doput = 0
 	    if doput:
 		for dx in range(x+1,x+wid+1):
@@ -765,7 +770,7 @@ class RandomLevel(boarddef.Level):
         best = 0
         length = 0
         for y in range(self.HEIGHT+1):
-            if y < self.HEIGHT and self.wmap[y][x] == ' ':
+            if y < self.HEIGHT and self.getw(x,y) == ' ':
                 length += 1
             elif length > 0:
                 if length > best:
@@ -782,7 +787,7 @@ class RandomLevel(boarddef.Level):
         for x in range(self.WIDTH):
             spaces = 0
             for y in range(self.HEIGHT-1):   # ignore bottom line spaces
-                spaces += self.wmap[y][x] == ' '
+                spaces += self.getw(x,y) == ' '
             if spaces == 0 or (random() < 0.4**spaces):
                 vwall.append(x)
         shuffle(vwall)
@@ -808,7 +813,7 @@ class RandomLevel(boarddef.Level):
         falls = []
         for x in range(self.WIDTH):
             for y in range(self.HEIGHT):
-                if self.wmap[y][x] == '#':
+                if self.getw(x,y) == '#':
                     break
             else:
                 falls = falls + [x]
@@ -840,7 +845,7 @@ class RandomLevel(boarddef.Level):
                     x = randint(0,self.WIDTH-2)
                     y = randint(0,self.HEIGHT-1)
 
-                    if self.wmap[y][x] == self.wmap[y][x+1] == ' ':
+                    if self.getw(x,y) == self.getw(x+1,y) == ' ':
                         self.wmap[y][x] = current
                         break
                     ntry -= 1
@@ -856,7 +861,7 @@ class RandomLevel(boarddef.Level):
             self.__class__.walls += '##\n'
         self.__class__.walls += '##'
         for x in range(self.WIDTH):
-            if self.wmap[0][x] == '#' or self.wmap[self.HEIGHT-1][x] == '#':
+            if self.getw(x,0) == '#' or self.getw(x,self.HEIGHT-1) == '#':
                 self.__class__.walls += '#'
             else:
                 self.__class__.walls += ' '
