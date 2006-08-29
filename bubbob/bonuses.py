@@ -1517,12 +1517,13 @@ class Chestnut(RandomBonus):
                 timeout = 430
         else:
             if random.randrange(0, 2) == 1:
-                # board slower, players faster
-                boards.set_frametime(2.0, privtime=33)
+                # super-fast game
+                boards.set_frametime(0.25)
+                timeout = 1800
             else:
                 # board unchanged, players slower
                 boards.set_frametime(1.0, privtime=250)
-                timeout = 690
+                timeout = 800
         BubPlayer.MultiplyerReset = BubPlayer.FrameCounter + timeout
         self.play(images.Snd.Fruit)
 
