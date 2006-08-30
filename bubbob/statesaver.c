@@ -19,6 +19,7 @@ static PyObject* genbuild(PyObject* g)
   if (x == NULL)
     return NULL;
   res = PyObject_IsTrue(x);
+  Py_DECREF(x);
   if (res < 0)
     return NULL;
   if (res) {
@@ -31,41 +32,56 @@ static PyObject* genbuild(PyObject* g)
     return NULL;
   if (!PyFrame_Check(x)) {
     PyErr_SetString(PyExc_TypeError, "g.gi_frame must be a frame object");
-    return NULL;
+    goto error;
   }
   f = (PyFrameObject*) x;
   co = f->f_code;
 
   if (!(co->co_flags & CO_GENERATOR)) {
     PyErr_SetString(PyExc_ValueError, "the frame is not from a generator");
-    return NULL;
+    goto error;
   }
   if (f->f_stacktop == NULL) {
+    Py_DECREF(f);
     Py_INCREF(g);  /* exhausted -- can return 'g' itself */
     return g;
   }
   if (f->f_nfreevars || f->f_ncells) {
     PyErr_SetString(PyExc_ValueError, "generator has cell or free vars");
-    return NULL;
+    goto error;
   }
 
-  dummy = (PyObject**) malloc(co->co_argcount * sizeof(PyObject*));
-  if (dummy == NULL)
-    return PyErr_NoMemory();
-  for (i=0; i<co->co_argcount; i++)
-    dummy[i] = Py_None;
+  if (co->co_argcount == 0)
+    dummy = NULL;
+  else
+    {
+      dummy = (PyObject**) malloc(co->co_argcount * sizeof(PyObject*));
+      if (dummy == NULL)
+        {
+          PyErr_NoMemory();
+          goto error;
+        }
+      for (i=0; i<co->co_argcount; i++)
+        dummy[i] = Py_None;
+    }
   x = PyEval_EvalCodeEx(co, f->f_globals, f->f_locals,
                         dummy, co->co_argcount, NULL, 0,
                         NULL, 0, NULL);
-  free(dummy);
+  if (dummy)
+    free(dummy);
+  Py_DECREF(f);
   return x;
+
+ error:
+  Py_DECREF(x);
+  return NULL;
 }
 
 static int gencopy(PyObject* g2, PyObject* g)
 {
   PyObject* x;
-  PyFrameObject* f;
-  PyFrameObject* f2;
+  PyFrameObject* f = NULL;
+  PyFrameObject* f2 = NULL;
   PyCodeObject* co;
   int i, res;
 
@@ -82,7 +98,8 @@ static int gencopy(PyObject* g2, PyObject* g)
         return -1;
       if (!PyFrame_Check(x)) {
         PyErr_SetString(PyExc_TypeError, "g.gi_frame must be a frame object");
-        return -1;
+        Py_DECREF(x);
+        goto error;
       }
       f = (PyFrameObject*) x;
       co = f->f_code;
@@ -92,12 +109,14 @@ static int gencopy(PyObject* g2, PyObject* g)
         return -1;
       if (!PyFrame_Check(x)) {
         PyErr_SetString(PyExc_TypeError, "returned gi_frame");
-        return -1;
+        Py_DECREF(x);
+        goto error;
       }
       f2 = (PyFrameObject*) x;
+
       if (f2->f_stacksize != f->f_stacksize) {
         PyErr_SetString(PyExc_TypeError, "stack size mismatch");
-        return -1;
+        goto error;
       }
 
       if (f2->f_stacktop != NULL)
@@ -121,6 +140,11 @@ static int gencopy(PyObject* g2, PyObject* g)
         }
     }
   return 0;
+
+ error:
+  Py_XDECREF(f);
+  Py_XDECREF(f2);
+  return -1;
 }
 
 
@@ -220,10 +244,12 @@ static PyTypeObject keytype = {
 static PyObject* ss_memo;
 static struct key_block* ss_block;
 static int ss_next_in_block;
+static int ss_error;
 
 static PyObject* str_inst_build;
 static PyTypeObject* GeneratorType;
 
+/* never returns NULL, and never returns with a Python exception set! */
 static PyObject* copyrec(PyObject* o)
 {
   PyTypeObject* t;
@@ -231,7 +257,8 @@ static PyObject* copyrec(PyObject* o)
   PyObject* key;
   KeyObject* fkey;
 
-  if (o == Py_None || o->ob_type == &PyInt_Type || o->ob_type == &PyString_Type)
+  if (o == Py_None || o->ob_type == &PyInt_Type ||
+      o->ob_type == &PyString_Type || o->ob_type == &PyFloat_Type)
     {
       Py_INCREF(o);
       return o;
@@ -302,6 +329,7 @@ static PyObject* copyrec(PyObject* o)
           goto unmodified;
         }
       n = PyObject_CallObject(inst_build, NULL);
+      Py_DECREF(inst_build);
       if (!n || PyDict_SetItem(ss_memo, key, n)) goto fail;
       dsrc  = ((PyInstanceObject*) o)->in_dict;
       ddest = ((PyInstanceObject*) n)->in_dict;
@@ -371,6 +399,8 @@ static PyObject* copyrec(PyObject* o)
  fail:
   Py_INCREF(o);
   Py_XDECREF(n);
+  PyErr_Clear();
+  ss_error = 1;
   return o;
 }
 
@@ -383,6 +413,7 @@ static PyObject* sscopy(PyObject* self, PyObject* o)
 
   ss_block = NULL;
   ss_next_in_block = -1;
+  ss_error = 0;
   n = copyrec(o);
   Py_DECREF(ss_memo);
   while (ss_block)
@@ -395,6 +426,8 @@ static PyObject* sscopy(PyObject* self, PyObject* o)
       free(b);
       ss_next_in_block = -1;
     }
+  if (ss_error && !PyErr_Occurred())
+    PyErr_SetNone(PyExc_RuntimeError);
   if (PyErr_Occurred())
     {
       Py_DECREF(n);
