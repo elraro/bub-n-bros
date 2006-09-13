@@ -1911,7 +1911,7 @@ class Aubergine(TemporaryBonus):
     bigbonus = {'big': 1, 'multiply': 2}
     def taken(self, dragon):
         if self.big:
-            dragon.dcap['teleport'] = 1
+            dragon.dcap['teleport'] = dragon.bubber.pcap['teleport'] = 1
         else:
             dragon.dcap['lookforward'] = -dragon.dcap['lookforward']
         self.carried(dragon)

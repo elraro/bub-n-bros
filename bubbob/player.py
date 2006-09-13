@@ -723,6 +723,7 @@ class BubPlayer(gamesrv.Player):
                            len(rightplayers) + random.random())
 
     def savecaps(self):
+        self.pcap = {}
         dragons = self.dragons
         if dragons:
             for key, minimum in Dragon.SAVE_CAP.items():
@@ -768,7 +769,9 @@ class BubPlayer(gamesrv.Player):
                     else:
                         break
             self.dragons.append(Dragon(self, x, y, dir))
-            self.pcap = {}
+            for key in self.pcap.keys():
+                if key != 'teleport':
+                    del self.pcap[key]
 
     def kLeft(self):
         if self.key_left <= 1:
