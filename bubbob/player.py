@@ -272,7 +272,7 @@ class Dragon(ActiveSprite):
                 dir = 0
                 if wannago == -1:
                     x0 = (self.x+1)//CELL
-                    y0 = (self.y+4) // CELL + 1 - bottom_up
+                    y0 = (self.y+4 - bottom_up*(CELL+4)) // CELL + 1
                     y0bis = (self.y+CELL-1) // CELL + 1 - bottom_up
                     if bget(x0,y0) == ' ' == bget(x0,y0bis):
                         dir = -1
