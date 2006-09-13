@@ -192,6 +192,7 @@ class Monster(ActiveSprite):
             return 1
 
     def falling(self):
+        bubber = getattr(self, 'bubber', None)
         while not onground(self.x, self.y):
             yield None
             ny = self.y + 3
@@ -201,13 +202,22 @@ class Monster(ActiveSprite):
                 ny = (ny//16)*16
             nx = self.x
             if nx < 32:
-                nx += 1
+                nx += 1 + (self.vx-1) * (bubber is not None)
             elif nx > boards.bwidth - 64:
-                nx -= 1
+                nx -= 1 + (self.vx-1) * (bubber is not None)
+            elif bubber:
+                dx = bubber.wannago(self.dcap)
+                if dx and dx != self.dir:
+                    self.dir = dx
+                    self.resetimages()
+                    self.setimages(None)
+                if dx and not self.blocked():
+                    nx += self.vx*dx
+                    self.seticon(images.sprget(self.imgrange()[1]))
             self.move(nx, ny)
             if self.y >= boards.bheight:
                 self.vertical_warp()
-        if hasattr(self, 'bubber'):
+        if bubber:
             nextgen = self.playing_monster
         else:
             nextgen = self.walking
@@ -230,32 +240,24 @@ class Monster(ActiveSprite):
             ny = self.y + vspeed
         self.gen.append(self.default_mode())
 
-    def vjumping(self, limity, ndir, bubber=None):
+    def vjumping(self, limity, ndir):
         self.setimages(None)
-        if not bubber:
+        yield None
+        self.dir = -self.dir
+        self.seticon(images.sprget(self.imgrange()[0]))
+        for i in range(9):
             yield None
-            self.dir = -self.dir
-            self.seticon(images.sprget(self.imgrange()[0]))
-            for i in range(9):
-                yield None
-            self.dir = -self.dir
-            self.seticon(images.sprget(self.imgrange()[0]))
-            for i in range(4):
-                yield None
-            self.dir = ndir
+        self.dir = -self.dir
+        self.seticon(images.sprget(self.imgrange()[0]))
+        for i in range(4):
+            yield None
+        self.dir = ndir
         self.seticon(images.sprget(self.imgrange()[1]))
         for ny in range(self.y-4, limity-4, -4):
             self.move(self.x, ny)
             if ny < -32:
                 self.vertical_warp()
             yield None
-        if bubber:
-            dx = bubber.wannago(self.dcap)
-            if dx:
-                self.dir = dx
-                self.resetimages()
-                self.gen.append(self.hjumping())
-                return
         self.resetimages()
         self.gen.append(self.default_mode())
 
@@ -446,52 +448,58 @@ class Monster(ActiveSprite):
                 yield None
         elif not isinstance(self, Springy):
             # walking monster
+            jumping_y = 0
             imgsetter = self.imgsetter
-            while onground(self.x, self.y):
-                wannafire = bubber.key_fire
-                wannajump = bubber.key_jump
+            while onground(self.x, self.y) or jumping_y:
                 dx = bubber.wannago(self.dcap)
                 if dx and dx != self.dir:
                     self.dir = dx
                     self.resetimages()
                     imgsetter = self.imgsetter
                 if dx and not self.blocked():
-                    self.step(self.vx*self.dir, 0)
-                    self.setimages(imgsetter)
+                    self.step(self.vx*dx, 0)
+                    if not jumping_y:
+                        self.setimages(imgsetter)
+                    else:
+                        self.seticon(images.sprget(self.imgrange()[1]))
+                        self.setimages(None)
                 else:
                     self.setimages(None)
+                    dx = 0
                 yield None
-                if wannafire and self.shoot(1):
-                    return
-                if wannajump:
-                    if dx:
-                        self.gen.append(self.hjumping())
+                if not jumping_y:
+                    wannafire = bubber.key_fire
+                    wannajump = bubber.key_jump
+                    if wannafire and self.shoot(1):
                         return
-                    for testy in range(self.y-2*CELL, self.y-6*CELL, -CELL):
-                        if onground(self.x, testy):
-                            break
-                    self.gen.append(self.vjumping(testy, self.dir, bubber))
-                    return
+                    if wannajump:
+                        jumping_y = CELL
+                if jumping_y:
+                    self.step(0, -4)
+                    if self.y < -32:
+                        self.vertical_warp()
+                    if onground(self.x, self.y):
+                        jumping_y = 0
+                    else:
+                        jumping_y -= 1
             self.gen.append(self.falling())
         else:
             # springy
             if not onground(self.x, self.y):
                 self.gen.append(self.falling())
                 return
-            walker = self.walking()
-            while 1:
+            prevx = self.x
+            for t in self.walking():
                 dx = bubber.wannago(self.dcap)
-                if dx and dx != self.dir:
-                    self.dir = dx
-                    self.resetimages()
                 if dx:
-                    self.vx = 2
-                else:
-                    self.vx = 0
-                try:
-                    yield walker.next()
-                except StopIteration:
-                    return
+                    if dx != self.dir:
+                        self.dir = dx
+                        self.resetimages()
+                    if self.blocked() and (self.x-prevx)*dx <= 0:
+                        dx = 0
+                    self.move(prevx + self.vx*dx, self.y)
+                yield None
+                prevx = self.x
 
     def become_ghost(self):
         self.gen = [self.ghosting()]
