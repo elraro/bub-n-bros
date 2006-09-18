@@ -354,14 +354,14 @@ class Monster(ActiveSprite):
                 blocked = 1
             yield None
 
-    def becoming_monster(self, big=0):
+    def becoming_monster(self, big=0, immed=0):
         if big:
             self.is_ghost = 1
             self.seticon(images.sprget(self.imgrange()[0]))
             images.Snd.Hell.play()
         for i in range(5):
             ico = self.ico
-            self.seticon(self.bubber.icons[11, self.dir])
+            self.seticon(self.bubber.icons[11 + immed, self.dir])
             yield None
             yield None
             self.seticon(ico)
@@ -370,12 +370,12 @@ class Monster(ActiveSprite):
         self.resetimages(is_ghost=big)
         self.gen.append(self.playing_monster())
 
-    def become_monster(self, bubber, saved_caps, big=0):
+    def become_monster(self, bubber, saved_caps, big=0, immed=0):
         self.timeoutgen = self.back_to_dragon()
         self.default_mode = self.playing_monster
         self.bubber = bubber
         self.dcap = saved_caps
-        self.gen = [self.becoming_monster(big)]
+        self.gen = [self.becoming_monster(big, immed)]
 
     def back_to_dragon(self):
         for t in range(259):

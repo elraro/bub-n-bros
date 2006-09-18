@@ -71,7 +71,7 @@ class Dragon(ActiveSprite):
         self.hatangle = 1
         self.isdying = 0
         if BubPlayer.SuperSheep:
-            self.become_monster('Sheep')
+            self.become_monster('Sheep', immed=1)
 
     def kill(self):
         try:
@@ -506,7 +506,7 @@ class Dragon(ActiveSprite):
             if self.fire <= 10:
                 self.fire = 11
 
-    def become_monster(self, clsname, big=0):
+    def become_monster(self, clsname, big=0, immed=0):
         if self in BubPlayer.DragonList:
             BubPlayer.DragonList.remove(self)
             
@@ -514,7 +514,8 @@ class Dragon(ActiveSprite):
             mcls = getattr(monsters, clsname)
             mdef = getattr(mnstrmap, clsname)
             m = mcls(mdef, self.x, self.y, self.dir, in_list=self.bubber.dragons)
-            m.become_monster(self.bubber, self.dcap, big)
+            m.become_monster(self.bubber, self.dcap, big, immed)
+            self.seticon(m.ico)
             self.gen = [self.killing()]
 
     def become_bubblingeyes(self, bubble):
