@@ -861,20 +861,21 @@ class Sheep(Monster):
             wannajump = bubber.key_jump
             if vy is not None:
                 vy += 0.33
+                if vy > 12.0:
+                    vy = 12.0
                 yf = self.y + yfp + vy
                 yfp = yf - int(yf)
                 delta = int(yf) - self.y
                 if delta > 0:
                     by_y = {}
-                    if wannajump:
-                        for s in images.ActiveSprites:
-                            if isinstance(s, Bonus) and s.touchable:
-                                if abs(s.x - self.x) <= 22:
-                                    by_y[s.y] = s
-                        for monster in BubPlayer.MonsterList:
-                            if abs(monster.x - self.x) <= 22:
-                                if monster.regular():
-                                    by_y[monster.y] = monster
+                    for s in images.ActiveSprites:
+                        if isinstance(s, Bonus) and s.touchable:
+                            if abs(s.x - self.x) <= 22:
+                                by_y[s.y] = s
+                    for monster in BubPlayer.MonsterList:
+                        if abs(monster.x - self.x) <= 22:
+                            if monster.regular():
+                                by_y[monster.y] = monster
                     for ny in range(self.y - 1, self.y + delta + 1):
                         self.move(self.x, ny)
                         self.vertical_warp()
@@ -923,3 +924,6 @@ class Sheep(Monster):
         self.kill()
 
     default_mode = falling = playing_monster
+
+    def argh(self, *args, **kwds):
+        pass
