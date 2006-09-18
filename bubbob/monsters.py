@@ -828,3 +828,98 @@ class Butterfly(Monster):
                 yield None
 
     default_mode = flying
+
+
+class Sheep(Monster):
+
+    def playing_monster(self):
+        from bonuses import Bonus
+        bubber = self.bubber
+        vy = None
+        imgsetter = self.imgsetter
+        poplist = [None]
+        while 1:
+            dx = bubber.wannago(self.dcap)
+            if dx and dx != self.dir:
+                self.dir = dx
+                self.resetimages()
+                imgsetter = self.imgsetter
+            if dx and vy is None:
+                self.setimages(imgsetter)
+            else:
+                self.setimages(None)
+                if vy is not None:
+                    if vy < 0:
+                        n = 1
+                    else:
+                        n = 3
+                    self.seticon(images.sprget(self.imgrange()[n]))
+            if dx and not self.blocked():
+                self.step(self.vx*dx, 0)
+            yield None
+            impulse = 0.0
+            wannajump = bubber.key_jump
+            if vy is not None:
+                vy += 0.33
+                yf = self.y + yfp + vy
+                yfp = yf - int(yf)
+                delta = int(yf) - self.y
+                if delta > 0:
+                    by_y = {}
+                    if wannajump:
+                        for s in images.ActiveSprites:
+                            if isinstance(s, Bonus) and s.touchable:
+                                if abs(s.x - self.x) <= 22:
+                                    by_y[s.y] = s
+                        for monster in BubPlayer.MonsterList:
+                            if abs(monster.x - self.x) <= 22:
+                                if monster.regular():
+                                    by_y[monster.y] = monster
+                    for ny in range(self.y - 1, self.y + delta + 1):
+                        self.move(self.x, ny)
+                        self.vertical_warp()
+                        if onground(self.x, self.y):
+                            poplist = [None]
+                            impulse = vy
+                            vy = None
+                            break
+                        key = self.y + 29
+                        if key in by_y:
+                            s = by_y[key]
+                            if isinstance(s, Monster):
+                                s.argh(poplist)
+                            elif isinstance(s, Bonus):
+                                s.reallytouched(self)
+                            yfp = 0.0
+                            vy = -3.3
+                            break
+                else:
+                    self.step(0, delta)
+                    self.vertical_warp()
+            if vy is None:
+                if onground(self.x, self.y):
+                    if wannajump:
+                        yfp = 0.0
+                        vy = - max(1.0, impulse) - 2.02
+                        impulse = 0.0
+                        self.play(images.Snd.Jump)
+                else:
+                    yfp = vy = 0.0
+            if impulse > 8.1:
+                break
+        self.play(images.Snd.Pop)
+        for n in range(2):
+            for letter in 'abcdefg':
+                ico = images.sprget(('sheep', letter))
+                nx = self.x + random.randrange(-1, self.ico.w - ico.w + 2)
+                ny = self.y + random.randrange(0, self.ico.h - ico.h + 2)
+                dxy = [random.random() * 5.3 - 2.65, random.random() * 4 - 4.4]
+                s = images.ActiveSprite(ico, nx, ny)
+                s.gen.append(s.parabolic(dxy))
+                s.gen.append(s.die([None], random.randrange(35, 54)))
+        self.move(-99, 0)
+        for t in range(68):
+            yield None
+        self.kill()
+
+    default_mode = falling = playing_monster

@@ -107,6 +107,7 @@ class ActiveSprite(gamesrv.Sprite):
         nx = self.x
         ny = self.y
         dx, dy = dxy
+        xmax = boards.bwidth - 2*CELL - self.ico.w
         while ny < boards.bheight:
             nx += dx
             ny += dy
@@ -114,8 +115,8 @@ class ActiveSprite(gamesrv.Sprite):
             if nx < 2*CELL:
                 nx = 2*CELL
                 dx = abs(dx)
-            elif nx >= boards.bwidth - 4*CELL:
-                nx = boards.bwidth - 4*CELL
+            elif nx >= xmax:
+                nx = xmax
                 dx = -abs(dx)
             if warp and (ny < -2*CELL or ny >= boards.bheight):
                 nx, ny = boards.vertical_warp(nx, ny)
@@ -414,6 +415,21 @@ extramap = {
     ('butterfly', 'fly',    1): ('butterfly.ppm', (0, 256, 32, 32)),
     'glue': ('glue.ppm', (0, 0, 32, 32)),
     'black': ('black.ppm', (0, 0, 32, 32)),
+    ('sheep',-1, 0): ('sheep.ppm', (0,   0, 32, 32)),
+    ('sheep',-1, 1): ('sheep.ppm', (0,  32, 32, 32)),
+    ('sheep',-1, 2): ('sheep.ppm', (0,  64, 32, 32)),
+    ('sheep',-1, 3): ('sheep.ppm', (0,  96, 32, 32)),
+    ('sheep', 1, 0): ('sheep.ppm', (0, 128, 32, 32)),
+    ('sheep', 1, 1): ('sheep.ppm', (0, 160, 32, 32)),
+    ('sheep', 1, 2): ('sheep.ppm', (0, 192, 32, 32)),
+    ('sheep', 1, 3): ('sheep.ppm', (0, 224, 32, 32)),
+    ('sheep', 'a'):  ('sheep.ppm', (2, 263, 7, 8)),
+    ('sheep', 'b'):  ('sheep.ppm', (11, 262, 6, 10)),
+    ('sheep', 'c'):  ('sheep.ppm', (17, 264, 11, 8)),
+    ('sheep', 'd'):  ('sheep.ppm', (18, 272, 11, 7)),
+    ('sheep', 'e'):  ('sheep.ppm', (18, 279, 11, 8)),
+    ('sheep', 'f'):  ('sheep.ppm', (4, 273, 10, 12)),
+    ('sheep', 'g'):  ('sheep.ppm', (19, 257, 11, 8)),
     }
 hatmap = {
     ('hat', 0, -1,1):('hat2.ppm',(  0, 0, 32, 48)),

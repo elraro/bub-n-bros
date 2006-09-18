@@ -66,20 +66,23 @@ class Bonus(ActiveSprite):
             dy + dh > self.y + 8  and
             self.x + self.ico.w > dx + 10 and
             self.y + self.ico.h > dy + 10):
-            if not self.taken_by:
-                if self.killgens:
-                    self.gen = []
-                self.gen.append(self.taking())
-                sound = self.sound
-                if sound:
-                    if isinstance(sound, str):
-                        sound = getattr(images.Snd, sound)
-                    self.play(sound)
-            if dragon not in self.taken_by:
-                self.taken_by.append(dragon)
-                if isinstance(self, (RandomBonus, MonsterBonus)):
-                    s_bonus = dragon.bubber.stats.setdefault('bonus', {})
-                    s_bonus[self.nimage] = s_bonus.get(self.nimage, 0) + 1
+            self.reallytouched(dragon)
+
+    def reallytouched(self, dragon):
+        if not self.taken_by:
+            if self.killgens:
+                self.gen = []
+            self.gen.append(self.taking())
+            sound = self.sound
+            if sound:
+                if isinstance(sound, str):
+                    sound = getattr(images.Snd, sound)
+                self.play(sound)
+        if dragon not in self.taken_by:
+            self.taken_by.append(dragon)
+            if isinstance(self, (RandomBonus, MonsterBonus)):
+                s_bonus = dragon.bubber.stats.setdefault('bonus', {})
+                s_bonus[self.nimage] = s_bonus.get(self.nimage, 0) + 1
 
     def taking(self, follow_dragons=0, delay=1):
         from player import Dragon
@@ -2009,15 +2012,25 @@ class Sheep(RandomBonus):
     "Sheep. What a stupid beast!"
     nimage = 'sheep-sm'
     points = 800
+    big = 0
+    bigbonus = {'big': 1}
     def __init__(self, x, y):
         RandomBonus.__init__(self, x, y)
         if boards.curboard.bonuslevel:
             self.kill()
     def taken1(self, dragons):
-        self.points0 = {}
-        for p in BubPlayer.PlayerList:
-            self.points0[p] = p.points
-        BubPlayer.LeaveBonus = self.boardleave()
+        if not self.big:
+            self.points0 = {}
+            for p in BubPlayer.PlayerList:
+                self.points0[p] = p.points
+            BubPlayer.LeaveBonus = self.boardleave()
+        else:
+            from player import Dragon
+            BubPlayer.SuperSheep = True
+            for p in BubPlayer.PlayerList:
+                for d in p.dragons:
+                    if isinstance(d, Dragon):
+                        d.become_monster('Sheep')
 
     def boardleave(self):
         from player import BubPlayer
@@ -2192,6 +2205,8 @@ def chooseground(tries=15):
 def newbonus():
     others = [s for s in images.ActiveSprites if isinstance(s, RandomBonus)]
     if others:
+        return
+    if BubPlayer.SuperSheep:
         return
     x, y = chooseground()
     if x is None:

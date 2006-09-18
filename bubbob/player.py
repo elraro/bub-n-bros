@@ -70,6 +70,8 @@ class Dragon(ActiveSprite):
         self.hatsprite = None
         self.hatangle = 1
         self.isdying = 0
+        if BubPlayer.SuperSheep:
+            self.become_monster('Sheep')
 
     def kill(self):
         try:
@@ -595,6 +597,7 @@ class BubPlayer(gamesrv.Player):
     LimitScoreColor = None
     LimitTime = None
     PlayersPrivateTime = 100
+    SuperSheep = False
     #HighScore = 0
     #HighScoreColor = None
 
@@ -607,6 +610,7 @@ class BubPlayer(gamesrv.Player):
 ##        'Moebius': 0,
         'OverridePlayerIcon': None,
         'DisplayPoints': None,
+        'SuperSheep': False,
         }
     TRANSIENT_DATA = ('_client', 'key_left', 'key_right',
                       'key_jump', 'key_fire', 'pn', 'nameicons',

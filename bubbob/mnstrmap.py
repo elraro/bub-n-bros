@@ -387,3 +387,7 @@ class Butterfly(Monster1):
     left   = [Bonuses.insect, Bonuses.butterfly]
     jailed = [('butterfly', 'jailed', n) for n in range(3)]
     dead   = [('butterfly', 'dead', n) for n in range(4)]
+
+class Sheep(Monster1):
+    right  = [('sheep', 1, n) for n in range(4)]
+    left   = [('sheep',-1, n) for n in range(4)]
