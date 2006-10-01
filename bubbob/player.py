@@ -334,7 +334,7 @@ class Dragon(ActiveSprite):
                     yfp = ny - self.y
                     self.vertical_warp()
                 if wannago and dcap['teleport']:
-                    for t in self.teleport(wannago, icons):
+                    for t in self.teleport(wannago, icons, 0):
                         yield t
             else:
                 # going down or staying on ground
@@ -351,8 +351,7 @@ class Dragon(ActiveSprite):
                         mode = 9
                     else:
                         mode = mytime // 4
-                        if (wannago and dcap['teleport'] and
-                            BubPlayer.FrameCounter % 5 == 3):
+                        if wannago and dcap['teleport']:
                             for t in self.teleport(wannago, icons):
                                 yield t
                 else:
@@ -374,7 +373,7 @@ class Dragon(ActiveSprite):
                     self.move(nx, ny)
                     self.vertical_warp()
                     if wannago and dcap['teleport']:
-                        for t in self.teleport(wannago, icons):
+                        for t in self.teleport(wannago, icons, 0):
                             yield t
 
             if wannafire and not self.fire:
@@ -426,7 +425,7 @@ class Dragon(ActiveSprite):
             #                     boards.bwidth - 2*CELL - self.x, self.y)
             #    s.gen.append(s.die([None], speed=2))
 
-    def teleport(self, wannago, icons):
+    def teleport(self, wannago, icons, max_delta_y=CELL):
         #if self.dcap['shield']:
         #    return
         from bonuses import Bonus, Megabonus
@@ -434,7 +433,8 @@ class Dragon(ActiveSprite):
         centerx = self.x + self.ico.w // 2
         basey = (self.y + self.ico.h + 8) & ~15
         for s in images.ActiveSprites:
-            if (isinstance(s, Bonus) and s.y+s.ico.h == basey and s.touchable
+            if (isinstance(s, Bonus) and s.touchable
+                and abs(s.y+s.ico.h - basey) <= max_delta_y
                 and (onground(s.x, s.y) or isinstance(s, Megabonus))):
                 dx = (s.x + (wannago < 0 and s.ico.w)) - centerx
                 if dx*wannago > 0:
@@ -446,27 +446,31 @@ class Dragon(ActiveSprite):
             return
         self.play(images.Snd.Shh)
         self.up = 0.0
-        dx = best_dx
         s = best
+        dx = best_dx
+        basey = s.y+s.ico.h
+        desty = basey - self.ico.h
+        dy_dx = float(desty - self.y) / dx
         self.dir = wannago
         ico = images.make_darker(icons[0, wannago], True)
         # speed up
         fx = self.x
+        fy = self.y
         curdx = 0.0
         stepx = 2.0
-        targety = basey - self.ico.h
         t = 0
         while 1:
             if curdx < 0.5*dx:
-                stepx *= 1.1
+                stepx *= 1.13
             else:
-                stepx /= 1.1
+                stepx /= 1.13
             fx += wannago * stepx
+            fy += dy_dx * stepx
             curdx += stepx
-            if curdx >= dx:
+            if curdx >= dx or stepx < 2.0:
                 fx += wannago * (dx - curdx)
                 break
-            self.move(int(fx), self.y, ico)
+            self.move(int(fx), int(fy), ico)
             # make the target bonus bounce a bit
             if s.alive:
                 dy = (t & 7) * 4
@@ -475,9 +479,7 @@ class Dragon(ActiveSprite):
                 s.move(s.x, basey - s.ico.h - dy)
             t += 1
             yield None
-            if self.y != targety:
-                self.step(0, max(-4, min(4, targety - self.y)))
-        self.move(int(fx), self.y)
+        self.move(int(fx), desty)
         self.dcap['shield'] = 50
 
     def to_front(self):
