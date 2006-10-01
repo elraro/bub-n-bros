@@ -435,7 +435,7 @@ class Dragon(ActiveSprite):
         for s in images.ActiveSprites:
             if (isinstance(s, Bonus) and s.touchable
                 and abs(s.y+s.ico.h - basey) <= max_delta_y
-                and (onground(s.x, s.y) or isinstance(s, Megabonus))):
+                and s.is_on_ground()):
                 dx = (s.x + (wannago < 0 and s.ico.w)) - centerx
                 if dx*wannago > 0:
                     dx = abs(dx) + CELL

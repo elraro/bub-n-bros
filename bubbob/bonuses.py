@@ -144,6 +144,9 @@ class Bonus(ActiveSprite):
                 p.gen.append(p.moving(-1.0))
         self.kill()
 
+    def is_on_ground(self):
+        return onground(self.x, self.y)
+
 
 def points(x, y, dragon, points):
     dragon.bubber.givepoints(abs(points))
@@ -588,16 +591,20 @@ class Megabonus(Bonus):
         self.touchable = 1
         ny = self.y
         while self.y >= y0:
-            ny += self.vspeed
-            if ny > ymax:
-                ny = ymax
-                self.vspeed = 0
-            self.move(self.x, int(ny))
+            if self.vspeed:
+                ny += self.vspeed
+                if ny > ymax:
+                    ny = ymax
+                    self.vspeed = 0
+                self.move(self.x, int(ny))
             yield None
         self.kill()
 
     def ready_to_go(self):
         pass
+
+    def is_on_ground(self):
+        return self.y == boards.bheight - CELL - self.ico.h
 
     def kill(self):
         for bubble in self.bubbles.values():
@@ -1971,16 +1978,27 @@ class Pear(RandomBonus):
                                   for i in range(18 * self.multiply)])
 
 class Megalightning(ActiveSprite):
-    def __init__(self, x1, y1, dragon):
+    def __init__(self, dragon):
         ActiveSprite.__init__(self, images.sprget(BigImages.blitz),
                               gamesrv.game.width, gamesrv.game.height)
-        self.gen.append(self.moving_to(x1, y1, dragon))
-    def moving_to(self, x1, y1, dragon):
+        self.gen.append(self.killing(dragon))
+
+    def killing(self, dragon):
         from monsters import Monster
         from bubbles import Bubble
+        poplist = [dragon]
+        while 1:
+            for s in self.touching(10):
+                if isinstance(s, Monster):
+                    s.argh(poplist)
+                elif isinstance(s, Bubble):
+                    s.pop(poplist)
+            yield None
+            yield None
+
+    def moving_to(self, x1, y1):
         x0 = self.x
         y0 = self.y
-        poplist = [dragon]
         x1 += CELL - self.ico.w//2
         y1 += CELL - self.ico.h//2
         deltax = x1 - x0
@@ -1993,20 +2011,35 @@ class Megalightning(ActiveSprite):
             x1 = x - x0
             self.move(x, y0 + int((a*x1+b)*x1))
             yield None
-            for s in self.touching(10):
-                if isinstance(s, Monster):
-                    s.argh(poplist)
-                elif isinstance(s, Bubble):
-                    s.pop(poplist)
         self.kill()
 
 class Fish2(RandomBonus):
     "Rotten Fish. Will blast monsters up to here, so move it around!"
     points = 3000
     nimage = Bonuses.fish2
+    big = 0
+    bigbonus = {'big': 1}
     def taken1(self, dragons):
-        if dragons:
-            Megalightning(self.x, self.y, random.choice(dragons))
+        dragon = random.choice(dragons or [None])
+        if not self.big:
+            m = Megalightning(dragon)
+            m.gen.append(m.moving_to(self.x, self.y))
+        else:
+            N = 7
+            base = random.random() * 2*math.pi
+            angles = [base + (math.pi*2 * n)/N for n in range(N)]
+            random.shuffle(angles)
+            for angle in angles:
+                m = Megalightning(dragon)
+                dx = 13 * math.cos(angle)
+                dy = 12 * math.sin(angle)
+                maxlive = max((gamesrv.game.width + m.ico.w) // 13,
+                              (gamesrv.game.height + m.ico.h) // 12)
+                m.move(self.x + (self.ico.w - m.ico.w) // 2 - int(dx*maxlive),
+                       self.y + (self.ico.h - m.ico.h) // 2 - int(dy*maxlive))
+                m.gen.append(m.straightline(dx, dy))
+                m.gen.append(m.die([None], maxlive*2))
+
 
 class Sheep(RandomBonus):
     "Sheep. What a stupid beast!"
@@ -2117,6 +2150,8 @@ class Flower2(TemporaryBonus):
         self.carried(dragon)
     def endaction(self, dragon):
         dragon.dcap['gravity'] *= -1.0
+    def is_on_ground(self):
+        return underground(self.x, self.y)
 
 ##class Moebius(RandomBonus):
 ##    "Moebius Band.  Bottom left is top right and bottom right is top left... or vice-versa."
