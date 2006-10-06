@@ -562,6 +562,8 @@ class Pacman:
                             progress = 1
             yield None
 
+# This game is suitable for at least min_players players
+min_players = 1
 
 def run():
     global curboard

@@ -377,6 +377,8 @@ class Camel:
         while tc.time != 0.0:
             yield None
 
+# This game is suitable for at least min_players players
+min_players = 2
 
 def run():
     global curboard, x_min, x_max, y_max

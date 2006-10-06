@@ -274,6 +274,8 @@ class Lemmings:
         while self.lemlist:
             yield None
 
+# This game is suitable for at least min_players players
+min_players = 1
 
 def run():
     global curboard

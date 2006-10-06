@@ -249,6 +249,8 @@ class Tron:
                 yield None
             self.ready = 0
 
+# This game is suitable for at least min_players players
+min_players = 2
 
 def run():
     global curboard

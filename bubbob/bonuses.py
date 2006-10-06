@@ -951,11 +951,19 @@ class Potion(RandomBonus):
             if random.random() < 0.6:
                 blist = [random.choice(blist)]
             boards.replace_boardgen(boards.potion_fill(blist, self.big))
-        elif Potion.Extensions:
-            ext = Potion.Extensions.pop()
-            ext = __import__(ext, globals(), locals(), ['run'])
-            ext.run()
-            boards.BoardGen.append(boards.extra_bkgnd_black(self.x, self.y))
+        else:
+            n_players = len([p for p in BubPlayer.PlayerList if p.isplaying()])
+            while Potion.Extensions:
+                ext = Potion.Extensions.pop()
+                print "Trying potion:", ext
+                ext = __import__(ext, globals(),locals(), ['run','min_players'])
+                if n_players >= ext.min_players:
+                    ext.run()
+                    boards.BoardGen.append(boards.extra_bkgnd_black(self.x, self.y))
+                    print "Accepted because:", n_players, ">=", ext.min_players
+                    break
+                else:
+                    print "Rejected because:", n_players, "<", ext.min_players
 
 class FireBubble(RandomBonus):
     "Fire Bubbles. Makes you fire napalm bubbles."
