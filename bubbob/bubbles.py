@@ -1140,10 +1140,14 @@ class BigFireBubble(ActiveSprite):
 
 class SpinningBall(ActiveSprite):
     def __init__(self, x, y, poplist):
-        ActiveSprite.__init__(self, images.sprget(SpinningBalls.free[0]), x, y)
+        ActiveSprite.__init__(self, images.sprget(SpinningBalls.free[-1]), x,y)
         self.poplist = poplist
         self.gen.append(self.dropping())
-        self.setimages(self.cyclic(SpinningBalls.free[1:], 2))
+        imgs = SpinningBalls.free
+        if random.random() < 0.5:
+            imgs = list(imgs)
+            imgs.reverse()
+        self.setimages(self.cyclic(imgs, random.randrange(2,5)))
         self.touchable = 1
     def dropping(self):
         from monsters import Monster

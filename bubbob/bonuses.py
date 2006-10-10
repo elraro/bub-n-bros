@@ -117,14 +117,6 @@ class Bonus(ActiveSprite):
         self.setimages(self.cyclic(questionmarklist, 2))
 
     def bubbling(self, bubble, ico):
-        #dx = (bubble.ico.w - nico.w) // 2
-        #dy = (bubble.ico.h - nico.h) // 2
-        #dx = [dx, dx+1, dx, dx-1]
-        #i = 0
-        #while not hasattr(bubble, 'poplist'):
-        #    self.move(bubble.x+dx[i//4], bubble.y+dy, nico)
-        #    i = (i+1) % 16
-        #    yield None
         while not hasattr(bubble, 'poplist'):
             self.move(bubble.x+8, bubble.y+8)
             yield None
