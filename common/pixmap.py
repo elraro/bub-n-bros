@@ -55,6 +55,13 @@ def rotate_ccw(w, h, data):
              for p1 in range(scanline-3, -3, -3)]
     return ''.join(lines)
 
+def rotate_180(w, h, data):
+    scanline = w*3
+    lines = [''.join([data[p:p+3] for p in range(p1+scanline-3, p1-3, -3)])
+             for p1 in range(0, len(data), scanline)]
+    lines.reverse()
+    return ''.join(lines)
+
 def makebkgnd(w, h, data):
     scanline = 3*w
     result = []
