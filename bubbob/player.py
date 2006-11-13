@@ -396,8 +396,9 @@ class Dragon(ActiveSprite):
                     s += 4
                 s -= 1
                 if dcap['overlayglasses']:
-                    self.overlayyoffset = {3: 2, 4: 0,
-                                           9: 3, 10: 5}.get(mode, 4)
+                    self.overlayyoffset = ({3: 2, 4: 0,
+                                            9: 3, 10: 5}.get(mode, 4)
+                                           + self.playing_fish * 2)
                 elif s & 2:
                     mode = 11
                 dcap['shield'] = s
