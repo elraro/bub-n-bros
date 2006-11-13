@@ -1191,8 +1191,14 @@ class Conch(RandomBonus):
     "Sea Shell. Let's bring the sea here!"
     nimage = Bonuses.conch
     points = 650
+    big = 0
+    bigbonus = {'big': 1}
     def taken1(self, dragons):
-        boards.extra_boardgen(boards.extra_water_flood())
+        if self.big:
+            gen = boards.extra_aquarium
+        else:
+            gen = boards.extra_water_flood
+        boards.extra_boardgen(gen())
 
 def fire_rain(x, poplist):
     from bubbles import FireDrop

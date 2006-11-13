@@ -1062,6 +1062,55 @@ def extra_water_flood():
         s.kill()
     del curboard.sprites['flood']
 
+def extra_aquarium():
+    from mnstrmap import Flood
+    from player import BubPlayer
+    for i in range(200):
+        if 'flood' not in curboard.sprites:  # only one flooding at a time
+            break
+        yield 0
+        if curboard.cleaning_gen_state:
+            return
+    curboard.sprites['flood'] = []
+    gl = curboard.sprites.setdefault('background', [])
+    curboard.holes = True     # so that random PlainBubbles show up anyway
+    walls = curboard.sprites['walls']
+    seen = {}
+
+    def newsprite(ico, x, y):
+        s = gamesrv.Sprite(ico, x, y)
+        s.to_back(walls[0])
+        gl.append(s)
+        return s
+
+    def fishplayers(ymin):
+        for d in BubPlayer.DragonList:
+            if d not in seen and d.y >= ymin:
+                seen[d] = True
+                d.become_fish()
+                d.bubber.emotic(d, 4)
+
+    waves_icons = [images.sprget(n) for n in Flood.waves]
+    fill_icon = images.sprget(Flood.fill)
+    waves_sprites = [newsprite(waves_icons[0], x, bheight-CELL)
+                     for x in range(2*CELL + HALFCELL, bwidth - 2*CELL, CELL)]
+    while waves_sprites[0].y > -fill_icon.h:
+        fishplayers(waves_sprites[0].y)
+        yield 0
+        waves_icons.append(waves_icons.pop(0))
+        for s in waves_sprites:
+            s.seticon(waves_icons[0])
+        fishplayers(waves_sprites[0].y)
+        yield 0
+        for s in waves_sprites:
+            newsprite(fill_icon, s.x, s.y)
+        for s in waves_sprites:
+            s.step(0, -16)
+    for s in waves_sprites:
+        s.kill()
+    BubPlayer.SuperFish = True
+    fishplayers(-sys.maxint)
+
 def extra_walls_falling():
     walls_by_pos = curboard.walls_by_pos
     moves = 1

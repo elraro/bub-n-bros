@@ -262,8 +262,10 @@ def make_transform(datamap, ptmap):
 Transformations = {
     '':       transform_noflip,
     'vflip':  make_transform(pixmap.vflip,     lambda x,y,w,h: (x,h-y,w,h)),
+    'hflip':  make_transform(pixmap.hflip,     lambda x,y,w,h: (w-x,y,w,h)),
     'cw':     make_transform(pixmap.rotate_cw, lambda x,y,w,h: (h-y,x,h,w)),
     'ccw':    make_transform(pixmap.rotate_ccw,lambda x,y,w,h: (y,w-x,h,w)),
+    'rot180': make_transform(pixmap.rotate_180,lambda x,y,w,h: (w-x,h-y,w,h)),
     }
 
 if 0:  # disabled clipping

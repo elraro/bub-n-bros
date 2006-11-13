@@ -508,6 +508,29 @@ class DragonBubble(Bubble):
         self.pop()
 
 
+class FishBubble(Bubble):
+    touchable = 0
+
+    def __init__(self, dragon):
+        ico = images.sprget(GreenAndBlue.new_bubbles[dragon.bubber.pn][0])
+        Bubble.__init__(self, ico, dragon.x + dragon.dir*12, dragon.y)
+        timeout = random.randrange(50, 150)
+        self.gen.append(self.normal_movements(timeout=timeout))
+        self.gen.append(self.fuzz())
+
+    def fuzz(self):
+        while 1:
+            prevx = self.x
+            yield None
+            yield None
+            yield None
+            if prevx == self.x:
+                self.step(random.choice([-1, 1]), 0)
+
+    def bubble_red(self, *args, **kwds):
+        self.gen.append(self.die([]))
+
+
 class BubblingEyes(ActiveSprite):
     
     def __init__(self, bubber, saved_caps, bubble):
@@ -588,9 +611,14 @@ class BubblingEyes(ActiveSprite):
             kw = {'gravity': -0.3}
         else:
             kw = {}
+        from player import BubPlayer
         bi = self.dcap.get('bubbericons', bubber)
-        self.setimages(self.cyclic(
-            [(flip, n) for n in GreenAndBlue.comming[bi.pn]], 2))
+        if BubPlayer.SuperFish and 'fish' in bi.transformedicons:
+            self.setimages(None)
+            self.seticon(bi.transformedicons['fish'][0, +1])
+        else:
+            self.setimages(self.cyclic(
+                [(flip, n) for n in GreenAndBlue.comming[bi.pn]], 2))
         dxy = [(random.random()-0.5) * 9.0,
                (random.random()+0.5) * (-5.0,5.0)[bottom_up]]
         for n in self.parabolic(dxy, 1, **kw):

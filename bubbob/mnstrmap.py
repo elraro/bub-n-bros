@@ -381,6 +381,7 @@ class GreenAndBlue:
         })
     gameover = birange(497,498,1)
     digits = birange(499,509,10)
+    fish = birange(700,707,7)
 
 class Butterfly(Monster1):
     right  = [('butterfly', 'fly', n) for n in range(2)]

@@ -70,8 +70,11 @@ class Dragon(ActiveSprite):
         self.hatsprite = None
         self.hatangle = 1
         self.isdying = 0
+        self.playing_fish = False
         if BubPlayer.SuperSheep:
             self.become_monster('Sheep', immed=1)
+        elif BubPlayer.SuperFish:
+            self.become_fish()
 
     def kill(self):
         try:
@@ -130,9 +133,10 @@ class Dragon(ActiveSprite):
                     s = bubbles.LetterBubble(self.bubber.pn, l)
                     s.move(self.x, self.y)
                     break
+        icons = self.getcurrenticons()
         for i in range(2, 32):
             mode = 5 + ((i>>1) & 3)
-            self.seticon(self.bubber.icons[mode, self.dir])
+            self.seticon(icons[mode, self.dir])
             yield None
         self.kill()
         if not self.bubber.dragons:
@@ -160,6 +164,17 @@ class Dragon(ActiveSprite):
 
     def monstervisible(self):
         return not self.dcap['ring'] and not self.dcap['shield']
+
+    def getcurrenticons(self, imgtransform=''):
+        if self.playing_fish:
+            imgtransform = 'fish'
+        icobubber = self.dcap.get('bubbericons', self.bubber)
+        try:
+            return icobubber.transformedicons[imgtransform]
+        except KeyError:
+            icons = icobubber.transformedicons[imgtransform] = {}
+            icobubber.loadicons(imgtransform)
+            return icons
 
     def normal_movements(self):
         yfp = 0.0
@@ -302,26 +317,11 @@ class Dragon(ActiveSprite):
                 dcap['infinite_shield'] = 0
 
             dir = self.dir
-            imgtransform = 'vflip' * bottom_up
-##            if self.glueddown:
-##                # glued movements: done above
-##                mode = mytime // 6 * 2
-##                imgtransform = {
-##                    (0, 1): '',
-##                    (0,-1): 'vflip',
-##                    (-1,0): 'cw',
-##                    ( 1,0): 'ccw',
-##                    }[self.glueddown]
-##                if self.glueddown == (0, -1):
-##                    dir = -self.dir
-            icobubber = dcap.get('bubbericons', self.bubber)
-            try:
-                icons = icobubber.transformedicons[imgtransform]
-            except KeyError:
-                icons = icobubber.transformedicons[imgtransform] = {}
-                icobubber.loadicons(imgtransform)
+            icons = self.getcurrenticons('vflip' * bottom_up)
 
-            if self.up:
+            if self.playing_fish:
+                mode = self.one_fish_frame(onground1, bottom_up)
+            elif self.up:
                 # going up
                 mode = 9
                 self.up -= dcap['gravity']
@@ -482,6 +482,25 @@ class Dragon(ActiveSprite):
         self.move(int(fx), desty)
         self.dcap['shield'] = 50
 
+    def become_fish(self):
+        self.playing_fish = True
+        icons = self.getcurrenticons()
+        self.seticon(icons[11, self.dir])
+
+    def one_fish_frame(self, onground1, bottom_up):
+        if self.bubber.getkey(self.dcap, 'key_jump'):
+            # swimming up
+            self.step(0, (-2, 2)[bottom_up])
+        else:
+            if random.random() < 0.05:
+                bubbles.FishBubble(self)
+            if not onground1(self.x, self.y):
+                # swimming down
+                ny = (self.y+(2,-1)[bottom_up]) & ~1
+                self.move(self.x, ny)
+        self.vertical_warp()
+        return ((BubPlayer.FrameCounter // 3) % 6) * 0.5
+
     def to_front(self):
         ActiveSprite.to_front(self)
         if self.dcap['overlayglasses']:
@@ -601,6 +620,7 @@ class BubPlayer(gamesrv.Player):
     LimitTime = None
     PlayersPrivateTime = 100
     SuperSheep = False
+    SuperFish  = False
     #HighScore = 0
     #HighScoreColor = None
 
@@ -614,11 +634,30 @@ class BubPlayer(gamesrv.Player):
         'OverridePlayerIcon': None,
         'DisplayPoints': None,
         'SuperSheep': False,
+        'SuperFish' : False,
         }
     TRANSIENT_DATA = ('_client', 'key_left', 'key_right',
                       'key_jump', 'key_fire', 'pn', 'nameicons',
                       'icons', 'transformedicons',
                       'standardplayericon', 'iconnames')
+
+    FISH_MODE_MAP = {0:   ('', 0),    # swim
+                     0.5: ('', 1),
+                     1:   ('', 2),
+                     1.5: ('', 3),
+                     2:   ('', 2),
+                     2.5: ('', 1),
+                     3:   ('', 4),    # lancer de bulle
+                     4:   ('', 5),
+                     5:   ('', 3),    # mort
+                     6:   ('cw', 3),
+                     7:   ('rot180', 3),
+                     8:   ('ccw', 3),
+                     9:   ('', 3),    # saut, montant
+                     10:  ('', 3),    # saut, descend
+                     11:  ('', 6),    # shielded
+                     12:  'black',
+                     }
 
     def __init__(self, n):
         self.pn = n
@@ -671,8 +710,20 @@ class BubPlayer(gamesrv.Player):
 
     def loadicons(self, flip):
         icons = self.transformedicons[flip]
-        for key, value in self.iconnames.items():
-            icons[key] = images.sprget((flip, value))
+        if flip == 'fish':
+            for dir in (-1, 1):
+                for key, value in self.FISH_MODE_MAP.items():
+                    if value == 'black':
+                        flip = ''
+                    else:
+                        flip, index = value
+                        value = GreenAndBlue.fish[self.pn][index]
+                        if dir > 0:
+                            flip = flip or 'hflip'
+                    icons[key, dir] = images.sprget((flip, value))
+        else:
+            for key, value in self.iconnames.items():
+                icons[key] = images.sprget((flip, value))
 
     def setplayername(self, name):
         name = name.strip()
