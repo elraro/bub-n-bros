@@ -483,6 +483,9 @@ class Dragon(ActiveSprite):
         self.move(int(fx), desty)
         self.dcap['shield'] = 50
 
+    def enter_new_board(self):
+        self.playing_fish = False
+
     def become_fish(self):
         self.playing_fish = True
         icons = self.getcurrenticons()

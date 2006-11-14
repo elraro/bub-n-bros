@@ -187,6 +187,8 @@ class Board(Copyable):
                     p.enterboard(playing)
                     p.zarkon()
                     playing.append(p)
+            for d in BubPlayer.DragonList:
+                d.enter_new_board()
         else:
             # kill stuff left over from leave(inplace=1) (Big Clock bonus only)
             import bonuses
@@ -1071,6 +1073,8 @@ def extra_aquarium():
         yield 0
         if curboard.cleaning_gen_state:
             return
+    else:
+        return
     curboard.sprites['flood'] = []
     gl = curboard.sprites.setdefault('background', [])
     curboard.holes = True     # so that random PlainBubbles show up anyway
