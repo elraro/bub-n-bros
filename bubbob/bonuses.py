@@ -1001,6 +1001,7 @@ class Potion(RandomBonus):
                     break
                 else:
                     #print "Rejected because:", n_players, "<", ext.min_players
+                    pass
 
 class FireBubble(RandomBonus):
     "Fire Bubbles. Makes you fire napalm bubbles."
