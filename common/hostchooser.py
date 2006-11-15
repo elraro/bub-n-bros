@@ -82,9 +82,8 @@ def find_servers(hostlist=[('127.0.0.1', None), ('<broadcast>', None)],
         for host, udpport in hostlist:
             print >> sys.stderr, '    %s,  UDP port %s' % (
                 host, udpport or ("%s (default)" % UDP_PORT))
-    servers = {}
     events = {}
-    aliases = {}
+    replies = []
     s = socket(AF_INET, SOCK_DGRAM)
     s.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
     for trynum in range(tries):
@@ -120,27 +119,41 @@ def find_servers(hostlist=[('127.0.0.1', None), ('<broadcast>', None)],
                 hostrecv.append(time.time())
             data = data.split(':')
             if len(data) >= 4 and data[0] == PONG_MESSAGE:
-                if data[2]:
-                    hostname = data[2]
-                else:
-                    hostname = answer_from[0]
-                    try:
-                        hostname = gethostbyaddr(hostname)[0]
-                        if hostname == 'localhost':
-                            from msgstruct import HOSTNAME as hostname
-                    except error:
-                        pass
                 try:
                     port = int(data[3])
                 except ValueError:
                     if port_needed:
                         continue
                     port = ''
-                result = (hostname, port)
-                servers[result] = ':'.join(data[1:2]+data[4:])
-                aliases[hostname] = ipaddr
+                if data[2]:
+                    hostname = data[2]
+                    realhostname = [hostname]
+                else:
+                    hostname = answer_from[0]
+                    realhostname = lazy_gethostbyaddr(hostname)
+                server = ':'.join(data[1:2]+data[4:])
+                replies.append((hostname, realhostname, port, server, ipaddr))
             else:
                 print >> sys.stderr, "got an unexpected answer from", answer_from
+    servers = {}
+    aliases = {}
+    timeout = time.time() + 2.0     # wait for gethostbyaddr() for 2 seconds
+    while replies:
+        i = 0
+        now = time.time()
+        while i < len(replies):
+            hostname, realhostname, port, server, ipaddr = replies[i]
+            if realhostname:
+                hostname = realhostname[0]    # got an answer
+            elif now < timeout:
+                i += 1     # must wait some more time
+                continue
+            result = (hostname, port)
+            servers[result] = server
+            aliases[hostname] = ipaddr
+            del replies[i]
+        if replies:
+            time.sleep(0.08)   # time for gethostbyaddr() to finish
     if verbose:
         print >> sys.stderr, "%d answer(s):" % len(servers), servers.keys()
     for host, port in servers.keys():
@@ -151,4 +164,29 @@ def find_servers(hostlist=[('127.0.0.1', None), ('<broadcast>', None)],
             if len(hostsend) == len(hostrecv) == tries:
                 ping = min([t2-t1 for t1, t2 in zip(hostsend, hostrecv)])
         servers[host, port] = (servers[host, port], ping)
+    sys.setcheckinterval(4096)
     return servers
+
+# ____________________________________________________________
+
+HOSTNAMECACHE = {}
+
+def _lazygetter(hostname, resultlst):
+    try:
+        try:
+            hostname = gethostbyaddr(hostname)[0]
+            if hostname == 'localhost':
+                from msgstruct import HOSTNAME as hostname
+        except error:
+            pass
+    finally:
+        resultlst.append(hostname)
+
+def lazy_gethostbyaddr(hostname):
+    try:
+        return HOSTNAMECACHE[hostname]
+    except KeyError:
+        resultlst = HOSTNAMECACHE[hostname] = []
+        import thread
+        thread.start_new_thread(_lazygetter, (hostname, resultlst))
+        return resultlst
