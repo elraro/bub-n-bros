@@ -190,8 +190,10 @@ class Parabolic(ActiveSprite):
         else:
             kw = {}
         for n in self.parabolic(dxy, self.fallstraight, **kw):
+            progress = self.parabole_progress = dxy[1] * (1,-1)[bottom_up]
             yield n
-            if dxy[1] * (1,-1)[bottom_up] >= 4.0 and self.fallstraight:
+            if progress >= 4.0 and self.fallstraight:
+                del self.parabole_progress
                 self.gen.append(self.falling())
                 return
         self.kill()
@@ -259,6 +261,14 @@ class BonusMaker(Parabolic2):
             self.fallspeed = -self.fallspeed
         Parabolic2.__init__(self, x, y, imglist, imgspeed, onplace)
 
+    def falling(self):
+        cls = self.outcome[0]
+        if issubclass(cls, Megabonus):
+            self.build()
+            return self.die([])
+        else:
+            return Parabolic2.falling(self)
+
     def wrapped_around(self):
         cls = self.outcome[0]
         if issubclass(cls, RandomBonus) and not boards.curboard.playingboard:
@@ -281,6 +291,33 @@ class BonusMaker(Parabolic2):
         if bonus:
             bonus.in_bubble(bubble)
         return bonus
+
+class BonusMakerExtraStar(ActiveSprite):
+
+    def __init__(self, x, y, sx, sy, colorname):
+        self.sx = sx
+        self.sy = sy
+        imglist = [('smstar', colorname, k) for k in range(2)]
+        ActiveSprite.__init__(self, images.sprget(imglist[-1]),
+                                    x + HALFCELL, y + HALFCELL)
+        self.setimages(self.cyclic(imglist, speed=2))
+
+    def follow_bonusmaker(self, bm):
+        for t in range(4):
+            yield None
+            if hasattr(bm, 'parabole_progress'):
+                break
+        else:
+            self.kill()
+            return
+        start = bm.parabole_progress
+        if start < 3.9:
+            while bm.alive and hasattr(bm, 'parabole_progress'):
+                f = (bm.parabole_progress-start) / (4.0-start)
+                self.move(bm.x + HALFCELL + int(f*self.sx),
+                          bm.y + HALFCELL + int(f*self.sy))
+                yield None
+        self.kill()
 
 
 class MonsterBonus(Bonus):
@@ -881,7 +918,15 @@ def starexplosion(x, y, multiplyer, killmonsters=0, outcomes=[]):
         for colorname in colors:
             images = getattr(Stars, colorname)
             if outcomes:
-                BonusMaker(x, y, images, outcome=outcomes.pop())
+                outcome = outcomes.pop()
+                extra_stars = []
+                if hasattr(outcome[0], 'extra_stars_location'):
+                    for sx, sy in outcome[0].extra_stars_location:
+                        extra_stars.append(BonusMakerExtraStar(x, y, sx, sy,
+                                                               colorname))
+                bm = BonusMaker(x, y, images, outcome=outcome)
+                for star in extra_stars:
+                    star.gen.append(star.follow_bonusmaker(bm))
             else:
                 b = Parabolic2(x, y, images)
                 if killmonsters:
@@ -947,15 +992,15 @@ class Potion(RandomBonus):
             n_players = len([p for p in BubPlayer.PlayerList if p.isplaying()])
             while Potion.Extensions:
                 ext = Potion.Extensions.pop()
-                print "Trying potion:", ext
+                #print "Trying potion:", ext
                 ext = __import__(ext, globals(),locals(), ['run','min_players'])
                 if n_players >= ext.min_players:
                     ext.run()
                     boards.BoardGen.append(boards.extra_bkgnd_black(self.x, self.y))
-                    print "Accepted because:", n_players, ">=", ext.min_players
+                    #print "Accepted because:", n_players, ">=", ext.min_players
                     break
                 else:
-                    print "Rejected because:", n_players, "<", ext.min_players
+                    #print "Rejected because:", n_players, "<", ext.min_players
 
 class FireBubble(RandomBonus):
     "Fire Bubbles. Makes you fire napalm bubbles."
@@ -985,10 +1030,15 @@ class Megadiamond(Megabonus):
     fallerdelay = 0
     outcome = (MonsterBonus, -1)
     outcome_image = Bonuses.monster_bonuses[-1][0]
+    extra_stars_location = [ (-24,-28),(0,-28),(24,-28),
+                            (-40,-11),          (40,-11),
+                              (-32, 8),       (32, 8),
+                                 (-16,23), (16,23),
+                                       (0,38),         ]
     def __init__(self, x, y):
         ico = images.sprget(self.nimage)
         x -= (ico.w - 2*CELL) // 2
-        y -= (ico.h - 2*CELL)
+        y -= (ico.h - 2*CELL) // 2
         Megabonus.__init__(self, x, y)
 
 class Door(RandomBonus):
