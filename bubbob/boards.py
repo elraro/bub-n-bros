@@ -1376,7 +1376,7 @@ def extra_make_random_level(cx=None, cy=None, repeat_delay=200):
 
 def extra_bubbles(timeout):
     from bubbles import newforcedbubble
-    falloff = 0.2
+    falloff = 0.4
     for i in range(timeout):
         if curboard.cleaning_gen_state:
             return

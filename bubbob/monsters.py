@@ -271,7 +271,7 @@ class Monster(ActiveSprite):
     def touched(self, dragon):
         if self.gen:
             self.killdragon(dragon)
-            if self.is_ghost:
+            if self.is_ghost and not hasattr(self, 'bubber'):
                 self.gen = [self.default_mode()]
                 self.resetimages()
         else:
