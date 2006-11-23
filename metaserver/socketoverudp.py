@@ -3,10 +3,8 @@ from pipelayer import PipeLayer, InvalidPacket
 from pipelayer import FLAG_RANGE_START, FLAG_RANGE_STOP
 import socket, struct
 
-# XXX protect against InvalidPacket
 # XXX udpsock.send() can raise socket.error: Connection refused
-# XXX multiplex both pipelayer and image data over the same udpsock
-# XXX if TCP_NODELAY is not set, consolidate packets
+# XXX try 2-3 times to udpconnect, not just once
 
 SOU_RANGE_START = FLAG_RANGE_START
 SOU_MIXED_DATA  = FLAG_RANGE_STOP + 0
@@ -21,7 +19,8 @@ CONGESTION_TIMEOUT = 20.0
 
 class SocketOverUdp(object):
     RECV_CAN_RETURN_EMPTY = True
-    PACKETSIZE = 1500 - PipeLayer.headersize
+    PACKETSIZE = 996
+    MIXEDPACKETSIZE = 1080
 
     def __init__(self, udpsock):
         self.udpsock = udpsock
@@ -76,14 +75,17 @@ class SocketOverUdp(object):
                     #                            len(packet))
                     self.udp_over_udp_decoder(packet[4:4+size])
                     return self._decode(packet[4+size:])
-                # non-tiny packets with no recognized hdr byte are
-                # assumed to be pure video traffic
-                #print ' ~~~[video]'
-                self.udp_over_udp_decoder(packet)
+                else:
+                    # non-tiny packets with no recognized hdr byte are
+                    # assumed to be pure video traffic
+                    #print ' ~~~[video]'
+                    self.udp_over_udp_decoder(packet)
+                    return ''
             elif packet == SHUTDOWN_PACKET:
                 raise socket.error("received an end-of-connexion packet")
-            #print ' ~~~[INVALID]'
-            return ''
+            else:
+                #print ' ~~~[INVALID%d]' % (len(packet),)
+                return ''
 
     def fileno(self):
         self._progress()
@@ -111,7 +113,7 @@ class SocketOverUdp(object):
         #print 'queuing', repr(data)
         #print '                        OUT:', len(data)
         self.pl.queue(data)
-        self._progress()
+        #self._progress()
         return len(data)
 
     send = sendall
@@ -123,7 +125,7 @@ class SocketOverUdp(object):
         if not forced_embedded and not packet:
             # no PipeLayer packet, send as plain udp data
             datagram = udpdata
-        elif len(packet) + len(udpdata) <= self.PACKETSIZE - 4:
+        elif len(packet) + len(udpdata) <= self.MIXEDPACKETSIZE:
             # fits in a single mixed data packet
             datagram = (struct.pack("!BBH", SOU_MIXED_DATA, 0, len(udpdata))
                         + udpdata + packet)
