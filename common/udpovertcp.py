@@ -18,9 +18,13 @@ class SocketMarshaller:
         self.tcpsock_fd = tcpsock.fileno()
         # try to reduce TCP latency
         try:
+            tcpsock.setsockopt(SOL_IP, IP_TOS, 0x10)  # IPTOS_LOWDELAY
+        except error, e:
+            print "Cannot set IPTOS_LOWDELAY for client:", str(e)
+        try:
             tcpsock.setsockopt(SOL_TCP, TCP_NODELAY, 1)
         except error, e:
-            print "Cannot set TCP_NODELAY for client", str(e)
+            print "Cannot set TCP_NODELAY for client:", str(e)
         compressor = compressobj(6)
         self.compress = compressor.compress
         self.compress_flush = compressor.flush

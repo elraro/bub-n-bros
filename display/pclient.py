@@ -19,16 +19,6 @@ import caching
 UDP_EXPECTED_RATIO = 0.60
 
 
-def read(sock, count):
-    buffer = ""
-    while len(buffer) < count:
-        t = sock.recv(count - len(buffer))
-        if not t:
-            raise error, "connexion closed"
-        buffer += t
-    return buffer
-
-
 def loadpixmap(dpy, data, colorkey=None):
     w, h, data = decodepixmap(data)
     if colorkey is None:
@@ -116,11 +106,27 @@ class Playfield:
             self.s.setsockopt(SOL_IP, IP_TOS, 0x10)  # IPTOS_LOWDELAY
         except error, e:
             print >> sys.stderr, "Cannot set IPTOS_LOWDELAY:", str(e)
-        if read(self.s, len(MSG_WELCOME)) != MSG_WELCOME:
-            raise error, "connected to something not a game server"
-        line2 = ''
-        while not line2.endswith('\n'):
-            line2 += self.s.recv(1)
+        try:
+            self.s.setsockopt(SOL_TCP, TCP_NODELAY, 1)
+        except error, e:
+            print >> sys.stderr, "Cannot set TCP_NODELAY:", str(e)
+
+        initialbuf = ""
+        while 1:
+            t = self.s.recv(200)
+            if not t and not hasattr(self.s, 'RECV_CAN_RETURN_EMPTY'):
+                raise error, "connexion closed"
+            initialbuf += t
+            if len(initialbuf) >= len(MSG_WELCOME):
+                head = initialbuf[:len(MSG_WELCOME)]
+                tail = initialbuf[len(MSG_WELCOME):]
+                if head != MSG_WELCOME:
+                    raise error, "connected to something not a game server"
+                if '\n' in tail:
+                    break
+        n = tail.index('\n')
+        line2 = tail[:n]
+        self.initialbuf = tail[n+1:]
 
         self.gameident = line2.strip()
 ##        self.datapath = None
@@ -136,6 +142,7 @@ class Playfield:
         self.playing = {}   # 0, 1, or 'l' for local
         self.keys = {}
         self.keycodes = {}
+        self.last_key_event = (None, None)
         self.dpy = None
         self.snd = None
         self.pixmaps = {}   # {bmpcode: dpy_pixmap}
@@ -166,7 +173,7 @@ class Playfield:
         if udp_over_tcp == 1:
             self.start_udp_over_tcp()
         else:
-            self.udp_over_tcp = None
+            self.pending_udp_data = None
             if udp_over_tcp == 'auto':
                 self.udpsock_low = 0
         self.dyndecompress = [[None, None, None, None] for i in range(8)]
@@ -179,13 +186,18 @@ class Playfield:
         finally:
             if self.dpy:
                 self.dpy.close()
+            try:
+                self.s.close()
+            except:
+                pass
 
     def mainloop(self):
         pss = hostchooser.serverside_ping()
         self.initial_iwtd = [self.s, pss]
         self.iwtd = self.initial_iwtd[:]
-        inbuf = ""
         self.animdelay = 0.0
+        inbuf = self.process_inbuf(self.initialbuf)
+        self.initialbuf = ""
         while 1:
             if self.dpy:
                 self.processkeys()
@@ -194,26 +206,10 @@ class Playfield:
             if self.dpy:
                 self.processkeys()
             if self.s in iwtd:
-                #while self.s in iwtd:
-                    inputdata = self.s.recv(0x6000)
-                    self.tcpbytecounter += len(inputdata)
-                    ##import os; logfn='/tmp/log%d'%os.getpid()
-                    ##g = open(logfn, 'ab'); g.write(inputdata); g.close()
-                    inbuf += inputdata
-                    while inbuf:
-                        values, inbuf = decodemessage(inbuf)
-                        if not values:
-                            break  # incomplete message
-
-                        #dump = list(values)
-                        #for ii in range(len(dump)):
-                        #    if isinstance(dump[ii], str) and len(dump[ii])>20:
-                        #        dump[ii] = dump[ii][:15]+'....'
-                        #print >> sys.stderr, dump
-
-                        fn = Playfield.MESSAGES.get(values[0], self.msg_unknown)
-                        fn(self, *values[1:])
-                    #iwtd, owtd, ewtd = select(self.iwtd, [], [], 0)
+                inputdata = self.s.recv(0x6000)
+                self.tcpbytecounter += len(inputdata)
+                inbuf += inputdata
+                inbuf = self.process_inbuf(inbuf)
             if self.dpy:
                 if self.udpsock in iwtd:
                     udpdata1 = None
@@ -240,9 +236,9 @@ class Playfield:
                         iwtd, owtd, ewtd = select(self.iwtd, [], [], 0)
                     if udpdata and self.accepted_broadcast:
                         self.update_sprites(udpdata)
-                if self.udp_over_tcp:
-                    self.update_sprites(self.udp_over_tcp)
-                    self.udp_over_tcp = ''
+                if self.pending_udp_data:
+                    self.update_sprites(self.pending_udp_data)
+                    self.pending_udp_data = ''
                 erasetb = self.taskbarmode and self.draw_taskbar()
                 d = self.dpy.flip()
                 if d:
@@ -255,6 +251,15 @@ class Playfield:
                     self.erase_taskbar(erasetb)
             if pss in iwtd:
                 hostchooser.answer_ping(pss, self.gameident, self.sockaddr)
+
+    def process_inbuf(self, inbuf):
+        while inbuf:
+            values, inbuf = decodemessage(inbuf)
+            if not values:
+                break  # incomplete message
+            fn = Playfield.MESSAGES.get(values[0], self.msg_unknown)
+            fn(self, *values[1:])
+        return inbuf
 
     def dynamic_decompress(self, udpdata):
         # Format of a UDP version 3 packet:
@@ -482,7 +487,13 @@ class Playfield:
 
     def startplaying(self):
         args = ()
-        if self.udp_over_tcp is not None:
+        if hasattr(self.s, 'udp_over_udp_mixer'):
+            # for SocketOverUdp: reuse the UDP address
+            port = self.s.getsockname()[1]
+            self.udpsock_low = None
+            self.s.udp_over_udp_decoder = self.udp_over_udp_decoder
+            self.start_udp_over_tcp()
+        elif self.pending_udp_data is not None:
             port = MSG_INLINE_FRAME
         else:
             if '*udpsock*' in PORTS:
@@ -499,13 +510,15 @@ class Playfield:
             self.initial_iwtd.append(self.udpsock)
         if 'sendudpto' in PORTS:
             args = (PORTS['sendudpto'],)
-        self.s.sendall(message(CMSG_UDP_PORT, port, *args))
+        outbound = []
+        outbound.append(message(CMSG_UDP_PORT, port, *args))
         if self.snd and self.snd.has_music:
-            self.s.sendall(message(CMSG_ENABLE_MUSIC, 1))
-            self.s.sendall(message(CMSG_PING))
+            outbound.append(message(CMSG_ENABLE_MUSIC, 1))
+            outbound.append(message(CMSG_PING))
+        self.s.sendall(''.join(outbound))
 
     def start_udp_over_tcp(self):
-        self.udp_over_tcp = ''
+        self.pending_udp_data = ''
         self.udp_over_tcp_decompress = zlib.decompressobj().decompress
         self.udpsock_low = None
         for name in ('udpsock', 'udpsock2'):
@@ -522,15 +535,26 @@ class Playfield:
                 sock.close()
                 setattr(self, name, None)
 
+    def udp_over_udp_decoder(self, udpdata):
+        if len(udpdata) > 3 and '\x80' <= udpdata[0] < '\x90':
+            data = self.dynamic_decompress(udpdata)
+            if data:
+                self.pending_udp_data = data
+
     def processkeys(self):
         keyevents = self.dpy.keyevents()
         if keyevents:
+            now = time.time()
             pending = {}
             for keysym, event in keyevents:
                 pending[keysym] = event
             for keysym, event in pending.items():
                 code = self.keycodes.get((keysym, event))
                 if code and self.playing.get(code[0]) == 'l':
+                    if (code == self.last_key_event[0] and
+                        now - self.last_key_event[1] < 0.77):
+                        continue   # don't send too much events for auto-repeat
+                    self.last_key_event = code, now
                     self.s.sendall(code[1])
                 elif self.keydefinition:
                     self.define_key(keysym)
@@ -601,7 +625,7 @@ class Playfield:
                 del self.keycodes[key]
 
     def msg_broadcast_port(self, port):
-        if self.udp_over_tcp is not None:
+        if self.pending_udp_data is not None:
             return
         if self.udpsock2 is not None:
             try:
@@ -793,8 +817,8 @@ class Playfield:
             self.settaskbar(1)
 
     def msg_inline_frame(self, data, *rest):
-        if self.udp_over_tcp is not None:
-            self.udp_over_tcp = self.udp_over_tcp_decompress(data)
+        if self.pending_udp_data is not None:
+            self.pending_udp_data = self.udp_over_tcp_decompress(data)
     
     MESSAGES = {
         MSG_BROADCAST_PORT:msg_broadcast_port,

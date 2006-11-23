@@ -611,7 +611,7 @@ then use the following address:
       if data:
         self.activity = NOW
         self.receive(data)
-      else:
+      elif not hasattr(self.socket, 'RECV_CAN_RETURN_EMPTY'):
         # safecheck that this means disconnected
         iwtd, owtd, ewtd = select([self.socket], [], [], 0.0)
         if self.socket in iwtd:
@@ -702,11 +702,15 @@ then use the following address:
         s = self.udpsocket.tcpsock
         self.log('set_udp_port: udp-over-tcp')
       else:
-        self.udpsocket = socket(AF_INET, SOCK_DGRAM)
-        self.udpsocket.setblocking(0)
         try:
-          addr = addr or self.addr[0]
-          self.udpsocket.connect((addr, port))
+          if hasattr(self.socket, 'udp_over_udp_mixer'):
+            # for SocketOverUdp
+            self.udpsocket = self.socket.udp_over_udp_mixer()
+          else:
+            self.udpsocket = socket(AF_INET, SOCK_DGRAM)
+            self.udpsocket.setblocking(0)
+            addr = addr or self.addr[0]
+            self.udpsocket.connect((addr, port))
         except error, e:
           print >> sys.stderr, "Cannot set UDP socket to", addr, str(e)
           self.udpsocket = None
@@ -1095,6 +1099,7 @@ class Game:
     if recording:
       for b in bitmaps.values():
         b.defall(recording)
+    self.pendingclients = []
 
   def openserver(self):
     ps = openpingsocket()
@@ -1139,6 +1144,8 @@ class Game:
 
   def mainstep(self):
     global NOW
+    if self.pendingclients:
+      self.newclient(*self.pendingclients.pop())
     NOW = time()
     delay = self.nextframe - NOW
     if delay<=0.0:
@@ -1217,6 +1224,9 @@ class Game:
       else:
         if game is not None:
           c.opengame(game)
+
+  def newclient_threadsafe(self, conn, addr):
+    self.pendingclients.insert(0, (conn, addr))
 
 
 def recursiveloop(endtime, extra_sockets):
@@ -1300,7 +1310,10 @@ def mainloop():
       print "Server crash -- waiting for clients to terminate..."
       while clients:
         iwtd = [c.socket for c in clients]
-        iwtd, owtd, ewtd = select(iwtd, [], iwtd, 120.0)
+        try:
+          iwtd, owtd, ewtd = select(iwtd, [], iwtd, 120.0)
+        except KeyboardInterrupt:
+          break
         if not (iwtd or owtd or ewtd):
           break   # timeout - give up
         for c in clients[:]:
@@ -1312,7 +1325,7 @@ def mainloop():
             except error, e:
               c.disconnect(e)
             else:
-              if not data:
+              if not data and not hasattr(c.socket, 'RECV_CAN_RETURN_EMPTY'):
                 c.disconnect("end of data")
     print "Server closed."
 

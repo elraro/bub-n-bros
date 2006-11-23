@@ -21,6 +21,7 @@ RMSG_SYNC     = 'y'
 RMSG_CONNECT  = 'c'
 RMSG_LIST     = 'l'
 RMSG_UDP_ADDR = 'u'
+RMSG_UDP_CONN = 'd'
 
 
 def encodedict(dict):

@@ -113,9 +113,70 @@ class MetaClientSrv(MessageSocket):
             except error, e:
                 print >> sys.stderr, 'backconnecting:', str(e)
             else:
-                self.game.newclient(s, addr)
+                self.game.newclient_threadsafe(s, addr)
         import thread
         thread.start_new_thread(connect, (origin, port))
+
+    def msg_udp_conn(self, origin, secret, port, *rest):
+        def connect(origin, secret, port):
+            host, _ = origin.split(':')
+            addr = host, port
+            s = socket(AF_INET, SOCK_DGRAM)
+            print >> sys.stderr, 'udp connecting to', addr
+            s.connect(addr)
+            mysecret = random.randrange(0, 65536)
+            packet = ('B' + chr(  secret & 0xFF) + chr(  secret >> 8)
+                          + chr(mysecret & 0xFF) + chr(mysecret >> 8))
+            from socketoverudp import SocketOverUdp
+            from socketoverudp import SOU_RANGE_START, SOU_RANGE_STOP
+            for i in range(5):
+                #print 'sending', repr(packet)
+                s.send(packet)
+                iwtd, owtd, ewtd = select([s], [], [], 0.25)
+                if s in iwtd:
+                    #print 'reading'
+                    inbuf = s.recv(SocketOverUdp.PACKETSIZE)
+                    #print 'got', repr(inbuf)
+                    if SOU_RANGE_START <= ord(inbuf[0]) < SOU_RANGE_STOP:
+                        break
+            else:
+                print >> sys.stderr, 'udp connecting: no answer, giving up'
+                return
+            sock = SocketOverUdp(s)
+            data = sock._decode(inbuf)
+            #print 'decoded as', repr(data)
+            expected = '[bnb c->s]' + packet[3:5]
+            while len(data) < len(expected) + 2:
+                #print 'waiting for more'
+                iwtd, owtd, ewtd = select([sock], [], [], 5.0)
+                if sock not in iwtd:
+                    print >> sys.stderr, 'udp connecting: timed out'
+                    return
+                #print 'decoding more'
+                data += sock.recv()
+                #print 'now data is', repr(data)
+            if data[:-2] != expected:
+                print >> sys.stderr, 'udp connecting: bad data'
+                return
+            sock.sendall('[bnb s->c]' + data[-2:])
+            sock.flush()
+            #print 'waiting for the last dot...'
+            while 1:
+                iwtd, owtd, ewtd = select([sock], [], [], 5.0)
+                if sock not in iwtd:
+                    print >> sys.stderr, 'udp connecting: timed out'
+                    return
+                data = sock.recv(200)
+                if data:
+                    break
+            if data != '^':
+                print >> sys.stderr, 'udp connecting: bad data'
+                return
+            #print 'done!'
+            self.game.newclient_threadsafe(sock, addr)
+
+        import thread
+        thread.start_new_thread(connect, (origin, secret, port))
 
     def msg_ping(self, origin, *rest):
         # ping time1  -->  pong time2 time1
@@ -145,7 +206,7 @@ class MetaClientSrv(MessageSocket):
             except error, e:
                 print >> sys.stderr, 'synconnecting:', str(e)
             else:
-                self.game.newclient(s, addr)
+                self.game.newclient_threadsafe(s, addr)
         import thread
         thread.start_new_thread(connect, (origin, clientport, connecttime, s))
 
@@ -154,6 +215,7 @@ class MetaClientSrv(MessageSocket):
         RMSG_WAKEUP:  msg_wakeup,
         RMSG_PING:    msg_ping,
         RMSG_SYNC:    msg_sync,
+        RMSG_UDP_CONN:msg_udp_conn,
         }
 
 metaclisrv = None
@@ -227,10 +289,11 @@ class MetaClientCli:
         else:
             self.s = None
             self.ev2.signal()
+            self.startthread(self.try_udp_connect)
 
         thread.start_new_thread(self.bipbip, ())
-        self.startthread(self.try_direct_connect)
-        self.startthread(self.try_indirect_connect, 0.75)
+        self.startthread(self.try_direct_connect, 0.75)
+        self.startthread(self.try_indirect_connect, 1.50)
         while self.resultsocket is None:
             self.threadsleft()
             self.ev.wait1()
@@ -261,7 +324,7 @@ class MetaClientCli:
 
     def threadsleft(self):
         now = time.time()
-        TIMEOUT = 10
+        TIMEOUT = 11
         for starttime in self.threads.values():
             if now < starttime + TIMEOUT:
                 break
@@ -358,9 +421,11 @@ class MetaClientCli:
         _, port = s1.getsockname()
         self.routemsg(RMSG_CONNECT, port)
         print >> sys.stderr, 'listening for backward connection'
-        s, addr = s1.accept()
-        print >> sys.stderr, 'accepted backward connection from', addr
-        self.resultsocket = s
+        iwtd, owtd, ewtd = select([s1], [], [], 7.5)
+        if s1 in iwtd:
+            s, addr = s1.accept()
+            print >> sys.stderr, 'accepted backward connection from', addr
+            self.resultsocket = s
 
     def send_ping(self):
         sys.stderr.write('. ')
@@ -371,10 +436,65 @@ class MetaClientCli:
         s = self.socketcache[localport]
         remotehost, _ = origin.split(':')
         remoteaddr = remotehost, remoteport
-        s.connect(remoteaddr)
+        try:
+            s.connect(remoteaddr)
+        except error, e:
+            print >> sys.stderr, 'SYN connect failed:', str(e)
+            return
         print >> sys.stderr, ('simultaneous SYN connect succeeded with %s:%d' %
                               remoteaddr)
         self.resultsocket = s
+
+    def try_udp_connect(self):
+        if '*udpsock*' in PORTS:
+            s, (host, port) = PORTS['*udpsock*']
+        else:
+            s = socket(AF_INET, SOCK_DGRAM)
+            s.bind(('', PORTS.get('CLIENT', INADDR_ANY)))
+            host, port = s.getsockname()
+            if 'sendudpto' in PORTS:
+                host = PORTS['sendudpto']
+        secret = random.randrange(0, 65536)
+        self.routemsg(RMSG_UDP_CONN, secret, port)
+        secret = 'B' + chr(secret & 0xFF) + chr(secret >> 8)
+        while True:
+            iwtd, owtd, ewtd = select([s], [], [], 7.5)
+            if s not in iwtd:
+                return
+            packet, addr = s.recvfrom(200)
+            if packet.startswith(secret) and len(packet) == 5:
+                break
+        s.connect(addr)
+        #print 'got', repr(packet)
+        secret = random.randrange(0, 65536)
+        secret = chr(secret & 0xFF) + chr(secret >> 8)
+        packet = '[bnb c->s]' + packet[3:5] + secret
+        for name in ('*udpsock*', 'CLIENT'):
+            if name in PORTS:
+                del PORTS[name]
+        from socketoverudp import SocketOverUdp
+        sock = SocketOverUdp(s)
+        #print 'sending', repr(packet)
+        sock.sendall(packet)
+        sock.flush()
+        data = ''
+        expected = '[bnb s->c]' + secret
+        while len(data) < len(expected):
+            #print 'waiting'
+            iwtd, owtd, ewtd = select([sock], [], [], 2.5)
+            if sock not in iwtd:
+                print >> sys.stderr, 'socket-over-udp timed out'
+                return
+            #print 'we get:'
+            data += sock.recv()
+            #print repr(data)
+        if data != expected:
+            print >> sys.stderr, 'bad udp data from', addr
+        else:
+            sock.sendall('^')
+            sock.flush()
+            #print 'yay!'
+            self.resultsocket = sock
 
     def acquire_udp_port(self):
         try:
@@ -389,10 +509,11 @@ class MetaClientCli:
                 self._readnextmsg(blocking=False)
                 if self.gotudpport:
                     PORTS['*udpsock*'] = s, self.gotudpport
+                    udphost, udpport = self.gotudpport
                     print >> sys.stderr, ('udp port %d is visible from '
                                           'outside on %s:%d' % (
-                        s.getsockname()[1],
-                        self.gotudpport[0], self.gotudpport[1]))
+                        s.getsockname()[1], udphost, udpport))
+                    self.startthread(self.try_udp_connect)
                     break
         finally:
             self.ev2.signal()
