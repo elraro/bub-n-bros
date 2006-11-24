@@ -446,6 +446,12 @@ class MetaClientCli:
         self.resultsocket = s
 
     def try_udp_connect(self):
+        for i in range(3):     # three attempts
+            self.attempt_udp_connect()
+            if self.resultsocket is not None:
+                break
+
+    def attempt_udp_connect(self):
         if '*udpsock*' in PORTS:
             s, (host, port) = PORTS['*udpsock*']
         else:
@@ -458,7 +464,7 @@ class MetaClientCli:
         self.routemsg(RMSG_UDP_CONN, secret, port)
         secret = 'B' + chr(secret & 0xFF) + chr(secret >> 8)
         while True:
-            iwtd, owtd, ewtd = select([s], [], [], 7.5)
+            iwtd, owtd, ewtd = select([s], [], [], 2.94)
             if s not in iwtd:
                 return
             packet, addr = s.recvfrom(200)

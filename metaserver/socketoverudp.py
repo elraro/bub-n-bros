@@ -3,9 +3,6 @@ from pipelayer import PipeLayer, InvalidPacket
 from pipelayer import FLAG_RANGE_START, FLAG_RANGE_STOP
 import socket, struct
 
-# XXX udpsock.send() can raise socket.error: Connection refused
-# XXX try 2-3 times to udpconnect, not just once
-
 SOU_RANGE_START = FLAG_RANGE_START
 SOU_MIXED_DATA  = FLAG_RANGE_STOP + 0
 SOU_SHUTDOWN    = FLAG_RANGE_STOP + 1
