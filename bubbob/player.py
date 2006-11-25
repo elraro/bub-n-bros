@@ -43,6 +43,7 @@ class Dragon(ActiveSprite):
         'bigflower': None,
         'overlayglasses': 0,
         'teleport': 0,
+        'breakwalls': 0,
         'carrying': (),
         'key_left':  'key_left',
         'key_right': 'key_right',
@@ -285,6 +286,7 @@ class Dragon(ActiveSprite):
 ##                        self.vertical_warp()
 ##                        hfp -= 0.82   # slightly faster than usual
             # normal left or right movements
+            breakwalls = dcap['breakwalls']
             while hfp > 0:
                 hfp -= 1
                 dir = 0
@@ -294,12 +296,16 @@ class Dragon(ActiveSprite):
                     y0bis = (self.y+CELL-1) // CELL + 1 - bottom_up
                     if bget(x0,y0) == ' ' == bget(x0,y0bis):
                         dir = -1
+                    elif breakwalls:
+                        self.breakwalls(x0, y0bis, -1)
                 elif wannago == 1:
                     x0 = (self.x-3)//CELL + 2
                     y0 = self.y // CELL + 1 - bottom_up
                     y0bis = (self.y+CELL-1) // CELL + 1 - bottom_up
                     if bget(x0,y0) == ' ' == bget(x0,y0bis):
                         dir = +1
+                    elif breakwalls:
+                        self.breakwalls(x0, y0bis, 1)
                 self.step(2*dir, 0)
                 if dir:
                     mytime = (mytime+dcap['lookforward']) % 12
@@ -488,6 +494,27 @@ class Dragon(ActiveSprite):
             yield None
         self.move(int(fx), desty)
         self.dcap['shield'] = 50
+
+    def breakwalls(self, x, y0, dir):
+        if self.dcap['breakwalls'] > BubPlayer.FrameCounter:
+            return      # wait before breaking more walls
+        if not (2 <= x < boards.curboard.width-2):
+            return
+        ys = []
+        for y in (y0, y0-1):
+            if 0 <= y < boards.curboard.height and bget(x, y) == '#':
+                ys.append(y)
+        if len(ys) == 2:
+            from bonuses import DustStar
+            dir *= self.dcap['hspeed']
+            for y in ys:
+                w = boards.curboard.killwall(x, y)
+                s = ActiveSprite(w.ico, w.x, w.y)
+                dxy = [dir+random.random()-0.5,
+                       -random.random()*3.0]
+                DustStar(w.x, w.y, dxy[0], dxy[1], big=0)
+                s.gen.append(s.parabolic(dxy))
+            self.dcap['breakwalls'] = BubPlayer.FrameCounter + 40
 
     def enter_new_board(self):
         self.playing_fish = False

@@ -438,10 +438,13 @@ class ShoeSpeed(RandomBonus):
 class CoffeeSpeed(RandomBonus):
     "Caffeine. Cumulative increase of the horizontal speed and fire rate."
     nimage = Bonuses.coffee
-    bigbonus = {'multiply': 3}
+    big = 0
+    bigbonus = {'big': 1, 'multiply': 3}
     def taken(self, dragon):
         dragon.dcap['hspeed'] += 0.5
         dragon.dcap['firerate'] += 1
+        if self.big:
+            dragon.dcap['breakwalls'] = 1
         dragon.carrybonus(self)
 
 class Butterfly(TemporaryBonus):
