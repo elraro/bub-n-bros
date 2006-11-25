@@ -38,6 +38,7 @@ class Dragon(ActiveSprite):
         'vslippy': 0.0,
         'lookforward': 1,
         'fly': 0,
+        'jumpdown': 0,
         'flower': 1,
         'bigflower': None,
         'overlayglasses': 0,
@@ -346,9 +347,14 @@ class Dragon(ActiveSprite):
                 if ground:
                     if wannajump:
                         self.play(images.Snd.Jump)
-                        yfp = 0.0
-                        self.up = (7.5,-7.5)[bottom_up]
-                        mode = 9
+                        if dcap['jumpdown'] and not onbubble:
+                            self.step(0, (1, -1)[bottom_up])
+                            mode = 10
+                            bubber.emotic(self, 4)
+                        else:
+                            yfp = 0.0
+                            self.up = (7.5,-7.5)[bottom_up]
+                            mode = 9
                     else:
                         mode = mytime // 4
                         if wannago and dcap['teleport']:
@@ -832,7 +838,7 @@ class BubPlayer(gamesrv.Player):
                         break
             self.dragons.append(Dragon(self, x, y, dir))
             for key in self.pcap.keys():
-                if key != 'teleport':
+                if key not in ('teleport', 'jumpdown'):
                     del self.pcap[key]
 
     def kLeft(self):

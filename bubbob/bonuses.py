@@ -1994,7 +1994,11 @@ class WhiteCarrot(TemporaryBonus):
     points = 650
     capname = 'fly'
     captime = 650
-    bigbonus = {'multiply': 2}
+    bigbonus = {'capname': 'jumpdown',
+                'captime': 999999}
+    def taken(self, dragon):
+        TemporaryBonus.taken(self, dragon)
+        dragon.bubber.pcap['jumpdown'] = dragon.dcap['jumpdown']
 
 class AmphetamineSpeed(TemporaryBonus):
     "Amphetamine Dose. Increase of your general speed!"
