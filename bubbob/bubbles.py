@@ -1255,20 +1255,23 @@ def newbubble(): #force=0):
     sendbubble(cls)
 
 def newforcedbubble():
-    choices = [PlainBubble] * 4
+    choices = [PlainBubble] * 5
     for cls in [FireBubble, WaterBubble, LightningBubble]:
         if cls.__dict__['condition']():
-            choices.append(cls)
+            n = 4
+        else:
+            n = 1
+        choices.extend([cls] * n)
     cls = random.choice(choices)
-    sendbubble(cls, top = random.choice([0,0,0, 1,1,1, 2,2, 3,3]))
+    return sendbubble(cls)
 
 def sendbubble(cls, *args, **kw):
     from player import BubPlayer
     players = [p for p in BubPlayer.PlayerList if p.isplaying()]
     if not players:
-        return
+        return None
     pn = random.choice(players).pn
-    cls(pn, *args, **kw)
+    return cls(pn, *args, **kw)
 
 def newbonusbubble():
     boards.curboard.top = random.choice([0,0,0, 1,1,1, 2,2, 3,3])

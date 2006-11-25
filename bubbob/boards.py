@@ -1376,12 +1376,25 @@ def extra_make_random_level(cx=None, cy=None, repeat_delay=200):
 
 def extra_bubbles(timeout):
     from bubbles import newforcedbubble
-    falloff = 0.4
+    falloff = 0.25
+    L = math.log(0.965)     # same speed falloff rate as in throwing_bubble()
+    cx = (bwidth - CELL) // 2
+    cy = (bheight - CELL) // 2
     for i in range(timeout):
         if curboard.cleaning_gen_state:
             return
         if random.random() < falloff:
-            newforcedbubble()
+            bubble = newforcedbubble()
+            if bubble:
+                tx = random.randrange(CELL, bwidth - 2*CELL) - cx
+                ty = random.randrange(CELL, bheight - 2*CELL) - cy
+                if ty == 0:
+                    ty = 1
+                dist = math.sqrt(tx * tx + ty * ty)
+                acos = tx / dist
+                asin = ty / dist
+                hspeed = 4 - dist * L
+                bubble.thrown_bubble(cx, cy, hspeed, (acos, asin))
         falloff *= 0.998
         yield 0
 
