@@ -216,9 +216,9 @@ class Dragon(ActiveSprite):
                 wannafire = 1
                 if self.fire > (11 // dcap['hotstuff']):
                     self.fire = 0
-                    if dcap['hotstuff'] > 1 and random.random() < 0.4:
-                        from bubbles import FireDrop
-                        FireDrop(self.x + HALFCELL, self.y + HALFCELL)
+##                    if dcap['hotstuff'] > 1 and random.random() < 0.4:
+##                        from bubbles import FireDrop
+##                        FireDrop(self.x + HALFCELL, self.y + HALFCELL)
             if wannago:
                 self.dir = wannago * dcap['lookforward']
             if self.x & 1:
@@ -595,6 +595,9 @@ class Dragon(ActiveSprite):
 ##                delta = self.dir*gx * math.pi/2
 ##                angles = [angle-delta for angle in angles]
 ##                x -= 16
+        if self.dcap['hotstuff'] > 1:
+            base = (random.random()-0.5)*math.pi
+            angles = [a + base for a in angles]
         if self.dcap['bigflower'] is not None:
             N = 45
             angle = BubPlayer.FrameCounter - self.dcap['bigflower']

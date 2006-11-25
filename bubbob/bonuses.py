@@ -1145,7 +1145,7 @@ class GreenPepper(TemporaryBonus):
     nimage = Bonuses.green_pepper
     capname = 'hotstuff'
     captime = 100
-    bigbonus = {'captime': captime*2, 'multiply': 2}
+    bigbonus = {'captime': 250, 'multiply': 2}
 
 class Lollipop(TemporaryBonus):
     "Yo Man! Makes you walk backward."
