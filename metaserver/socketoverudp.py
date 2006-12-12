@@ -19,9 +19,9 @@ class SocketOverUdp(object):
     PACKETSIZE = 996
     MIXEDPACKETSIZE = 1080
 
-    def __init__(self, udpsock):
+    def __init__(self, udpsock, initialcrcs):
         self.udpsock = udpsock
-        self.pl = PipeLayer()
+        self.pl = PipeLayer(initialcrcs)
         self.congested_since = None
         #self.consolidate_sends = None
         #self.encode_delayed_until = now()
@@ -95,7 +95,7 @@ class SocketOverUdp(object):
 
     def recv(self, _ignoredbufsize=None):
         #print 'recv:'
-        packet = self.udpsock.recv(self.PACKETSIZE)
+        packet = self.udpsock.recv(65535)
         #print "                 in:", len(packet), hex(ord(packet[0]))
         #print repr(packet)
         self.pl.settime(now())

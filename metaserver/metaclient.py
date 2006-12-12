@@ -142,7 +142,7 @@ class MetaClientSrv(MessageSocket):
             else:
                 print >> sys.stderr, 'udp connecting: no answer, giving up'
                 return
-            sock = SocketOverUdp(s)
+            sock = SocketOverUdp(s, (mysecret, secret))
             data = sock._decode(inbuf)
             #print 'decoded as', repr(data)
             expected = '[bnb c->s]' + packet[3:5]
@@ -460,7 +460,7 @@ class MetaClientCli:
             host, port = s.getsockname()
             if 'sendudpto' in PORTS:
                 host = PORTS['sendudpto']
-        secret = random.randrange(0, 65536)
+        secret = originalsecret = random.randrange(0, 65536)
         self.routemsg(RMSG_UDP_CONN, secret, port)
         secret = 'B' + chr(secret & 0xFF) + chr(secret >> 8)
         while True:
@@ -472,6 +472,7 @@ class MetaClientCli:
                 break
         s.connect(addr)
         #print 'got', repr(packet)
+        remotesecret = ord(packet[3]) | (ord(packet[4]) << 8)
         secret = random.randrange(0, 65536)
         secret = chr(secret & 0xFF) + chr(secret >> 8)
         packet = '[bnb c->s]' + packet[3:5] + secret
@@ -479,7 +480,7 @@ class MetaClientCli:
             if name in PORTS:
                 del PORTS[name]
         from socketoverudp import SocketOverUdp
-        sock = SocketOverUdp(s)
+        sock = SocketOverUdp(s, (originalsecret, remotesecret))
         #print 'sending', repr(packet)
         sock.sendall(packet)
         sock.flush()

@@ -1,6 +1,7 @@
 #import os
 import struct
 from collections import deque
+from zlib import crc32
 
 
 class InvalidPacket(Exception):
@@ -22,7 +23,7 @@ class PipeLayer(object):
     timeout = 1
     headersize = 4
 
-    def __init__(self):
+    def __init__(self, initialcrcs=(0, 0)):
         #self.localid = os.urandom(4)
         #self.remoteid = None
         self.cur_time = 0
@@ -35,6 +36,7 @@ class PipeLayer(object):
         self.out_flags = FLAG_REG
         self.out_resend = 0
         self.out_resend_skip = False
+        self.in_crc, self.out_crc = initialcrcs
 
     def queue(self, data):
         if data:
@@ -68,7 +70,7 @@ class PipeLayer(object):
             # congestion, stalling
             payload = 0
         else:
-            payload = maxlength - 4
+            payload = maxlength - 8
             if payload <= 0:
                 raise ValueError("encode(): buffer too small")
         if (self.out_nextrepeattime is not None and
@@ -92,7 +94,7 @@ class PipeLayer(object):
             data = self.out_queue.pop()
             packetlength = len(data)
             if self.out_resend > 0:
-                if packetlength > payload:
+                if packetlength > payload + 4:
                     raise ValueError("XXX need constant buffer size for now")
                 self.out_resend -= 1
                 if self.out_resend_skip:
@@ -115,6 +117,8 @@ class PipeLayer(object):
                     packet.append(data[:rest])
                     self.out_queue.append(data[rest:])
                 packetpayload = ''.join(packet)
+                self.out_crc = crc32(packetpayload, self.out_crc)
+                packetpayload += struct.pack("!I", self.out_crc & 0xffffffff)
                 self.out_oldpackets.appendleft(packetpayload)
                 #print ' '*self._dump_indent, '--- OLDPK', self.out_oldpackets
         else:
@@ -170,24 +174,45 @@ class PipeLayer(object):
             self.out_nextrepeattime = self.cur_time
         # receive this packet's payload if it is the next in the sequence
         if in_diff == 0:
-            if len(rawdata) > 4:
+            if len(rawdata) > 8:
                 #print ' '*self._dump_indent, 'RECV ', self.in_nextseqid, repr(rawdata[4:])
+                payload = rawdata[4:-4]
+                crc, = struct.unpack("!I", rawdata[-4:])
+                if crc != (crc32(payload, self.in_crc) & 0xffffffff):
+                    self.bad_crc()
+                    return ''   # bad crc! drop packet
                 self.in_nextseqid = (self.in_nextseqid + 1) & 0xFFFF
-                result = [rawdata[4:]]
+                self.in_crc = crc
+                result = [payload]
                 while self.in_nextseqid in self.in_outoforder:
-                    result.append(self.in_outoforder.pop(self.in_nextseqid))
+                    rawdata = self.in_outoforder.pop(self.in_nextseqid)
+                    payload = rawdata[4:-4]
+                    crc, = struct.unpack("!I", rawdata[-4:])
+                    if crc != (crc32(payload, self.in_crc) & 0xffffffff):
+                        # bad crc! clear all out-of-order packets
+                        self.bad_crc()
+                        break
                     self.in_nextseqid = (self.in_nextseqid + 1) & 0xFFFF
+                    self.in_crc = crc
+                    result.append(payload)
                 return ''.join(result)
         else:
             # we missed at least one intermediate packet: send a NAK
             if len(rawdata) > 4:
-                self.in_outoforder[in_seqid] = rawdata[4:]
+                self.in_outoforder[in_seqid] = rawdata
             if ((self.in_nextseqid + 1) & 0xFFFF) in self.in_outoforder:
                 self.out_flags = FLAG_NAK1
             else:
                 self.out_flags = FLAG_NAK
             self.out_nextrepeattime = self.cur_time
         return ''
+
+    def bad_crc(self):
+        import sys
+        print >> sys.stderr, "warning: bad crc on udp connexion"
+        self.in_outoforder.clear()
+        self.out_flags = FLAG_NAK
+        self.out_nextrepeattime = self.cur_time
 
     _dump_indent = 0
     def dump(self, dir, rawdata):
