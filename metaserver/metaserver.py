@@ -157,6 +157,7 @@ class Connexion(MessageSocket):
             try:
                 target = self.backlinks[targetkey]
             except KeyError:
+                self.s.sendall(message(RMSG_NO_HOST, targetkey))
                 return
         target.route(self, *rest)
 

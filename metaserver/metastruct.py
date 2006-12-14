@@ -22,6 +22,7 @@ RMSG_CONNECT  = 'c'
 RMSG_LIST     = 'l'
 RMSG_UDP_ADDR = 'u'
 RMSG_UDP_CONN = 'd'
+RMSG_NO_HOST  = '?'
 
 
 def encodedict(dict):

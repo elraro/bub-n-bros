@@ -135,9 +135,20 @@ class MetaClientSrv(MessageSocket):
                 iwtd, owtd, ewtd = select([s], [], [], 0.25)
                 if s in iwtd:
                     #print 'reading'
-                    inbuf = s.recv(SocketOverUdp.PACKETSIZE)
+                    try:
+                        inbuf = s.recv(SocketOverUdp.PACKETSIZE)
+                    except error:
+                        inbuf = ''
+                        # try again?
+                        iwtd, owtd, ewtd = select([s], [], [], 0.35)
+                        if s in iwtd:
+                            try:
+                                inbuf = s.recv(SocketOverUdp.PACKETSIZE)
+                            except error:
+                                pass
                     #print 'got', repr(inbuf)
-                    if SOU_RANGE_START <= ord(inbuf[0]) < SOU_RANGE_STOP:
+                    if (inbuf and
+                        SOU_RANGE_START <= ord(inbuf[0]) < SOU_RANGE_STOP):
                         break
             else:
                 print >> sys.stderr, 'udp connecting: no answer, giving up'
@@ -266,6 +277,7 @@ class Event:
 
 
 class MetaClientCli:
+    fatalerror = False
     
     def __init__(self, serverkey, backconnectport):
         self.resultsocket = None
@@ -323,6 +335,8 @@ class MetaClientCli:
         thread.start_new_thread(bootstrap, (fn, atom, sleep, args))
 
     def threadsleft(self):
+        if self.fatalerror:
+            sys.exit(1)
         now = time.time()
         TIMEOUT = 11
         for starttime in self.threads.values():
@@ -396,6 +410,11 @@ class MetaClientCli:
                         if len(msg) > 2:
                             self.gotudpport = msg[1], int(msg[2])
                         continue
+                    if msg[0] == RMSG_NO_HOST and msg[1] == self.serverkey:
+                        print >> sys.stderr, ('*** server %r is not registered'
+                                             ' on the meta-server' % (msg[1],))
+                        self.fatalerror = True
+                        sys.exit()
                     self.inputmsgqueue.append(msg)
                     return
                 iwtd, owtd, ewtd = select([self.s], [], [], 0)
@@ -500,7 +519,7 @@ class MetaClientCli:
         else:
             sock.sendall('^')
             sock.flush()
-            #print 'yay!'
+            print 'udp connexion handshake succeeded'
             self.resultsocket = sock
 
     def acquire_udp_port(self):
