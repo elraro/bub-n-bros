@@ -9,6 +9,7 @@
 
 # __________
 import os, sys
+print 'Running on Python', sys.version
 if __name__ == '__main__':
     LOCALDIR = sys.argv[0]
 else:
@@ -73,7 +74,7 @@ def look_for_local_server():
     return url2
 
 def start_local_server():
-    MAINSCRIPT = os.path.join(LOCALDIR, 'bubbob', 'bb.py')
+    MAINSCRIPT = os.path.join('bubbob', 'bb.py')
     has_server = os.path.exists(MAINSCRIPT)
     if hasattr(os, 'fork') and hasattr(os, 'dup2'):
         if os.fork() == 0:
@@ -108,10 +109,13 @@ def start_local_server():
             sys.exit(0)
     else:
         if not has_server:
-            MAINSCRIPT = os.path.join(LOCALDIR, 'http2', 'httppages.py')
+            MAINSCRIPT = os.path.join('http2', 'httppages.py')
         args = [sys.executable, MAINSCRIPT, '--quiet',
                 '--saveurlto=%s' % TAGFILENAME]
-        os.spawnv(os.P_NOWAITO, args[0], args)
+        # (quoting sucks on Windows) ** 42
+        if sys.platform == 'win32':
+            args[0] = '"%s"' % (args[0],)
+        os.spawnv(os.P_NOWAITO, sys.executable, args)
 
 
 # main

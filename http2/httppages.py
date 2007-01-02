@@ -340,6 +340,7 @@ class PageServer:
             address = host
         nbclients = len(gamesrv.clients)
         script = os.path.join(LOCALDIR, os.pardir, 'display', 'Client.py')
+        script = no_quote_worries(script)
         if m:
             args.insert(0, '-m')
         args = [script] + args + [address]
@@ -458,7 +459,7 @@ class PageServer:
         if dpy is None or snd is None:
             raise HTTPRequestError, "No installed graphics or sounds drivers. See the settings page."
         options = self.localoptions
-        result = ['--cfg='+self.filename]
+        result = ['--cfg='+no_quote_worries(self.filename)]
         for key, value in options.dict().items():
             if key.startswith('port_') and value:
                 result.append('--port')
@@ -641,7 +642,35 @@ def launch(args):
                     os.execv(args[0], args)
                     # this point should never be reached
         # fall-back
-        os.spawnv(os.P_NOWAITO, args[0], args)
+        # (quoting sucks on Windows) ** 42
+        if sys.platform == 'win32':
+            args[0] = '"%s"' % (args[0],)
+        os.spawnv(os.P_NOWAITO, sys.executable, args)
+
+if sys.platform != "win32":
+    def no_quote_worries(s):
+        return s
+else:
+    def no_quote_worries(s):      # quoting !&?+*:-(
+        s = os.path.normpath(os.path.abspath(s))
+        absroot = os.path.join(LOCALDIR, os.pardir)
+        absroot = os.path.normpath(os.path.abspath(absroot))
+        ROOTDIR = os.curdir
+        while os.path.normpath(os.path.abspath(ROOTDIR)) != absroot:
+            if ROOTDIR == os.curdir:
+                ROOTDIR = os.pardir
+            else:
+                ROOTDIR = os.path.join(ROOTDIR, os.pardir)
+            if len(ROOTDIR) > 200:
+                # cannot find relative path!  try with absolute one anyway
+                ROOTDIR = absroot
+                break
+        assert s.startswith(absroot)
+        assert s[len(absroot)] == os.sep
+        relpath = s[len(absroot)+1:]
+        result = os.path.join(ROOTDIR, relpath)
+        print "no_quote_worries %r => %r" % (s, result)
+        return result
 
 
 if __name__ == '__main__':
