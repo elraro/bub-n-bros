@@ -198,6 +198,7 @@ class Playfield:
         self.animdelay = 0.0
         inbuf = self.process_inbuf(self.initialbuf)
         self.initialbuf = ""
+        errors = 0
         while 1:
             if self.dpy:
                 self.processkeys()
@@ -214,7 +215,14 @@ class Playfield:
                 if self.udpsock in iwtd:
                     udpdata1 = None
                     while self.udpsock in iwtd:
-                        udpdata = self.udpsock.recv(65535)
+                        try:
+                            udpdata = self.udpsock.recv(65535)
+                        except error, e:
+                            print >> sys.stderr, e
+                            errors += 1
+                            if errors > 10:
+                                raise
+                            break
                         self.udpbytecounter += len(udpdata)
                         if len(udpdata) > 3 and '\x80' <= udpdata[0] < '\x90':
                             udpdata = self.dynamic_decompress(udpdata)
