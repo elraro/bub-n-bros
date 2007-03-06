@@ -371,7 +371,7 @@ def screen_authors():
         [RText('programming', 6)],
         [RText('     Armin & Odie')],
         [RText('art', 6)],
-        [RText('     from McSebi')],
+        [RText('     David Gowers, based on McSebi')],
         [RText('levels', 6)],
         [RText('     Gio & Odie & MS & Armin')],
         [RText('special thanks', 6)],
