@@ -392,3 +392,6 @@ class Butterfly(Monster1):
 class Sheep(Monster1):
     right  = [('sheep', 1, n) for n in range(4)]
     left   = [('sheep',-1, n) for n in range(4)]
+    right_angry = right
+    left_angry  = left
+    

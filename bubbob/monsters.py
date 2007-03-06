@@ -281,6 +281,8 @@ class Monster(ActiveSprite):
         dragon.die()
 
     def in_bubble(self, bubble):
+        if not hasattr(self.mdef, 'jailed'):
+            return
         self.untouchable()
         self.angry = []
         bubble.move(self.x, self.y)
