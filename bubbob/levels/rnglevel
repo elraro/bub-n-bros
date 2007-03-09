@@ -118,6 +118,11 @@ class RandomLevel(boarddef.Level):
             return
         self.windmap[y][x] = c
 
+    def getwind(self,x,y):
+        if x > self.WIDTH-1 or x < 0 or y > self.HEIGHT-1 or y < 0:
+            return ' '
+        return self.windmap[y][x]
+
     def mirror(self):
 	"Mirror the level vertically."
 	for y in range(self.HEIGHT):
@@ -206,7 +211,7 @@ class RandomLevel(boarddef.Level):
         0: choose what generator to use.
         """
         if gens == -1:
-            gens = choice([1,1,2,3,4,4,4,4,5,6,7,8,9,10])
+            gens = choice([1,1,2,3,4,4,4,4,5,6,7,8,9,10,11])
         if gens == 1: # totally random pattern
             self.generate_wind1()
         elif gens == 2: # wind "layers"
@@ -306,6 +311,39 @@ class RandomLevel(boarddef.Level):
 			self.setwind(x,y+1,'^')
 		    else:
 			self.setwind(x,y-1,'v')
+	elif gens == 11: # bubbles rotate
+            self.wind_sidewalls()
+	    for z in range(20):
+		wid = randint(2,self.WIDTH/2)
+		hei = randint(2,self.HEIGHT/2)
+		y = randint(1, self.HEIGHT - hei - 1)
+		x = randint(1, self.WIDTH - wid - 1)
+		ok = 1
+		for dx in range(wid):
+		    if self.getwind(x+dx, y) != ' ':
+			ok = 0
+		    if self.getwind(x+dx, y+hei) != ' ':
+			ok = 0
+		for dy in range(hei):
+		    if self.getwind(x, y+dy) != ' ':
+			ok = 0
+		    if self.getwind(x+wid, y+dy) != ' ':
+			ok = 0
+		if ok == 1:
+		    if random() < 0.5: # ccw
+			for dx in range(wid):
+			    self.setwind(x+dx+1, y, '<')
+			    self.setwind(x+dx, y+hei, '>')
+			for dy in range(hei):
+			    self.setwind(x, y+dy, 'v')
+			    self.setwind(x+wid, y+dy+1, '^')
+		    else: # cw
+			for dx in range(wid):
+			    self.setwind(x+dx, y, '>')
+			    self.setwind(x+dx+1, y+hei, '<')
+			for dy in range(hei):
+			    self.setwind(x, y+dy+1, '^')
+			    self.setwind(x+wid, y+dy, 'v')
 
     def smooth(self, threshold, rev):
         """Remove wall blocks that are surrounded by 4 empty places.
