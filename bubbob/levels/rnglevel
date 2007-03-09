@@ -320,14 +320,14 @@ class RandomLevel(boarddef.Level):
 		x = randint(1, self.WIDTH - wid - 1)
 		ok = 1
 		for dx in range(wid):
-		    if self.getwind(x+dx, y) != ' ':
+		    if self.getwind(x+dx+1, y) != ' ':
 			ok = 0
 		    if self.getwind(x+dx, y+hei) != ' ':
 			ok = 0
 		for dy in range(hei):
 		    if self.getwind(x, y+dy) != ' ':
 			ok = 0
-		    if self.getwind(x+wid, y+dy) != ' ':
+		    if self.getwind(x+wid, y+dy+1) != ' ':
 			ok = 0
 		if ok == 1:
 		    if random() < 0.5: # ccw
