@@ -206,7 +206,7 @@ class RandomLevel(boarddef.Level):
         0: choose what generator to use.
         """
         if gens == -1:
-            gens = choice([1,1,2,3,4,4,4,4,5,6,7,8,9])
+            gens = choice([1,1,2,3,4,4,4,4,5,6,7,8,9,10])
         if gens == 1: # totally random pattern
             self.generate_wind1()
         elif gens == 2: # wind "layers"
@@ -289,6 +289,23 @@ class RandomLevel(boarddef.Level):
 	    for y in range(self.HEIGHT):
 		self.setwind(0,y,'x')
 		self.setwind(self.WIDTH-1,y,'x')
+	elif gens == 10: # bubbles move up-down
+	    ofs = choice([0,1])
+	    dir_l = choice(['>', '>', '<'])
+	    dir_r = choice(['<', '<', '>'])
+	    for x in range(self.WIDTH):
+		if x < (self.WIDTH / 2):
+		    self.setwind(x, 0, dir_r)
+		    self.setwind(x,self.HEIGHT-1,dir_l)
+		else:
+		    self.setwind(x, 0, dir_l)
+		    self.setwind(x,self.HEIGHT-1,dir_r)
+	    for x in range(self.WIDTH):
+		for y in range(self.HEIGHT):
+		    if (x+ofs) & 1:
+			self.setwind(x,y+1,'^')
+		    else:
+			self.setwind(x,y-1,'v')
 
     def smooth(self, threshold, rev):
         """Remove wall blocks that are surrounded by 4 empty places.
