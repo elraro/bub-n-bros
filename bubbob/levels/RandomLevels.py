@@ -74,7 +74,7 @@ class Shape:
     closed = BoolParameter('closed')
     bonuses = ChoiceParameter('bonuses', xrange(3**len(Bonuses)))
     smooth = ChoiceParameter('smooth', range(4))
-    startplats = BoolParameter('startplats', 0.9)
+    startplats = BoolParameter('startplats', 0.98)
     makespace = BoolParameter('makespace', 0.8)
     straightfall = BoolParameter('straightfall', 0.8)
     mirrored = BoolParameter('mirrored', 0.4)
@@ -266,6 +266,7 @@ class Shape:
                 lvl.genwalls.append((RandomLevel.smooth, 0.75, 0))
         if self.startplats:
             lvl.genwalls.append((RandomLevel.startplatform, ))
+            lvl.genwalls.append((RandomLevel.openstartway, ))
 
         if self.makespace:
             lvl.genwalls.append((RandomLevel.make_space, ))

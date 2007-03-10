@@ -863,6 +863,32 @@ class RandomLevel(boarddef.Level):
                 self.clrw(x,self.HEIGHT-2-y)
                 self.clrw(self.WIDTH-x-1,self.HEIGHT-2-y)
 
+    def openstartway(self):
+	"Make sure there is a way from the starting position to the center of the level. Reduces player frustrations."
+	gen = choice([0,0,0,1])
+	if gen == 0: # horizontal open space to middle of level
+	    ypos = choice([1,1,1,1,1,2,2,3,4,randint(1,self.HEIGHT/2)])
+	    hei = choice([1,1,1,2])
+	    for x in range(self.WIDTH/2):
+		for y in range(hei):
+		    self.clrw(x, self.HEIGHT-1-ypos-y)
+	    ypos = choice([1,1,1,1,1,2,2,3,4,randint(1,self.HEIGHT/2)])
+	    hei = choice([1,1,1,2])
+	    for x in range(self.WIDTH/2):
+		for y in range(hei):
+		    self.clrw(self.WIDTH-x-1, self.HEIGHT-1-ypos-y)
+	elif gen == 1: # open way diagonally to NW or NS, third of a way to the level width
+	    ypos = choice([1,1,1,1,1,2,2,3,4])
+	    wid = choice([2,2,2,2,2,3,3,4])
+	    for x in range(self.WIDTH/3):
+		for z in range(wid):
+		    self.clrw(x+z, self.HEIGHT-1-x-ypos)
+	    ypos = choice([1,1,1,1,1,2,2,3,4])
+	    wid = choice([2,2,2,2,2,3,3,4])
+	    for x in range(self.WIDTH/2):
+		for z in range(wid):
+		    self.clrw(self.WIDTH-x-1-z, self.HEIGHT-1-x-ypos)
+
     def close(self):
         "Just close the level with floor and roof"
         for x in range(self.WIDTH):
