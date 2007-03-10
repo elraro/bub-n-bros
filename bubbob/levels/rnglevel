@@ -123,6 +123,25 @@ class RandomLevel(boarddef.Level):
             return ' '
         return self.windmap[y][x]
 
+    def wind_rect(self,x,y,w,h,ccw=0):
+	"Set a wind in a rectangle which will move the bubbles cw or ccw"
+	if w < 1 or h < 1:
+	    return
+	if ccw == 1:
+	    for dx in range(w):
+		self.setwind(x+dx+1, y, '<')
+		self.setwind(x+dx, y+h, '>')
+	    for dy in range(h):
+		self.setwind(x, y+dy, 'v')
+		self.setwind(x+w, y+dy+1, '^')
+	else:
+	    for dx in range(w):
+		self.setwind(x+dx, y, '>')
+		self.setwind(x+dx+1, y+h, '<')
+	    for dy in range(h):
+		self.setwind(x, y+dy+1, '^')
+		self.setwind(x+w, y+dy, 'v')
+
     def mirror(self):
 	"Mirror the level vertically."
 	for y in range(self.HEIGHT):
@@ -211,7 +230,7 @@ class RandomLevel(boarddef.Level):
         0: choose what generator to use.
         """
         if gens == -1:
-            gens = choice([1,1,2,3,4,4,4,4,5,6,7,8,9,10,11,12,13])
+            gens = choice([1,1,2,3,4,4,4,4,5,6,7,8,9,10,11,12,13,14,15,16])
         if gens == 1: # totally random pattern
             self.generate_wind1()
         elif gens == 2: # wind "layers"
@@ -330,20 +349,7 @@ class RandomLevel(boarddef.Level):
 		    if self.getwind(x+wid, y+dy+1) != ' ':
 			ok = 0
 		if ok == 1:
-		    if random() < 0.5: # ccw
-			for dx in range(wid):
-			    self.setwind(x+dx+1, y, '<')
-			    self.setwind(x+dx, y+hei, '>')
-			for dy in range(hei):
-			    self.setwind(x, y+dy, 'v')
-			    self.setwind(x+wid, y+dy+1, '^')
-		    else: # cw
-			for dx in range(wid):
-			    self.setwind(x+dx, y, '>')
-			    self.setwind(x+dx+1, y+hei, '<')
-			for dy in range(hei):
-			    self.setwind(x, y+dy+1, '^')
-			    self.setwind(x+wid, y+dy, 'v')
+		    self.wind_rect(x,y,wid,hei, random() < 0.5)
 	elif gens == 12: # bubbles gravitate towards a certain spot
 	    dx = randint(1,self.WIDTH-1)
 	    dy = randint(1,self.HEIGHT-1)
@@ -383,6 +389,38 @@ class RandomLevel(boarddef.Level):
 	elif gens == 13: # bubbles stop at some random positions
             self.generate_wind1(1, [' ',' ',' ',' ',' ',' ',' ','x'],1,1)
             self.wind_sidewalls()
+	elif gens == 14: # bubbles move cw and ccw in alternating rectangles
+	    m = max(self.WIDTH / 2, self.HEIGHT / 2)
+	    cwofs = choice([0,1])
+	    thk = choice([1,1,2,2,3,4,randint(1,m/2)])
+	    for dx in range(m):
+		cw = ((dx / thk) + cwofs) % 2
+		self.wind_rect(dx,dx, self.WIDTH-(dx*2), self.HEIGHT-(dx*2), cw)
+	elif gens == 15: # bubbles move cw or ccw in rectangles
+	    m = max(self.WIDTH / 2, self.HEIGHT / 2)
+	    cw = choice([0,1])
+	    for dx in range(m):
+		self.wind_rect(dx,dx, self.WIDTH-(dx*2), self.HEIGHT-(dx*2), cw)
+	elif gens == 16:
+ 	    xs = randint(2, (self.WIDTH/2)-1)
+ 	    ys = randint(2, (self.HEIGHT/2)-1)
+ 	    rx = (self.WIDTH  / xs) + 1
+ 	    ry = (self.HEIGHT / ys) + 1
+	    cwchanges = choice([0,0,0,0,0,0,0,0,1,1,1,1,2,2,3])
+	    if cwchanges == 0:
+		cw = random() < 0.5
+ 	    for x in range(rx):
+		if cwchanges == 1:
+		    cw = random() < 0.5
+ 		for y in range(ry):
+		    if cwchanges == 2:
+			cw = random() < 0.5
+		    maxd = max((xs / 2), (ys / 2))
+ 		    for d in range(maxd):
+			if cwchanges == 3:
+			    cw = random() < 0.5
+			self.wind_rect(xs*x+d, ys*y+d, xs-2*d-1, ys-2*d-1, cw)
+
 
     def smooth(self, threshold, rev):
         """Remove wall blocks that are surrounded by 4 empty places.
