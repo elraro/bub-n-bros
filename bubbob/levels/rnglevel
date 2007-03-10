@@ -281,15 +281,21 @@ class RandomLevel(boarddef.Level):
                         winddirs = [' ','<','^','<','>',' ','^','<','v','v',' ','v','>','>','^','x','x']
                     wnd = winddirs[walld]
                     self.setwind(x,y,wnd)
-        elif gens == 7: # bubbles move left and right whole level wide
-            self.wind_sidewalls()
-            ofs = choice([0,1])
-            for x in range(self.WIDTH):
-                for y in range(self.HEIGHT):
-                    if (y+ofs) & 1:
-                        self.setwind(x+1,y,'<')
-                    else:
-                        self.setwind(x-1,y,'>')
+        elif gens == 7: # bubbles move up in column(s) that zig-zag left and right
+	    wid = choice([self.WIDTH, randint(2, self.WIDTH), randint(2, self.WIDTH)])
+	    xofs = (self.WIDTH % wid) / 2
+	    ofs = choice([0,1])
+	    for dx in range(0, self.WIDTH-wid+1, wid):
+		for x in range(wid):
+		    for y in range(self.HEIGHT):
+			if (y+ofs) & 1:
+			    self.setwind(x+dx+xofs,y,'<')
+			    if x == 0:
+				self.setwind(x+dx+xofs,y,'^')
+			else:
+			    self.setwind(x+dx+xofs,y,'>')
+			    if x == wid-1:
+				self.setwind(x+dx+xofs,y,'^')
 	elif gens == 8: # bubbles move towards the map centerline at random height
 	    for x in range(self.WIDTH):
                 y = randint(1, self.HEIGHT-1)
@@ -420,7 +426,6 @@ class RandomLevel(boarddef.Level):
 			if cwchanges == 3:
 			    cw = random() < 0.5
 			self.wind_rect(xs*x+d, ys*y+d, xs-2*d-1, ys-2*d-1, cw)
-
 
     def smooth(self, threshold, rev):
         """Remove wall blocks that are surrounded by 4 empty places.
