@@ -225,12 +225,35 @@ class RandomLevel(boarddef.Level):
             self.setwind(0,y,'^')
             self.setwind(self.WIDTH-1,y,'^')
 
+    def wind_wallblocking(self, winddirs):
+	"""Sets up wind depending on the number of walls around each place.
+	winddirs is an array of 16 wind chars.
+	directions with walls count as: 1=N, 2=E, 4=S, 8=W
+	16th place is used if there is wall at the position.
+	"""
+	for x in range(self.WIDTH):
+	    for y in range(self.HEIGHT):
+		walld = 0
+		if self.getw(x,y) == '#':
+		    walld = 16
+		else:
+		    if self.getw(x,y-1) == '#':
+			walld = walld + 1
+		    if self.getw(x+1,y) == '#':
+			walld = walld + 2
+		    if self.getw(x,y+1) == '#':
+			walld = walld + 4
+		    if self.getw(x-1,y) == '#':
+			walld = walld + 8
+		wnd = winddirs[walld]
+		self.setwind(x,y,wnd)
+
     def generate_wind(self, gens = -1):
         """Chooses one of the wind pattern generators and uses that to generate the winds.
         0: choose what generator to use.
         """
         if gens == -1:
-            gens = choice([1,1,2,3,4,4,4,4,5,6,7,8,9,10,11,12,13,14,15,16])
+            gens = choice([1,1,2,3,4,4,4,4,5,6,7,8,9,10,11,12,13,14,15,16,17])
         if gens == 1: # totally random pattern
             self.generate_wind1()
         elif gens == 2: # wind "layers"
@@ -259,28 +282,11 @@ class RandomLevel(boarddef.Level):
                         if self.getw(x,y+1) == ' ':
                             self.setwind(x,y+1,'x')
         elif gens == 6: # bubbles move next the walls, rotating cw or ccw
-            clockwise = choice([0,1])
-            for x in range(self.WIDTH):
-                for y in range(self.HEIGHT):
-                    walld = 0
-                    if self.getw(x,y) == '#':
-                        walld = 16
-		    else:
-			if self.getw(x,y-1) == '#':
-			    walld = walld + 1
-			if self.getw(x+1,y) == '#':
-			    walld = walld + 2
-			if self.getw(x,y+1) == '#':
-			    walld = walld + 4
-			if self.getw(x-1,y) == '#':
-			    walld = walld + 8
-                    if clockwise:
-                        #            0   1   2   3   4   5   6   7   8   9  10  11  12  13  14  15  16
-                        winddirs = [' ','>','v','v','<',' ','<','<','^','>',' ','v','^','>','^','x','x']
-                    else:
-                        winddirs = [' ','<','^','<','>',' ','^','<','v','v',' ','v','>','>','^','x','x']
-                    wnd = winddirs[walld]
-                    self.setwind(x,y,wnd)
+	    if random() < 0.5: #clockwise
+		winddirs = [' ','>','v','v','<',' ','<','<','^','>',' ','v','^','>','^','x','x']
+	    else:
+		winddirs = [' ','<','^','<','>',' ','^','<','v','v',' ','v','>','>','^','x','x']
+	    self.wind_wallblocking(winddirs)
         elif gens == 7: # bubbles move up in column(s) that zig-zag left and right
 	    wid = choice([self.WIDTH, randint(2, self.WIDTH), randint(2, self.WIDTH)])
 	    xofs = (self.WIDTH % wid) / 2
@@ -426,6 +432,12 @@ class RandomLevel(boarddef.Level):
 			if cwchanges == 3:
 			    cw = random() < 0.5
 			self.wind_rect(xs*x+d, ys*y+d, xs-2*d-1, ys-2*d-1, cw)
+        elif gens == 17: # bubbles bounce between walls
+	    if random() < 0.5: # horizontal
+		winddirs = [' ',' ','<','<',' ',' ','<','<','>','>',' ',' ','>','>',' ',' ','x']
+	    else: # vertical
+		winddirs = [' ','v',' ','v','^',' ','^',' ',' ','v',' ','v','^',' ','^',' ','x']
+	    self.wind_wallblocking(winddirs)
 
     def smooth(self, threshold, rev):
         """Remove wall blocks that are surrounded by 4 empty places.
