@@ -473,12 +473,9 @@ class RandomLevel(boarddef.Level):
 	    winddirs[256] = choice(['x',' '])
 	    self.wind_wallblocking256(winddirs)
 	elif gens == 19: # bubbles will move downwards in a zig-zag pattern
-	    first = 1
 	    y = 0
+	    x1 = randint(0, self.WIDTH-1)
 	    while y < self.HEIGHT:
-		if first == 1:
-		    first = 0
-		    x1 = randint(0, self.WIDTH-1)
 		x2 = randint(0, self.WIDTH-1)
 		if x1 < x2:
 		    self.setwind(x1,y, '>')
