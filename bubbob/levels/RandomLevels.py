@@ -296,8 +296,8 @@ def generate_shape(prevlist):
         if not s1.modified and s1 == s:
             break
         s = s1
-    else:
-        sys.stdout.write('*')
+#    else:
+#        sys.stdout.write('*')
     del s.modified
     return s
 
@@ -312,7 +312,7 @@ def makeshapes(nblevels=25):
             del shapelist[:]
 
 def GenerateLevels():
-    print 'generating levels',
+#    print 'generating levels',
     Levels = []
     for s in makeshapes():
         class level(RandomLevel):
@@ -322,14 +322,14 @@ def GenerateLevels():
                 result = RandomLevel.enter(self, *args, **kw)
                 params = self.autogen_shape.__dict__.items()
                 params.sort()
-                for keyvalue in params:
-                    print '%20s: %s' % keyvalue
+#                for keyvalue in params:
+#                    print '%20s: %s' % keyvalue
                 return result
         s.accept(level)
         Levels.append(level)
-        sys.stdout.write('.')
-        sys.stdout.flush()
-    print
+#        sys.stdout.write('.')
+#        sys.stdout.flush()
+#    print
     class levelfinal(RandomLevel):
         WIDTH = level.WIDTH
         HEIGHT = level.HEIGHT
