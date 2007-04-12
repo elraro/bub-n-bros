@@ -71,7 +71,7 @@ class Shape:
     platholes = BoolParameter('platholes')
     platfull  = BoolParameter('platfull')
     mess = ChoiceParameter('mess', '        ....!')
-    closed = BoolParameter('closed')
+    closed = BoolParameter('closed', 0.8)
     bonuses = ChoiceParameter('bonuses', xrange(3**len(Bonuses)))
     smooth = ChoiceParameter('smooth', range(4))
     startplats = BoolParameter('startplats', 0.98)
