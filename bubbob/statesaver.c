@@ -1,3 +1,32 @@
+/** High-performance deep copy.
+
+   This one can copy running generators and their frames!
+
+       statesaver.copy(x) -> recursive copy of x
+
+   You have precise control over what is copied and what should be shared.
+   By default, *only* common built-in types are copied.  Unrecognized
+   object types are shared.  The copied built-in types are:
+
+   - tuple
+   - list
+   - dict
+   - functions, for possibly mutable func_defaults (func_globals is shared)
+   - methods, for im_self and im_func (im_class is shared)
+   - running or stopped generators (yeah!)
+   - sequence iterators
+
+   Old-style class instances are only copied if they have an
+   inst_build() method, which is called with no argument and must
+   return a new instance whose __dict__ is not filled (it will be
+   filled by the copying mecanisms).  Suggested implementation:
+   
+      def inst_build(self):
+          return new.instance(self.__class__)
+   
+   New-style class instances are not supported (i.e. always shared).
+**/
+
 #include <Python.h>
 #include <compile.h>
 #include <frameobject.h>
