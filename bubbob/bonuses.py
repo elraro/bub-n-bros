@@ -935,13 +935,75 @@ def starexplosion(x, y, multiplyer, killmonsters=0, outcomes=[]):
                 if killmonsters:
                     b.gen.append(b.killmonsters(poplist))
 
+class HomingStar(ActiveSprite):
+    def __init__(self, x, y, colorname, poplist):
+        imglist = getattr(Stars, colorname)
+        ActiveSprite.__init__(self, images.sprget(imglist[0]), x, y)
+        self.colorname = colorname
+        self.setimages(self.cyclic(imglist, 2))
+        self.gen.append(self.homing(poplist))
+
+    def homing(self, poplist):
+        from monsters import Monster
+        target = None
+        vx = (random.random() - 0.5) * 6.6
+        vy = (random.random() - 0.5) * 4.4
+        nx = self.x
+        ny = self.y
+        counter = 10
+        while 1:
+            if random.random() < 0.02:
+                target = None
+            if target is None or not target.alive:
+                bestdist = 1E10
+                for s in BubPlayer.MonsterList:
+                    if isinstance(s, Monster):
+                        dx = s.x - nx
+                        dy = s.y - ny
+                        dist = dx*dx + dy*dy + (random.random() * 25432.1)
+                        if dist < bestdist:
+                            bestdist = dist
+                            target = s
+                if target is None:
+                    break
+            dx = target.x - nx
+            dy = target.y - ny
+            dist = dx*dx + dy*dy
+            if dist <= 3*CELL*CELL:
+                target.argh(poplist)
+                break
+            yield None
+            vx = (vx + dx * 0.005) * 0.96
+            vy = (vy + dy * 0.005) * 0.96
+            nx += vx
+            ny += vy
+            self.move(int(nx), int(ny))
+            if counter:
+                counter -= 1
+            else:
+                img = ('smstar', self.colorname, random.randrange(2))
+                s = ActiveSprite(images.sprget(img), self.x + 8, self.y + 8)
+                s.gen.append(s.die([None], speed=10))
+                counter = 3
+        self.kill()
+
 class Book(RandomBonus):
     "Magic Bomb. Makes a magical explosion killing touched monsters."
     points = 2000
     nimage = Bonuses.book
-    bigbonus = {'multiply': 4}
+    big = 0
+    bigbonus = {'big': 1}
     def taken1(self, dragons):
-        starexplosion(self.x, self.y, self.multiply, killmonsters=1)
+        if self.big:
+            poplist = [None]
+            x = self.x + (self.ico.w - 2*CELL) // 2
+            y = self.y + (self.ico.h - 2*CELL) // 2
+            colors = list(Stars.COLORS)
+            random.shuffle(colors)
+            for colorname in colors + colors[len(colors)//2:]:
+                HomingStar(x, y, colorname, poplist)
+        else:
+            starexplosion(self.x, self.y, self.multiply, killmonsters=1)
 
 class Potion(RandomBonus):
     "Potions. Clear the level and fill its top with bonuses."
