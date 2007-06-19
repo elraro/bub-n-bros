@@ -782,6 +782,17 @@ class FireBubble(BonusBubble):
     def popped(self, dragon):
         if dragon:
             x0 = self.x // CELL + 1
+            y0 = self.y // CELL + 1
+            if bget(x0, y0) == '#':
+                x1 = (self.x + HALFCELL) // CELL
+                if x1 == x0:
+                    tries = [x1+1, x1-1]
+                else:
+                    tries = [x1, x1+2]
+                for x1 in tries:
+                    if bget(x1, y0) == ' ':
+                        x0 = x1
+                        break
             FireDrop(x0*CELL, self.y)
         return 10
 
