@@ -148,10 +148,6 @@ static PyObject* new_display(PyObject* dummy, PyObject* args)
                         DefaultDepth(self->dpy,self->default_scr), TrueColor,
                         &self->visual_info)) goto err2;
 
-  self->backpixmap = XCreatePixmap(self->dpy, self->root,
-                                   width, height, self->visual_info.depth);
-  if (self->backpixmap == (Pixmap) -1) goto err2;
-
   /* set window attributes */
   memset(&attr, 0, sizeof(attr));
   attr.override_redirect = False;
@@ -182,6 +178,10 @@ static PyObject* new_display(PyObject* dummy, PyObject* args)
   self->gc = XCreateGC(self->dpy, self->win, 0, 0);
   if (!self->shmmode)
     {
+      self->backpixmap = XCreatePixmap(self->dpy, self->root,
+                                       width, height, self->visual_info.depth);
+      if (self->backpixmap == (Pixmap) -1) goto err2;
+
       self->gc_and = XCreateGC(self->dpy, self->win, 0, 0);
       self->gc_or = XCreateGC(self->dpy, self->win, 0, 0);
       XSetForeground(self->dpy, self->gc, attr.background_pixel);
