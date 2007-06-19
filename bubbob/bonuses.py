@@ -1133,10 +1133,15 @@ class Glue(RandomBonus):
     "Glue.  Triple fire."
     nimage = 'glue'
     points = 850
-    flower = 0                 # triple fire
-    bigbonus = {'flower': -1}  # heptuple fire
+    big = 0
+    bigbonus = {'big': 1}
     def taken(self, dragon):
-        dragon.dcap['flower'] = self.flower
+        if self.big:
+            dragon.dcap['flower'] = -16   # heptuple fire
+        elif dragon.dcap['flower'] >= 0:
+            dragon.dcap['flower'] = -1    # triple fire
+        else:
+            dragon.dcap['flower'] -= 1    # cumulative effect
         dragon.carrybonus(self)
 
 class ShortFire(RandomBonus):

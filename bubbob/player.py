@@ -53,7 +53,7 @@ class Dragon(ActiveSprite):
     SAVE_CAP = {'hspeed': 1,
                 'firerate': 2,
                 'shootthrust': 8.0 / 1.5,
-                'flower': 0}
+                'flower': -1}
     
     def __init__(self, bubber, x, y, dir, dcap=DCAP):
         self.bubber = bubber
@@ -602,8 +602,11 @@ class Dragon(ActiveSprite):
         elif N > 1:
             angles = [i*(2.0*math.pi/N) for i in range(N)]
             self.dcap['flower'] = N*2//3
-        elif N == 0:  # triple fire
-            angles = [0, -0.19, 0.19]
+        elif N > -16:  # triple fire, possibly cumulative
+            angles = [0]
+            for i in range(1, -N+1):
+                angles.append(i * 0.19)
+                angles.append(i * -0.19)
         else:         # heptuple fire
             c = 0.17
             a = math.sqrt(1-c+c*c)
