@@ -226,8 +226,9 @@ class PageServer:
 
     def indexloader(self, headers, cheat=[], **options):
         if cheat:
+            import __builtin__
             for c in cheat:
-                __cheat(cheat)
+                getattr(__builtin__, '__cheat')(c)
         else:
             self.localservers = None
         return self.mainpage(headers, juststarted=('juststarted' in options))
