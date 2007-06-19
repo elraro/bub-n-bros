@@ -890,6 +890,7 @@ class Sheep(Monster):
                         if key in by_y:
                             s = by_y[key]
                             if isinstance(s, Monster):
+                                self.play(images.Snd.Extra)
                                 s.argh(poplist)
                             elif isinstance(s, Bonus):
                                 s.reallytouched(self)
