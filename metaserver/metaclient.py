@@ -6,7 +6,7 @@ from metastruct import *
 METASERVER = ('codespeak.net', 8055)
 METASERVER_UDP = ('codespeak.net', 8055)
 METASERVER_URL = 'http://codespeak.net:8050/bub-n-bros.html'
-VERSION_TAG = 1510
+VERSION_TAG = 1600
 
 def connect(failure=[]):
     if len(failure) >= 2:
