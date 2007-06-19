@@ -17,8 +17,8 @@ LOCALDIR = os.path.dirname(os.path.abspath(LOCALDIR))
 
 import random, time
 
-sys.path.append(os.path.join(os.path.dirname(LOCALDIR), 'common'))
-sys.path.append(LOCALDIR)
+sys.path.insert(0, os.path.join(os.path.dirname(LOCALDIR), 'common'))
+sys.path.insert(0, LOCALDIR)
 import gamesrv
 
 PROFILE = 0
@@ -201,7 +201,7 @@ def setuppath(dirname):
             '../%s: directory not found ("cvs update -d" ?)' % dirname)
         sys.exit(1)
     if dir not in sys.path:
-        sys.path.append(dir)
+        sys.path.insert(0, dir)
 
 def parse_cmdline(argv):
     # parse command-line

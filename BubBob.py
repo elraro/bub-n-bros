@@ -24,7 +24,7 @@ LOCALDIR = os.path.dirname(sys.argv[0])
 
 import socket, tempfile
 
-sys.path.append(LOCALDIR)
+sys.path.insert(0, LOCALDIR)
 os.chdir(LOCALDIR)
 
 try:
@@ -80,11 +80,11 @@ def start_local_server():
         if os.fork() == 0:
             # in the child process
             if has_server:
-                sys.path.append(os.path.join(LOCALDIR, 'bubbob'))
+                sys.path.insert(0, os.path.join(LOCALDIR, 'bubbob'))
                 import bb
                 bb.BubBobGame.Quiet = 1
             else:
-                sys.path.append(os.path.join(LOCALDIR, 'http2'))
+                sys.path.insert(0, os.path.join(LOCALDIR, 'http2'))
                 import httppages
             import gamesrv, stdlog
             logfile = stdlog.LogFile()

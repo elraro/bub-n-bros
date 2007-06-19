@@ -12,8 +12,8 @@ except NameError:
     FILE = sys.argv[0]
 LOCALDIR = os.path.abspath(os.path.dirname(FILE))
 
-sys.path.append(os.path.abspath(os.path.join(LOCALDIR, os.pardir, 'common')))
-sys.path.append(os.path.abspath(os.path.join(LOCALDIR, os.pardir)))
+sys.path.insert(0, os.path.abspath(os.path.join(LOCALDIR, os.pardir)))
+sys.path.insert(0, os.path.abspath(os.path.join(LOCALDIR, os.pardir,'common')))
 import gamesrv, httpserver, hostchooser
 from metaserver import metaclient
 from httpserver import HTTPRequestError

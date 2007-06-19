@@ -1,7 +1,7 @@
 import sys, os
 LOCALDIR = __file__
 LOCALDIR = os.path.abspath(os.path.dirname(LOCALDIR))
-sys.path.append(os.path.dirname(LOCALDIR))
+sys.path.insert(0, os.path.dirname(LOCALDIR))
 
 from common.msgstruct import *
 from socket import error

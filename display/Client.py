@@ -13,8 +13,8 @@ except:
 LOCALDIR = os.path.dirname(os.path.abspath(LOCALDIR))
 # ----------
 
-sys.path.append(LOCALDIR)
-sys.path.append(os.path.dirname(LOCALDIR))
+sys.path.insert(0, os.path.dirname(LOCALDIR))
+sys.path.insert(0, LOCALDIR)
 import common
 import pclient
 import modes
