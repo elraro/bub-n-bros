@@ -4,10 +4,13 @@ License
 The source code is copyrighted by Armin Rigo <arigo@tunes.org>, and
 distributed under the MIT License, a copy of which is included below.
 
-Almost all sprite images, sounds, background musics and levels are directly
-taken from the MacOS version of Bub & Bob 1 by McSebi.  Thanks to him for
-great artwork and his permission to redistribute it!  He released them under
-the following terms:
+In the current version most graphics have been made by David
+Gowers, based on graphics from McSebi.
+
+Almost all sounds, background musics and levels are directly
+taken from the MacOS version of Bub & Bob 1 by McSebi.  Thanks
+to him for great artwork and his permission to redistribute
+it!  He released them under the following terms:
 
    """
       I release the graphics and sound data of my
