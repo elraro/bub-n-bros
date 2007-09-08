@@ -180,6 +180,7 @@ Please <a href="%s">click here</a> to continue.
 
     def finish(self):
         SimpleHTTPRequestHandler.finish(self)
+        self.connection.close()
         while actions_when_finished:
             actions_when_finished.pop(0)()
 
