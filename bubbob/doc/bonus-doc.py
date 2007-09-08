@@ -72,7 +72,21 @@ print >> dfile, """<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
   <TITLE>The Bub's Brothers Bonuses</TITLE>
  </HEAD>
  <BODY bgcolor=white text=black>
-  <TABLE>
+  <TABLE cellspacing=0 border=0>
+   <TR>
+    <TD width=132 align=right>
+    </TD>
+    <TD width=20>
+    </TD>
+    <TD bgcolor="#80FF80" align=center>
+     <I>regular bonus</I>
+    </TD>
+    <TD bgcolor="#80FF80" width=20>
+    </TD>
+    <TD bgcolor="#80FF80" align=center>
+     <I>big bonus</I>
+    </TD>
+   </TR>
 """
 #" A stupid comment to stop emacs from mis-fontifying.
 
@@ -98,7 +112,7 @@ def sorter(a,b):
 sorted_classes = processed.items()
 sorted_classes.sort(sorter)
 
-for clas in sorted_classes:
+for clasindex, clas in enumerate(sorted_classes):
     bonus = clas[0]
     images = ''
     name = bonus.__name__
@@ -118,9 +132,19 @@ for clas in sorted_classes:
     doc = bonus.__doc__
     if doc == None:
         doc = ''
+    bigdoc = getattr(bonus, 'bigdoc', None) or ''
+    if hasattr(bonus, 'bigbonus'):
+        assert bigdoc, "missing 'bigdoc' on %r" % (bonus,)
+    if clasindex % 3 == 2:
+        bgcolor = '"#E0FFE0"'
+    else:
+        bgcolor = 'white'
     print >> dfile, '<TR><TD width=132 align=right>',
     print >> dfile, images,
-    print >> dfile, '</TD><TD width=20></TD><TD>',doc,'</TD></TR>'
+    print >> dfile, '</TD><TD width=20></TD>',
+    print >> dfile, '<TD bgcolor=%s>%s</TD>' % (bgcolor, doc),
+    print >> dfile, '</TD><TD width=20 bgcolor=%s></TD>' % bgcolor,
+    print >> dfile, '<TD bgcolor=%s>%s</TD></TR>' % (bgcolor, bigdoc)
 
 print >> dfile, """  </TABLE>
  </BODY>
