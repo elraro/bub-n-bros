@@ -212,7 +212,7 @@ class PageServer:
         joinurl = quote_plus('%s/%s' % (myhost, self.seed))
         return metaserver_url + '?join=%s&time=%s' % (joinurl, time.time())
 
-    def mainpage(self, headers, juststarted=0):
+    def mainpage(self, headers, juststarted=0, justconnected=0):
         running = my_server()
         count = len(gamesrv.clients)
         tim = time.time()
@@ -345,17 +345,17 @@ class PageServer:
         if m:
             args.insert(0, '-m')
         args = [script] + args + [address]
-        launch(args)
+        schedule_launch(args)
         if m:
-            time.sleep(1)
+            time.sleep(0.5)
             s = 'Connecting to %s.' % address
             return None, self.metaserverpage(headers) + '&head=' + quote_plus(s)
-        elif my_server_address() == address:
-            endtime = time.time() + 3.0
-            while gamesrv.recursiveloop(endtime, []):
-                if len(gamesrv.clients) > nbclients:
-                    break
-        return self.mainpage(headers)
+        #elif my_server_address() == address:
+        #    endtime = time.time() + 3.0
+        #    while gamesrv.recursiveloop(endtime, []):
+        #        if len(gamesrv.clients) > nbclients:
+        #            break
+        return self.mainpage(headers, justconnected=1)
 
     def optionsloader(self, headers, reset=[], savetime=[], **options):
         if reset:
@@ -603,6 +603,16 @@ def main(Game, save_url_to=None, quiet=0):
     #    srv.launchbrowser()
 
 
+# ____________________________________________________________
+# Hack hack hack - workaround for the fact that on Windows
+# the socket is inherited by the subprocess, which is quite
+# bad because it keeps the browser-server connexion alive
+# and the browser gets confused
+
+
+def schedule_launch(args):
+    httpserver.actions_when_finished.append(lambda args=args: launch(args))
+
 def launch(args):
     # platform-specific hacks
     print 'Running client ->  ', ' '.join(args)
@@ -646,7 +656,13 @@ def launch(args):
         # (quoting sucks on Windows) ** 42
         if sys.platform == 'win32':
             args[0] = '"%s"' % (args[0],)
-        os.spawnv(os.P_NOWAITO, sys.executable, args)
+        if hasattr(os, 'P_DETACH'):
+            mode = os.P_DETACH
+        elif hasattr(os, 'P_NOWAIT0'):
+            mode = os.P_NOWAIT0
+        else:
+            mode = os.P_NOWAIT
+        os.spawnv(mode, sys.executable, args)
 
 if sys.platform != "win32":
     def no_quote_worries(s):

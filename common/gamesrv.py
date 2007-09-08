@@ -1250,7 +1250,7 @@ def recursiveloop(endtime, extra_sockets):
         serversockets[s]()    # call handler
       elif s in extra_sockets:
         return s
-    if not extra_sockets:
+    if not extra_sockets and timediff:
       return 1
   return None
 

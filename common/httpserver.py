@@ -178,6 +178,13 @@ Please <a href="%s">click here</a> to continue.
         """Override to avoid DNS lookups"""
         return "%s:%d" % self.client_address
 
+    def finish(self):
+        SimpleHTTPRequestHandler.finish(self)
+        while actions_when_finished:
+            actions_when_finished.pop(0)()
+
+actions_when_finished = []
+
 def my_host():
     import gamesrv
     port = gamesrv.socketports[gamesrv.openhttpsocket()]
