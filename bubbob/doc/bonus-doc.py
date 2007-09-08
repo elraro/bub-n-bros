@@ -2,8 +2,8 @@
 
 import os, sys, string, struct
 os.chdir(os.pardir)
-sys.path.append(os.getcwd())
-sys.path.append(os.path.abspath(os.path.join(os.pardir, 'common')))
+sys.path.insert(0, os.getcwd())
+sys.path.insert(1, os.path.abspath(os.path.join(os.pardir, 'common')))
 
 from images import sprmap
 import bonuses, images
