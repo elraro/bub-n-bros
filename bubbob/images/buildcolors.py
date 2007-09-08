@@ -73,7 +73,7 @@ def loadpalettesets (filename):
     assert ((os.path.getsize (filename) % (PALETTESIZE * 3)) == 0)
     #print os.path.getsize (filename)
     Palettes = array.array ('I')
-    f = open (filename)
+    f = open (filename, 'rb')
     for i in range (os.path.getsize(filename) / (PALETTESIZE * 3)):
         for j in range (PALETTESIZE):
             tmp = f.read (3)
