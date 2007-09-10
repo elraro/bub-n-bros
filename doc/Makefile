@@ -3,7 +3,8 @@ all: bb.py.html bb.py.txt Client.py.html Client.py.txt BubBob.py.html BubBob.py.
 compress: bb.py.1.gz Client.py.1.gz BubBob.py.1.gz
 
 %.html : %.1
-	groff -man -Thtml $< > $@
+	# ignore errors due to missing device 'html'
+	-groff -man -Thtml $< > $@ || echo "Please ignore errors from this line"
 
 %.txt : %.1
 	groff -man -Tascii $< > $@
