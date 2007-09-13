@@ -16,6 +16,13 @@ all:
 	make -C bubbob
 	make -C display
 	-make docs
+	@echo -------------------------------------------------------------
+	@echo \'make\' successful.
+	@echo ' '
+	@echo ' Start the game interactively with: python BubBob.py'
+	@echo ' Server only (pure command-line): python bubbob/bb.py --help'
+	@echo ' '
+	@echo -------------------------------------------------------------
 
 clean:
 	-rm -f `find -name "*~"`
