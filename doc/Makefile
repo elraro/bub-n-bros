@@ -1,10 +1,15 @@
-all: bb.py.html bb.py.txt Client.py.html Client.py.txt BubBob.py.html BubBob.py.txt compress
+# 'make compress' to build the docs as gzipped manpages.
+# 'make txt' to build the docs as plain text manpages.
+# 'make html' to build the docs as html-ized manpages.
+
+all: txt html compress
+txt: bb.py.txt Client.py.txt BubBob.py.txt
+html: bb.py.html Client.py.html BubBob.py.html
 
 compress: bb.py.1.gz Client.py.1.gz BubBob.py.1.gz
 
 %.html : %.1
-	# ignore errors due to missing device 'html'
-	-groff -man -Thtml $< > $@ || echo "Please ignore errors from this line"
+	groff -man -Thtml $< > $@
 
 %.txt : %.1
 	groff -man -Tascii $< > $@

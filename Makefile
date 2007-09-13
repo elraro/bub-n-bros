@@ -15,7 +15,6 @@ export # we export all variales to sub-makes
 all:
 	make -C bubbob
 	make -C display
-	-make docs
 	@echo -------------------------------------------------------------
 	@echo \'make\' successful.
 	@echo ' '
