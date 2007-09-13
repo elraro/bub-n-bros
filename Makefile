@@ -13,13 +13,13 @@ PYTHON=python
 export # we export all variales to sub-makes
 
 all:
-	make -C bubbob
+	if [ -e bubbob ]; then make -C bubbob; fi
 	make -C display
 	@echo -------------------------------------------------------------
 	@echo \'make\' successful.
 	@echo ' '
 	@echo ' Start the game interactively with: python BubBob.py'
-	@echo ' Server only (pure command-line): python bubbob/bb.py --help'
+	@if [ -e bubbob ]; then echo ' Server only (pure command-line): python bubbob/bb.py --help'; else echo ' Only the client is installed here.'; fi
 	@echo ' '
 	@echo -------------------------------------------------------------
 
