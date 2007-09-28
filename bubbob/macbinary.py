@@ -169,8 +169,8 @@ def image2rgb(image):
     h = len(image)
     result1 = []
     for line in image:
-        resultline = [struct.pack("BBB", r, g, b) for r, g, b in line]
-        result1.append(''.join(resultline))
+        for r, g, b in line:
+            result1.append(chr(int(r)) + chr(int(g)) + chr(int(b)))
     return len(image[0]), len(image), ''.join(result1)
 
 

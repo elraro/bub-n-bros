@@ -594,8 +594,8 @@ def next_board(num=0, complete=1, fastreenter=False):
             yield t
 
     # reset global board state
-    from player import BubPlayer
-    BubPlayer.__dict__.update(BubPlayer.INIT_BOARD_CAP)
+    from player import BubPlayer, reset_global_board_state
+    reset_global_board_state()
     if not inplace:
         del BubPlayer.MonsterList[:]
         # wait for at least one player
@@ -1163,7 +1163,7 @@ def extra_display_repulse(cx, cy, dlimit=5000, dfactor=1000):
                 dx = (dx*dfactor)//d
                 dy = (dy*dfactor)//d
                 offsets[s] = dx, dy
-                s.setdisplaypos(x+dx, y+dy)
+                s.setdisplaypos(int(x+dx), int(y+dy))
     yield 0
     yield 0
     while offsets:
@@ -1181,7 +1181,7 @@ def extra_display_repulse(cx, cy, dlimit=5000, dfactor=1000):
                     dy -= max(1, dy//5)
                 if dx or dy:
                     offsets[s] = dx, dy
-                s.setdisplaypos(s.x+dx, s.y+dy)
+                s.setdisplaypos(int(s.x+dx), int(s.y+dy))
         yield 0
 
 def extra_bkgnd_black(cx, cy):

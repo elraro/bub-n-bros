@@ -189,7 +189,8 @@ class Sample(DataChunk):
       rvolume = 0.0
     elif rvolume > 1.0:
       rvolume = 1.0
-    message = pack("!hBBh", self.code, lvolume*255.0, rvolume*255.0, -1)
+    message = pack("!hBBh", self.code, int(lvolume*255.0),
+                                       int(rvolume*255.0), -1)
     if singleclient is None:
       clist = clients[:]
     else:
@@ -590,6 +591,8 @@ class Client:
           print "unknown message from", self.addr, ":", values
       self.buf = data
     except struct.error:
+      import traceback
+      traceback.print_exc()
       self.socket.send('\n\n<h1>Protocol Error</h1>\n')
       hs = findsocket('HTTP')
       if hs is not None:

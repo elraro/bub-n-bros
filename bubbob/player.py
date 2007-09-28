@@ -1198,4 +1198,7 @@ def scoreboard(reset=0, inplace=0, compresslimittime=0):
 
 
 # initialize global board data
-BubPlayer.__dict__.update(BubPlayer.INIT_BOARD_CAP)
+def reset_global_board_state():
+    for key, value in BubPlayer.INIT_BOARD_CAP.items():
+        setattr(BubPlayer, key, value)
+reset_global_board_state()

@@ -59,7 +59,8 @@ def load(filename):
         d = lvl.getlevel(mnstrlist)
         class BinBoard(boards.Board):
             pass
-        BinBoard.__dict__.update(d)
+        for key1, value1 in d.items():
+            setattr(BinBoard, key1, value1)
         levels[key] = BinBoard
 
     def loader(code, rsrc=Bin['ppat'], cache={}):
