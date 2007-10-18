@@ -42,7 +42,7 @@ static PyObject* genbuild(PyObject* g)
   PyFrameObject* f;
   PyCodeObject* co;
   PyObject** dummy;
-  int i, res;
+  int i, res, ncells, nfrees;
   
   x = PyObject_GetAttrString(g, "gi_running");
   if (x == NULL)
@@ -75,7 +75,9 @@ static PyObject* genbuild(PyObject* g)
     Py_INCREF(g);  /* exhausted -- can return 'g' itself */
     return g;
   }
-  if (f->f_nfreevars || f->f_ncells) {
+  ncells = PyTuple_GET_SIZE(co->co_cellvars);
+  nfrees = PyTuple_GET_SIZE(co->co_freevars);
+  if (nfrees || ncells) {
     PyErr_SetString(PyExc_ValueError, "generator has cell or free vars");
     goto error;
   }
@@ -143,8 +145,8 @@ static int gencopy(PyObject* g2, PyObject* g)
       }
       f2 = (PyFrameObject*) x;
 
-      if (f2->f_stacksize != f->f_stacksize) {
-        PyErr_SetString(PyExc_TypeError, "stack size mismatch");
+      if (f2->f_code != co) {
+        PyErr_SetString(PyExc_TypeError, "generator code mismatch");
         goto error;
       }
 
@@ -273,7 +275,7 @@ static PyTypeObject keytype = {
 static PyObject* ss_memo;
 static struct key_block* ss_block;
 static int ss_next_in_block;
-static int ss_error;
+static PyObject *ss_error, *ss_errinst, *ss_errtb;
 
 static PyObject* str_inst_build;
 static PyTypeObject* GeneratorType;
@@ -428,8 +430,10 @@ static PyObject* copyrec(PyObject* o)
  fail:
   Py_INCREF(o);
   Py_XDECREF(n);
-  PyErr_Clear();
-  ss_error = 1;
+  if (ss_error == NULL)
+    PyErr_Fetch(&ss_error, &ss_errinst, &ss_errtb);
+  else
+    PyErr_Clear();
   return o;
 }
 
@@ -442,7 +446,9 @@ static PyObject* sscopy(PyObject* self, PyObject* o)
 
   ss_block = NULL;
   ss_next_in_block = -1;
-  ss_error = 0;
+  ss_error = NULL;
+  ss_errinst = NULL;
+  ss_errtb = NULL;
   n = copyrec(o);
   Py_DECREF(ss_memo);
   while (ss_block)
@@ -456,7 +462,13 @@ static PyObject* sscopy(PyObject* self, PyObject* o)
       ss_next_in_block = -1;
     }
   if (ss_error && !PyErr_Occurred())
-    PyErr_SetNone(PyExc_RuntimeError);
+    PyErr_Restore(ss_error, ss_errinst, ss_errtb);
+  else
+    {
+      Py_XDECREF(ss_error);
+      Py_XDECREF(ss_errinst);
+      Py_XDECREF(ss_errtb);
+    }
   if (PyErr_Occurred())
     {
       Py_DECREF(n);
