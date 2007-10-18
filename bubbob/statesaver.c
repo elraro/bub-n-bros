@@ -35,6 +35,8 @@
 
 static PyObject* copyrec(PyObject* o);  /* forward */
 
+static PyObject* empty_iterator;
+
 
 static PyObject* genbuild(PyObject* g)
 {
@@ -60,6 +62,12 @@ static PyObject* genbuild(PyObject* g)
   if (x == NULL)
     return NULL;
   if (!PyFrame_Check(x)) {
+    if (x == Py_None) {
+      /* Python 2.5 only: exhausted generators have g.gi_frame == None */
+      Py_DECREF(x);
+      Py_INCREF(empty_iterator);
+      return empty_iterator;
+    }
     PyErr_SetString(PyExc_TypeError, "g.gi_frame must be a frame object");
     goto error;
   }
@@ -120,6 +128,8 @@ static int gencopy(PyObject* g2, PyObject* g)
     {
       if (g2->ob_type != g->ob_type)
         {
+          if (g2 == empty_iterator)
+            return 0;
           PyErr_SetString(PyExc_TypeError, "type mismatch");
           return -1;
         }
@@ -289,7 +299,8 @@ static PyObject* copyrec(PyObject* o)
   KeyObject* fkey;
 
   if (o == Py_None || o->ob_type == &PyInt_Type ||
-      o->ob_type == &PyString_Type || o->ob_type == &PyFloat_Type)
+      o->ob_type == &PyString_Type || o->ob_type == &PyFloat_Type ||
+      o == empty_iterator)
     {
       Py_INCREF(o);
       return o;
@@ -486,6 +497,7 @@ static PyMethodDef StateSaverMethods[] = {
 void initstatesaver(void)
 {
   PyObject* m;
+  PyObject* x;
   m = Py_InitModule("statesaver", StateSaverMethods);
   if (m == NULL)
     return;
@@ -496,4 +508,10 @@ void initstatesaver(void)
   if (!m) return;
   GeneratorType = (PyTypeObject*) PyObject_GetAttrString(m, "GeneratorType");
   if (!GeneratorType) return;
+
+  x = PyTuple_New(0);
+  if (!x) return;
+  empty_iterator = PyObject_GetIter(x);
+  Py_DECREF(x);
+  if (!empty_iterator) return;
 }
