@@ -683,6 +683,8 @@ else:
                 ROOTDIR = absroot
                 break
         assert s.startswith(absroot)
+        if absroot.endswith(os.sep):    #  'C:\'
+            absroot = absroot[:-1]
         assert s[len(absroot)] == os.sep
         relpath = s[len(absroot)+1:]
         result = os.path.join(ROOTDIR, relpath)
