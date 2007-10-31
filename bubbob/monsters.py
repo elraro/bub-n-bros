@@ -71,6 +71,11 @@ class Monster(ActiveSprite):
             else:
                 return self.mdef.left
 
+    def imgrange1(self):
+        # normally this is self.imgrange()[1]
+        lst = self.imgrange()
+        return lst[len(lst) > 1]
+
     def resetimages(self, is_ghost=0):
         self.is_ghost = is_ghost
         if self.gen:
@@ -213,7 +218,7 @@ class Monster(ActiveSprite):
                     self.setimages(None)
                 if dx and not self.blocked():
                     nx += self.vx*dx
-                    self.seticon(images.sprget(self.imgrange()[1]))
+                    self.seticon(images.sprget(self.imgrange1()))
             self.move(nx, ny)
             if self.y >= boards.bheight:
                 self.vertical_warp()
@@ -252,7 +257,7 @@ class Monster(ActiveSprite):
         for i in range(4):
             yield None
         self.dir = ndir
-        self.seticon(images.sprget(self.imgrange()[1]))
+        self.seticon(images.sprget(self.imgrange1()))
         for ny in range(self.y-4, limity-4, -4):
             self.move(self.x, ny)
             if ny < -32:
@@ -463,7 +468,7 @@ class Monster(ActiveSprite):
                     if not jumping_y:
                         self.setimages(imgsetter)
                     else:
-                        self.seticon(images.sprget(self.imgrange()[1]))
+                        self.seticon(images.sprget(self.imgrange1()))
                         self.setimages(None)
                 else:
                     self.setimages(None)
