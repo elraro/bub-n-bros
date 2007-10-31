@@ -576,9 +576,14 @@ def print_server_list():
                 if ':' in key:
                     try:
                         addr, _, _ = gethostbyaddr(key[:key.index(':')])
-                        print addr
                     except:
                         pass
+                    else:
+                        addr = '%-27s' % (addr,)
+                        if len(addr) < 28: addr += '|'
+                        addr = '%-60s' % (addr,)
+                        if len(addr) < 61: addr += '|'
+                        print addr
                 value = decodedict(value)
                 print ' %-25s | %-30s | %s' % (
                     key, value.get('desc', '<no description>'),
