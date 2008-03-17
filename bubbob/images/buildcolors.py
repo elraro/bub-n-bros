@@ -69,10 +69,11 @@ def initpalettelut ():
 
 def loadpalettesets (filename):
     global Palettes
-    import array
+    #import array
+    #Palettes = array.array ('I')
+    Palettes = []
     assert ((os.path.getsize (filename) % (PALETTESIZE * 3)) == 0)
     #print os.path.getsize (filename)
-    Palettes = array.array ('I')
     f = open (filename, 'rb')
     for i in range (os.path.getsize(filename) / (PALETTESIZE * 3)):
         for j in range (PALETTESIZE):

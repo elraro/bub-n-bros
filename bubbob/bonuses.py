@@ -1709,8 +1709,11 @@ except ImportError:
     Clock = None
 else:
     import new
-    def standard_build(self):
-        return new.instance(self.__class__)
+    try:
+        from statesaver import standard_build      # PyPy
+    except ImportError:
+        def standard_build(self):
+            return new.instance(self.__class__)
     boards.Copyable.inst_build = standard_build
     gamesrv.Sprite.inst_build = standard_build
 
@@ -1731,11 +1734,11 @@ else:
             boards.curboard,
             images.ActiveSprites,
             images.SpritesByLoc,
-            BubPlayer.__dict__,
+            BubPlayer.__dict__.items(),
             gamesrv.sprites,
             gamesrv.sprites_by_n,
             ps,
-            images.Snd.__dict__,
+            images.Snd.__dict__.items(),
             )
         #import pdb; pdb.set_trace()
         return statesaver.copy(topstate)
@@ -1745,12 +1748,22 @@ else:
          boards.curboard,
          images.ActiveSprites,
          images.SpritesByLoc,
-         BubPlayer.__dict__,
+         BubPlayerdictitems,
          gamesrv.sprites,
          gamesrv.sprites_by_n,
          ps,
-         images.Snd.__dict__,
+         imagesSnddictitems,
          ) = savedstate
+        for key, value in BubPlayerdictitems:
+            try:
+                setattr(BubPlayer, key, value)
+            except (AttributeError, TypeError):
+                pass
+        for key, value in imagesSnddictitems:
+            try:
+                setattr(images.Snd, key, value)
+            except (AttributeError, TypeError):
+                pass
 
         for p, d in zip(BubPlayer.PlayerList, ps):
             #if d is None:
