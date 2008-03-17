@@ -223,6 +223,43 @@ static int seqitercopy(PyObject* o2, PyObject* o)
   return 0;
 }
 
+#if PY_VERSION_HEX >= 0x02030000   /* 2.3 */
+typedef struct {
+	PyObject_HEAD
+	long it_index;
+	PyListObject *it_seq; /* Set to NULL when iterator is exhausted */
+} listiterobject;
+static PyTypeObject* PyListIter_TypePtr;
+
+static PyObject* listiterbuild(PyObject* o)
+{
+  listiterobject* iter = (listiterobject*) o;
+  if (iter->it_seq == NULL)
+    {
+      Py_INCREF(iter);  /* exhausted */
+      return (PyObject*) iter;
+    }
+  else
+    return PyList_Type.tp_iter((PyObject*) iter->it_seq);
+}
+
+static int listitercopy(PyObject* o2, PyObject* o)
+{
+  PyObject* x;
+  listiterobject* iter  = (listiterobject*) o;
+  listiterobject* iter2 = (listiterobject*) o2;
+
+  iter2->it_index = iter->it_index;
+  if (iter->it_seq != NULL)
+    {
+      x = copyrec((PyObject*) iter->it_seq);
+      Py_XDECREF(iter2->it_seq);
+      iter2->it_seq = (PyListObject*) x;
+    }
+  return 0;
+}
+#endif /* PY_VERSION_HEX >= 0x02030000 */
+
 
 /* HACKS HACKS HACKS */
 
@@ -428,6 +465,16 @@ static PyObject* copyrec(PyObject* o)
       if (seqitercopy(n, o)) goto fail;
       return n;
     }
+  #if PY_VERSION_HEX >= 0x02030000   /* 2.3 */
+  if (t == PyListIter_TypePtr)
+    {
+      n = listiterbuild(o);
+      if (!n || PyDict_SetItem(ss_memo, key, n)) goto fail;
+      if (listitercopy(n, o)) goto fail;
+      return n;
+    }
+  #endif
+
   ss_next_in_block++;
   return o;     /* reference no longer stored in 'fkey->o' */
 
@@ -497,7 +544,7 @@ static PyMethodDef StateSaverMethods[] = {
 void initstatesaver(void)
 {
   PyObject* m;
-  PyObject* x;
+  PyObject* x, *y;
   m = Py_InitModule("statesaver", StateSaverMethods);
   if (m == NULL)
     return;
@@ -514,4 +561,12 @@ void initstatesaver(void)
   empty_iterator = PyObject_GetIter(x);
   Py_DECREF(x);
   if (!empty_iterator) return;
+
+  x = PyList_New(0);
+  if (!x) return;
+  y = PyList_Type.tp_iter(x);
+  if (y) PyListIter_TypePtr = y->ob_type;
+  Py_XDECREF(y);
+  Py_DECREF(x);
+  if (!y) return;
 }
