@@ -194,7 +194,6 @@ typedef struct {
 	long      it_index;
 	PyObject *it_seq; /* Set to NULL when iterator is exhausted */
 } seqiterobject;
-
 static PyObject* seqiterbuild(PyObject* o)
 {
   seqiterobject* iter = (seqiterobject*) o;
@@ -206,7 +205,6 @@ static PyObject* seqiterbuild(PyObject* o)
   else
     return PySeqIter_New(iter->it_seq);
 }
-
 static int seqitercopy(PyObject* o2, PyObject* o)
 {
   PyObject* x;
@@ -224,13 +222,13 @@ static int seqitercopy(PyObject* o2, PyObject* o)
 }
 
 #if PY_VERSION_HEX >= 0x02030000   /* 2.3 */
+/* pff */
 typedef struct {
 	PyObject_HEAD
 	long it_index;
 	PyListObject *it_seq; /* Set to NULL when iterator is exhausted */
 } listiterobject;
 static PyTypeObject* PyListIter_TypePtr;
-
 static PyObject* listiterbuild(PyObject* o)
 {
   listiterobject* iter = (listiterobject*) o;
@@ -242,7 +240,6 @@ static PyObject* listiterbuild(PyObject* o)
   else
     return PyList_Type.tp_iter((PyObject*) iter->it_seq);
 }
-
 static int listitercopy(PyObject* o2, PyObject* o)
 {
   PyObject* x;
@@ -255,6 +252,39 @@ static int listitercopy(PyObject* o2, PyObject* o)
       x = copyrec((PyObject*) iter->it_seq);
       Py_XDECREF(iter2->it_seq);
       iter2->it_seq = (PyListObject*) x;
+    }
+  return 0;
+}
+
+typedef struct {
+	PyObject_HEAD
+	long it_index;
+	PyTupleObject *it_seq; /* Set to NULL when iterator is exhausted */
+} tupleiterobject;
+static PyTypeObject* PyTupleIter_TypePtr;
+static PyObject* tupleiterbuild(PyObject* o)
+{
+  tupleiterobject* iter = (tupleiterobject*) o;
+  if (iter->it_seq == NULL)
+    {
+      Py_INCREF(iter);  /* exhausted */
+      return (PyObject*) iter;
+    }
+  else
+    return PyTuple_Type.tp_iter((PyObject*) iter->it_seq);
+}
+static int tupleitercopy(PyObject* o2, PyObject* o)
+{
+  PyObject* x;
+  tupleiterobject* iter  = (tupleiterobject*) o;
+  tupleiterobject* iter2 = (tupleiterobject*) o2;
+
+  iter2->it_index = iter->it_index;
+  if (iter->it_seq != NULL)
+    {
+      x = copyrec((PyObject*) iter->it_seq);
+      Py_XDECREF(iter2->it_seq);
+      iter2->it_seq = (PyTupleObject*) x;
     }
   return 0;
 }
@@ -473,6 +503,13 @@ static PyObject* copyrec(PyObject* o)
       if (listitercopy(n, o)) goto fail;
       return n;
     }
+  if (t == PyTupleIter_TypePtr)
+    {
+      n = tupleiterbuild(o);
+      if (!n || PyDict_SetItem(ss_memo, key, n)) goto fail;
+      if (tupleitercopy(n, o)) goto fail;
+      return n;
+    }
   #endif
 
   ss_next_in_block++;
@@ -561,6 +598,7 @@ void initstatesaver(void)
   empty_iterator = PyObject_GetIter(x);
   Py_DECREF(x);
   if (!empty_iterator) return;
+  PyTupleIter_TypePtr = empty_iterator->ob_type;
 
   x = PyList_New(0);
   if (!x) return;

@@ -89,6 +89,25 @@ def test_exhausted_gen():
     py.test.raises(StopIteration, g2.next)
 
 def test_seqiter():
+    from UserList import UserList
+    seq = UserList([2, 4, 6, 8])
+    it = iter(seq)
+    assert it.next() == 2
+    assert it.next() == 4
+    it1 = statesaver.copy(it)
+    assert list(it) == [6, 8]
+    assert list(it1) == [6, 8]
+
+def test_tupleiter():
+    tup = (2, 4, 6, 8)
+    it = iter(tup)
+    assert it.next() == 2
+    assert it.next() == 4
+    it1 = statesaver.copy(it)
+    assert list(it) == [6, 8]
+    assert list(it1) == [6, 8]
+
+def test_listiter():
     lst = [2, 4, 6, 8]
     it = iter(lst)
     assert it.next() == 2
@@ -97,3 +116,12 @@ def test_seqiter():
     lst.append(10)
     assert list(it) == [6, 8, 10]
     assert list(it1) == [6, 8]
+
+def test_stringiter():
+    s = "hello"
+    it = iter(s)
+    assert it.next() == 'h'
+    assert it.next() == 'e'
+    it1 = statesaver.copy(it)
+    assert list(it) == ['l', 'l', 'o']
+    assert list(it1) == ['l', 'l', 'o']
