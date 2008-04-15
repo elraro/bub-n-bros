@@ -624,6 +624,25 @@ class RandomLevel(boarddef.Level):
                 for h in range(hx-hw/2,hx+hw/2):
                     self.clrw(h,y)
 
+    def remove_joined_blocks(self):
+        """Removes randomly placed, random sized blocks of walls.
+           The blocks are usually joined, or if not, they're offset so that
+           it's possible to move from one block to another by jumping.
+        """
+        self.reset(fill=True)
+        nrooms = randint(1, 4)
+        while nrooms:
+            nrooms -= 1;
+            x = 0
+            while x < self.WIDTH:
+                wid = randint(2,8)
+                hei = randint(2,6)
+                y = randint(2, self.HEIGHT - hei - 1)
+                for dx in range(wid):
+                    for dy in range(hei):
+                        self.clrw(x+dx, y+dy)
+                x += (wid - 1);
+
     def discrete_blocks(self, blocks = -1):
 	"""Put certain size blocks randomly, but so that they don't touch each other.
 	"""

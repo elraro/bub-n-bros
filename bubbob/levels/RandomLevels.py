@@ -63,7 +63,7 @@ class Shape:
     basemnstr = ChoiceParameter('basemnstr', MnstrNames)
     extramnstr = ChoiceParameter('extramnstr', range(4))
     samemnstr = BoolParameter('samemnstr')
-    baseshape = ChoiceParameter('baseshape', '   DBGMPRWZS')
+    baseshape = ChoiceParameter('baseshape', '   ODBGMPRWZS')
     rooms = BoolParameter('rooms')
     holes = BoolParameter('holes')
     lines = ChoiceParameter('lines', '   -/|')
@@ -197,6 +197,9 @@ class Shape:
             self.set_gens()
         if self.baseshape == 'M':
             lvl.genwalls.append((RandomLevel.mondrian,))
+            self.set_gens()
+        if self.baseshape == 'O':
+            lvl.genwalls.append((RandomLevel.remove_joined_blocks,))
             self.set_gens()
         if self.baseshape == 'S':
             lvl.genwalls.append((RandomLevel.platforms_reg,))
