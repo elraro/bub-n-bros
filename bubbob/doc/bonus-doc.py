@@ -90,6 +90,10 @@ print >> dfile, """<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
 """
 #" A stupid comment to stop emacs from mis-fontifying.
 
+class Potion4:
+    "Subgame!  For a while, let's play one of the seven mini-games."
+    nimage = 'potion4'
+
 # Some classes exists in more than one example just to increase their
 # probability. Removes the duplicate with the help of this dict.
 processed = {}
@@ -100,6 +104,8 @@ for bonus in bonuses.Classes:
     name = split_name(bonus.__name__)
     name.reverse()
     processed[bonus] = string.join(name)
+    if bonus is bonuses.Potion:
+        processed[Potion4] = string.join(name) + '.'
 
 def sorter(a,b):
     if a[1] == b[1]:
@@ -121,6 +127,8 @@ for clasindex, clas in enumerate(sorted_classes):
         i = 0
         l = len(bonus.nimages)
         for image in bonus.nimages:
+            if image == 'potion4':
+                continue
             create_image(name+`i`, sprmap[image])
             images += '<IMG SRC="images/%s%d.png" ALT="%s">' % (name,i,name)
             i += 1
@@ -135,7 +143,7 @@ for clasindex, clas in enumerate(sorted_classes):
     bigdoc = getattr(bonus, 'bigdoc', None) or ''
     if hasattr(bonus, 'bigbonus'):
         assert bigdoc, "missing 'bigdoc' on %r" % (bonus,)
-    if clasindex % 3 == 2:
+    if clasindex % 2 == 1:
         bgcolor = '"#E0FFE0"'
     else:
         bgcolor = 'white'
