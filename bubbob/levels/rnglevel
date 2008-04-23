@@ -162,6 +162,22 @@ class RandomLevel(boarddef.Level):
             if ((self.getw(x,y) == ' ') and (self.getw(x+1,y) == ' ')):
                 break
 
+    def enlarge_tiny_holes(self):
+        "Makes one-block size holes wider."
+        for x in range(self.WIDTH):
+            for y in range(self.HEIGHT):
+                if self.wmap[y][x] == ' ':
+                    single = 0
+                    for dx in range(x-1,x+2):
+                        for dy in range(y-1,y+2):
+                            if self.wmap[dy][dx] == '#':
+                                single = single + 1
+                    if single == 8:
+                        if x > (self.WIDTH / 2):
+                            self.clrw(x-1,y)
+                        else:
+                            self.clrw(x+1,y)
+
     def make_space(self, gens=-1):
         "Removes walls from a level, to make it more playable."
         if gens == -1:

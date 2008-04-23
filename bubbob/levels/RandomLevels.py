@@ -78,6 +78,7 @@ class Shape:
     makespace = BoolParameter('makespace', 0.8)
     straightfall = BoolParameter('straightfall', 0.8)
     mirrored = BoolParameter('mirrored', 0.4)
+    enlargeholes = BoolParameter('enlargeholes', 0.9)
 
     all_parameters = [name for name in locals().keys()
                       if not name.startswith('_')]
@@ -279,6 +280,9 @@ class Shape:
 
 	if self.mirrored:
 	    lvl.genwalls.append((RandomLevel.mirror, ))
+
+        if self.enlargeholes:
+            lvl.genwalls.append((RandomLevel.enlarge_tiny_holes, ))
 
         lvl.genwalls.append((RandomLevel.generate_wind, ))
         b = self.bonuses
