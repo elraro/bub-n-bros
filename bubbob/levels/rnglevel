@@ -170,7 +170,7 @@ class RandomLevel(boarddef.Level):
                     single = 0
                     for dx in range(x-1,x+2):
                         for dy in range(y-1,y+2):
-                            if self.wmap[dy][dx] == '#':
+                            if self.getw(dy,dx) == '#':
                                 single = single + 1
                     if single == 8:
                         if x > (self.WIDTH / 2):
