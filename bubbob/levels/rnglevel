@@ -670,7 +670,7 @@ class RandomLevel(boarddef.Level):
                 for dx in range(wid):
                     for dy in range(hei):
                         self.clrw(x+dx, y+dy)
-                x += (wid - 1);
+                x += wid + choice([-2,-2,-1,-1,0]);
 
     def discrete_blocks(self, blocks = -1):
 	"""Put certain size blocks randomly, but so that they don't touch each other.
