@@ -1186,7 +1186,10 @@ def scoreboard(reset=0, inplace=0, compresslimittime=0):
     else:
         ymin = 0
     if not brd.bonuslevel:
-        xyiconumber(DigitsMisc.digits_white, 2, 2, brd.num+1, lst, width=2)
+        if brd.num < 99:
+            xyiconumber(DigitsMisc.digits_white, 2, 2, brd.num+1, lst, width=2)
+        else:
+            xyiconumber(DigitsMisc.digits_white, 2, 2, brd.num+1, lst, width=3)
 
     # compress the scoreboard vertically if it doesn't fit
     ymin += HALFCELL

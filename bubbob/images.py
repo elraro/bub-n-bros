@@ -296,6 +296,8 @@ def haspat(n):
     return n in patmap
 
 def loadpattern(n, keycol=None):
+    if not haspat(n):
+        n = (n[0] % 100,) + n[1:]
     filename, rect = patmap[n]
     filename = os.path.join('tmp', filename)
     bitmap = gamesrv.getbitmap(filename, keycol)
