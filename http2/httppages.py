@@ -196,6 +196,8 @@ class PageServer:
             kwds['stepboard'] = int(options.stepboard)
         if options.limit == 'y':
             kwds['limitlives'] = int(options.lives)
+        if options.limitlifegain is not None:
+            kwds['lifegainlimit'] = int(options.lifegainlimit)
         if options.extralife is not None:
             kwds['extralife'] = int(options.extralife)
         if options.autoreset is not None:

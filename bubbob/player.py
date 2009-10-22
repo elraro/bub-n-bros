@@ -72,6 +72,7 @@ class Dragon(ActiveSprite):
         self.hatsprite = None
         self.hatangle = 1
         self.isdying = 0
+        self.lifegained = 0
         self.playing_fish = False
         if BubPlayer.SuperSheep:
             self.become_monster('Sheep', immed=1)
@@ -518,6 +519,7 @@ class Dragon(ActiveSprite):
 
     def enter_new_board(self):
         self.playing_fish = False
+        self.lifegained = 0
 
     def become_fish(self):
         self.playing_fish = True
@@ -745,6 +747,7 @@ class BubPlayer(gamesrv.Player):
         self.points = 0
         self.nextextralife = gamesrv.game.extralife
         self.lives = boards.get_lives()
+        self.lifegained = 0
         #self.badpoints = 0
         self.pcap = {}
         self.dragons = []
@@ -822,6 +825,7 @@ class BubPlayer(gamesrv.Player):
         rightplayers = [p for p in players if not p.start_left]
         self.start_left = (len(leftplayers) + random.random() <
                            len(rightplayers) + random.random())
+        self.lifegained = 0
 
     def savecaps(self):
         self.pcap = {}
@@ -927,12 +931,14 @@ class BubPlayer(gamesrv.Player):
             self.points = 0
         while self.points >= self.nextextralife:
             if self.lives is not None and self.lives > 0:
-                if self.dragons:
-                    dragon = random.choice(self.dragons)
-                    dragon.play(images.Snd.Extralife)
-                else:
-                    images.Snd.Extralife.play()
-                self.lives += 1
+                if gamesrv.game.lifegainlimit is None or self.lifegained < gamesrv.game.lifegainlimit:
+                    if self.dragons:
+                        dragon = random.choice(self.dragons)
+                        dragon.play(images.Snd.Extralife)
+                    else:
+                        images.Snd.Extralife.play()
+                    self.lives += 1
+                    self.lifegained += 1
             self.nextextralife += gamesrv.game.extralife
         if self.LimitScoreColor is not None and self.points >= self.LimitScore:
             boards.replace_boardgen(boards.game_over(), 1)

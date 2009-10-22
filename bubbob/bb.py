@@ -36,6 +36,7 @@ class BubBobGame(gamesrv.Game):
                  stepboard   = 1,
                  limitlives  = None,
                  extralife   = 50000,
+                 lifegainlimit = None,
                  autoreset   = 0,
                  metaserver  = 0,
                  monsters    = 0):
@@ -45,6 +46,7 @@ class BubBobGame(gamesrv.Game):
         self.beginboard = beginboard
         self.stepboard  = stepboard
         self.limitlives = limitlives
+        self.lifegainlimit = lifegainlimit
         self.extralife  = extralife
         self.autoreset  = autoreset
         self.metaserver = metaserver
@@ -219,6 +221,8 @@ def parse_cmdline(argv):
         print >> sys.stderr, '       --start #    synonym for --begin'
         print >> sys.stderr, '  -s#  --step #     advance board number by steps of # (default 1)'
         print >> sys.stderr, '  -l#  --lives #    limit the number of lives to #'
+        print >> sys.stderr, '       --extralife #    gain extra life every # points'
+        print >> sys.stderr, '       --limitlives #    max # of lives player can gain in one board'
         print >> sys.stderr, '  -M#  --monsters # multiply the number of monsters by #'
         print >> sys.stderr, '                      (default between 1.0 and 2.0 depending on # of players)'
         print >> sys.stderr, '  -i   --infinite   restart the server at the end of the game'
@@ -237,6 +241,7 @@ def parse_cmdline(argv):
         opts, args = getopt(argv, 'mb:s:l:M:ih',
                             ['metaserver', 'start=', 'step=',
                              'lives=', 'monsters=', 'infinite', 'help',
+                             'extralife=', 'limitlives=',
                              'saveurlto=', 'quiet', 'port=', 'makeimages'])
     except error, e:
         print >> sys.stderr, 'bb.py: %s' % str(e)
@@ -256,6 +261,10 @@ def parse_cmdline(argv):
             options['stepboard'] = int(value)
         elif key in ('-l', '--lives'):
             options['limitlives'] = int(value)
+        elif key in ('--limitlives'):
+            options['lifegainlimit'] = int(value)
+        elif key in ('--extralife'):
+            options['extralife'] = int(value)
         elif key in ('-M', '--monsters'):
             options['monsters'] = float(value)
         elif key in ('-i', '--infinite'):
