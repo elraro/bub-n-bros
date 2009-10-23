@@ -34,6 +34,7 @@ class BubBobGame(gamesrv.Game):
     def __init__(self, levelfile,
                  beginboard  = 1,
                  stepboard   = 1,
+                 finalboard  = 100,
                  limitlives  = None,
                  extralife   = 50000,
                  lifegainlimit = None,
@@ -44,6 +45,7 @@ class BubBobGame(gamesrv.Game):
         self.game_reset_gen = None
         self.levelfile  = levelfile
         self.beginboard = beginboard
+        self.finalboard = finalboard
         self.stepboard  = stepboard
         self.limitlives = limitlives
         self.lifegainlimit = lifegainlimit
@@ -219,6 +221,7 @@ def parse_cmdline(argv):
         print >> sys.stderr, '  -m  --metaserver  register the server on the Metaserver so anyone can join'
         print >> sys.stderr, '  -b#  --begin #    start at board number # (default 1)'
         print >> sys.stderr, '       --start #    synonym for --begin'
+        print >> sys.stderr, '       --final #    end at board number # (default 100)'
         print >> sys.stderr, '  -s#  --step #     advance board number by steps of # (default 1)'
         print >> sys.stderr, '  -l#  --lives #    limit the number of lives to #'
         print >> sys.stderr, '       --extralife #    gain extra life every # points'
@@ -241,7 +244,7 @@ def parse_cmdline(argv):
         opts, args = getopt(argv, 'mb:s:l:M:ih',
                             ['metaserver', 'start=', 'step=',
                              'lives=', 'monsters=', 'infinite', 'help',
-                             'extralife=', 'limitlives=',
+                             'extralife=', 'limitlives=', 'final=',
                              'saveurlto=', 'quiet', 'port=', 'makeimages'])
     except error, e:
         print >> sys.stderr, 'bb.py: %s' % str(e)
@@ -263,6 +266,11 @@ def parse_cmdline(argv):
             options['limitlives'] = int(value)
         elif key in ('--limitlives'):
             options['lifegainlimit'] = int(value)
+        elif key in ('--final'):
+            options['finalboard'] = int(value)
+            if options['finalboard'] < options['beginboard']:
+                print >> sys.stderr, 'bb.py: final board value must be larger than begin board.'
+                sys.exit(1)
         elif key in ('--extralife'):
             options['extralife'] = int(value)
         elif key in ('-M', '--monsters'):

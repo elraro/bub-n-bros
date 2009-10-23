@@ -45,7 +45,7 @@ class Board(Copyable):
             testline = self.walls[-1]
         self.holes = testline.find('  ') >= 0
         self.playingboard = 0
-        self.bonuslevel = not self.monsters
+        self.bonuslevel = not self.monsters or (gamesrv.game.finalboard is not None and self.num >= gamesrv.game.finalboard)
         self.cleaning_gen_state = 0
 
     def set_musics(self, prefix=[]):
@@ -208,20 +208,21 @@ class Board(Copyable):
                 else:
                     s.kill()
         # add monsters
-        import monsters
-        f_monsters = gamesrv.game.f_monsters
-        if f_monsters < 0.1:
-            f_monsters = max(1.0, min(2.0, (len(playing)-2)/2.2+1.0))
-        for mdef in self.monsters:
-            if not fastreenter:
-                yield 2
-            cls = getattr(monsters, mdef.__class__.__name__)
-            dir = mdef.dir
-            i = random.random()
-            while i < f_monsters:
-                cls(mdef, dir=dir)
-                dir = -dir
-                i += 1.0
+        if not self.bonuslevel:
+            import monsters
+            f_monsters = gamesrv.game.f_monsters
+            if f_monsters < 0.1:
+                f_monsters = max(1.0, min(2.0, (len(playing)-2)/2.2+1.0))
+            for mdef in self.monsters:
+                if not fastreenter:
+                    yield 2
+                cls = getattr(monsters, mdef.__class__.__name__)
+                dir = mdef.dir
+                i = random.random()
+                while i < f_monsters:
+                    cls(mdef, dir=dir)
+                    dir = -dir
+                    i += 1.0
         self.playingboard = 1
 
     def putwall(self, x, y, w=None):
@@ -588,8 +589,8 @@ def next_board(num=0, complete=1, fastreenter=False):
         num = brd.num
         if not inplace:
             num += gamesrv.game.stepboard
-            if num >= len(BoardList):
-                num = len(BoardList)-1
+            if num >= len(BoardList) or (gamesrv.game.finalboard is not None and num > gamesrv.game.finalboard):
+                num = gamesrv.game.beginboard
         for t in brd.leave(inplace=inplace):
             yield t
 

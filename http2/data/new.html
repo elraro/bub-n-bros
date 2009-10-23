@@ -115,10 +115,17 @@ for displayname, filename in Game.FnListBoards():
   <tr>
     <td width="20%%" bgcolor="#000080" align="center"><font size=+1 color="#FFFF00"><strong>Levels to play</strong></font></td>
     <td bgcolor="#C0C0FF">
-      start at level <input type=text name="beginboard" size=3 value="%(options.beginboard or 1)s">
-and go on <select name="stepboard"> %(
+      Start at level <input type=text name="beginboard" size=3 value="%(options.beginboard or 1)s">
+and go on ...
+    </td>
+    <td bgcolor="#C0C0FF">
+
+      <input type=radio %(nameval("lvlend", "y", 1))s>&nbsp;to the end of the level file</input><br>
+      <input type=radio %(nameval("lvlend", "n"))s>&nbsp;to</input> level <input type=text name="finallvl" size=3 value="%(options.finalboard or 100)s"><br>
+      skipping levels:
+ <select name="stepboard"> %(
 steps = [
-    (1, 'with all following levels'),
+    (1, 'none'),
     (2, 'by steps of 2 (skip every other level)')]
 for i in range(3, 10) + range(10, 30, 5):
     steps.append((i, 'by steps of %d levels' % i))

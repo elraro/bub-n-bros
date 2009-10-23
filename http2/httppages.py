@@ -192,6 +192,8 @@ class PageServer:
         kwds = {}
         if options.beginboard is not None:
             kwds['beginboard'] = int(options.beginboard)
+        if options.finalboard is not None:
+            kwds['finalboard'] = int(options.finalboard)
         if options.stepboard is not None:
             kwds['stepboard'] = int(options.stepboard)
         if options.limit == 'y':
