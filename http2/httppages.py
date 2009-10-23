@@ -192,11 +192,11 @@ class PageServer:
         kwds = {}
         if options.beginboard is not None:
             kwds['beginboard'] = int(options.beginboard)
-        if options.finalboard is not None:
+        if options.lvlend is not None and options.lvlend.startswith('n'):
             kwds['finalboard'] = int(options.finalboard)
         if options.stepboard is not None:
             kwds['stepboard'] = int(options.stepboard)
-        if options.limit == 'y':
+        if options.limit is not None and options.limit.startswith('y'):
             kwds['limitlives'] = int(options.lives)
         if options.limitlifegain is not None:
             kwds['lifegainlimit'] = int(options.lifegainlimit)
