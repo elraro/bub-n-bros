@@ -589,8 +589,10 @@ def next_board(num=0, complete=1, fastreenter=False):
         num = brd.num
         if not inplace:
             num += gamesrv.game.stepboard
-            if num >= len(BoardList) or (gamesrv.game.finalboard is not None and num > gamesrv.game.finalboard):
-                num = gamesrv.game.beginboard
+            if num >= len(BoardList):
+                num = len(BoardList)-1
+            if (gamesrv.game.finalboard is not None and num > gamesrv.game.finalboard):
+                num = gamesrv.game.finalboard
         for t in brd.leave(inplace=inplace):
             yield t
 
