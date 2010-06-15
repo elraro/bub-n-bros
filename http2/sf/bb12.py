@@ -123,7 +123,7 @@ def main():
                 f.seek(0, 2)
                 e = Entry(f)
                 if e.pos >= SIZEMAX:
-                    raise "Sorry, server database too big"
+                    raise Exception("Sorry, server database too big")
             hostname = string.split(srv, ':')[0]
             if '.' not in hostname:
                 Entry.Notice = 'Server hostname "%s" incomplete.' % hostname
