@@ -125,7 +125,11 @@ def no_handler_found(x, memo):
     return handler(x, memo)
 
 def copyrec(x, memo):
-    return type_handlers.get(x.__class__, no_handler_found)(x, memo)
+    try:
+        cls = x.__class__
+    except AttributeError:
+        return x      # 'cls' is likely an old-style class object
+    return type_handlers.get(cls, no_handler_found)(x, memo)
 
 def copy(x):
     return copyrec(x, {})
