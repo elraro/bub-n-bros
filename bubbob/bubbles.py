@@ -85,6 +85,7 @@ class Bubble(ActiveSprite):
             self.setimages(self.cyclic(imglist))
             self.warp = 1
             caught = [(bonus.points, bonus) for d in dragons
+                      if d.bubber is not author.bubber
                       for bonus in d.listcarrybonuses()
                       if isinstance(bonus, CatchNote)]
             caught.sort()

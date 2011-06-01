@@ -13,7 +13,7 @@ try:
 except ImportError:
     pass
 
-def create_image(name,source,extralines=0):
+def create_image(name,source,extralines=0,alt=''):
     if len(sys.argv) == 2 and sys.argv[1] == '-i':
         return
     print name, source
@@ -49,6 +49,16 @@ def create_image(name,source,extralines=0):
             rgb = chr(d)*3
             img.write(rgb)
     img.close()
+    return html_tag(name, alt)
+
+def html_tag(name, alt):
+    url = 'images/%s.png' % (name,)
+    f = open('doc/'+url, 'rb')
+    alldata = f.read()
+    f.close()
+    url = 'data:image/png;base64,' + alldata.encode('base64').replace('\n','')
+    return '<IMG SRC="%s" ALT="%s">' % (url, alt)
+
     
 def split_name(name):
     "Split a name into its words based on capitalisation."
@@ -129,14 +139,12 @@ for clasindex, clas in enumerate(sorted_classes):
         for image in bonus.nimages:
             if image == 'potion4':
                 continue
-            create_image(name+`i`, sprmap[image])
-            images += '<IMG SRC="images/%s%d.png" ALT="%s">' % (name,i,name)
+            images += create_image(name+`i`, sprmap[image], alt=name)
             i += 1
             if (l-3*(i/3) >= 3) and (i % 3) == 0:
                 images += '<br>'
     elif bonus.__dict__.has_key('nimage'):
-        create_image(name,sprmap[bonus.nimage])
-        images = '<IMG SRC="images/%s.png" ALT="%s">' % (name,name)
+        images = create_image(name, sprmap[bonus.nimage], alt=name)
     doc = bonus.__doc__
     if doc == None:
         doc = ''
