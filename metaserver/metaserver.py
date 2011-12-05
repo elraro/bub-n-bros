@@ -304,7 +304,12 @@ httpserver.register('mbub.png', httpserver.fileloader('mbub.png', 'image/png'))
 httpserver.register('home.png', httpserver.fileloader('home.png', 'image/png'))
 
 def openhttpsocket(port = META_SERVER_HTTP_PORT):
-    from BaseHTTPServer import HTTPServer as ServerClass
+    from BaseHTTPServer import HTTPServer
+    class ServerClass(HTTPServer):
+        def get_request(self):
+            sock, addr = self.socket.accept()
+            sock.settimeout(5.0)
+            return sock, addr
     HandlerClass = httpserver.MiniHandler
     server_address = ('', port)
     httpd = ServerClass(server_address, HandlerClass)
