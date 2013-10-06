@@ -3,9 +3,11 @@ from select import select
 from socket import *
 from metastruct import *
 
-METASERVER = ('codespeak.net', 8055)
-METASERVER_UDP = ('codespeak.net', 8055)
-METASERVER_URL = 'http://codespeak.net:8050/bub-n-bros.html'
+_SERVER = 'ctpug.org.za'
+
+METASERVER = (_SERVER, 8055)
+METASERVER_UDP = (_SERVER, 8055)
+METASERVER_URL = 'http://%s:8050/bub-n-bros.html' % (_SERVER,)
 VERSION_TAG = 1601
 
 def connect(failure=[]):
