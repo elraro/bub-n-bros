@@ -620,7 +620,7 @@ def schedule_launch(args):
 def launch(args):
     # platform-specific hacks
     print 'Running client ->  ', ' '.join(args)
-    if sys.platform == 'darwin':   # must start as a UI process
+    if 0:  # OLD CODE sys.platform == 'darwin':   # must start as a UI process
         import tempfile
         cmdname = tempfile.mktemp('_BubBob.py')
         f = open(cmdname, 'w')
