@@ -76,6 +76,7 @@ class MetaClientSrv(MessageSocket):
         import gamesrv
         gamesrv.removesocket('META', self.s)
         self.closed = 1
+        import pdb;pdb.set_trace()
         print >> sys.stderr, 'disconnected from the meta-server'
 
     def send_traceback(self):
@@ -425,6 +426,7 @@ class MetaClientCli:
                         return
                 data = self.s.recv(2048)
                 if not data:
+                    import pdb;pdb.set_trace()
                     print >> sys.stderr, 'disconnected from the meta-server'
                     sys.exit()
                 self.buffer += data

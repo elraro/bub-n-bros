@@ -15,6 +15,7 @@ META_SERVER_UDP_PORT = 8055
 IMAGE_DIR = "../bubbob/doc/images"
 ICONS = [open(os.path.join(IMAGE_DIR, s), 'rb').read()
          for s in os.listdir(IMAGE_DIR) if s.endswith('.png')]
+assert ICONS, "you need to run ../bubbob/doc/bonus-doc.py"
 MAX_SERVERS = 50
 MAX_CONNEXIONS = 60
 
