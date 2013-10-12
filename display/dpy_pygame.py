@@ -13,9 +13,20 @@ class Display:
     musthidemouse = 0
     mousevisible = 1
 
-    def __init__(self, width, height, title, transparency='yes', fullscreen='no'):
+    def __init__(self, width, height, title, transparency='yes',
+                 fullscreen='no', zoom='100%', smooth='yes',
+                 smoothfast='yes'):
         self.use_transparency = not transparency.startswith('n')
         self.use_fullscreen = fullscreen.startswith('y')
+        if zoom.endswith('%'):
+            zoom = zoom[:-1]
+        scale = float(zoom) / 100.0
+        iscale = int(scale+0.001)
+        if abs(scale - iscale) < 0.002:
+            scale = iscale
+        self.scale = scale
+        self.smooth = smooth.startswith('y')
+        self.smoothfast = smoothfast.startswith('y')
 
         # Initialize pygame
         pygame.init()
@@ -24,8 +35,11 @@ class Display:
         winstyle = HWSURFACE
         if self.use_fullscreen:
             winstyle |= FULLSCREEN
-        bestdepth = pygame.display.mode_ok((width, height), winstyle, 32)
-        self.screen = pygame.display.set_mode((width, height),
+        bestdepth = pygame.display.mode_ok((int(width * self.scale),
+                                            int(height * self.scale)),
+                                           winstyle, 32)
+        self.screen = pygame.display.set_mode((int(width * self.scale),
+                                               int(height * self.scale)),
                                               winstyle, bestdepth)
         self.offscreen = pygame.Surface((width, height))
         #decorate the game window
@@ -52,7 +66,7 @@ class Display:
 
     def mousebuttondown_handler(self, e):
         self.showmouse(1)
-        self.events_mouse.append(e.pos)
+        self.events_mouse.append(self.fixpos(e.pos))
         del self.events_mouse[:-8]
 
     def pixmap(self, w, h, data, colorkey=-1):
@@ -100,7 +114,18 @@ class Display:
             self.offscreen.blit(bitmap, (x, y))
 
     def flip(self):
-        self.screen.blit(self.offscreen, (0, 0))
+        offscreen = self.offscreen
+        if self.scale != 1:
+            w, h = offscreen.get_size()
+            w = int(w * self.scale)
+            h = int(h * self.scale)
+            if self.scale == 2 and self.smoothfast:
+                offscreen = pygame.transform.scale2x(offscreen)
+            elif self.smooth:
+                offscreen = pygame.transform.smoothscale(offscreen, (w, h))
+            else:
+                offscreen = pygame.transform.scale(offscreen, (w, h))
+        self.screen.blit(offscreen, (0, 0))
         pygame.display.flip()
         events_dispatch()
 
@@ -110,6 +135,12 @@ class Display:
 
     def clear(self):
         self.offscreen.fill([0,0,0,])
+
+    def fixpos(self, (x, y)):
+        if self.scale != 1:
+            x = int(x / self.scale)
+            y = int(y / self.scale)
+        return (x, y)
 
     def events_poll(self):
         while 1:
@@ -123,7 +154,7 @@ class Display:
                 self.events_key.append((e.key, KeyReleased))
                 del self.events_key[:-16]
             elif e.type == MOUSEBUTTONDOWN:
-                self.events_mouse.append(e.pos)
+                self.events_mouse.append(self.fixpos(e.pos))
                 del self.events_mouse[:-8]
             elif e.type == ENDMUSICEVENT:
                 self.next_music()
@@ -141,7 +172,7 @@ class Display:
         if position != self.prevposition:
             self.showmouse(1)
             self.prevposition = position
-            return position
+            return self.fixpos(position)
         else:
             return None
 
@@ -200,7 +231,15 @@ def htmloptionstext(nameval):
     return '''
 <%s> Full Screen (Esc key to exit)</input><%s><br>
 <%s> Draw slightly transparent bubbles</input><%s><br>
+Scale image by <%s size=5>%%<br>
+<%s> Smoothed scaled image</input><%s><br>
+<%s> Semi-smoothed scaled image (for 200%% only)</input><%s><br>
 ''' % (nameval("checkbox", "fullscreen", "yes", default="no"),
        nameval("hidden", "fullscreen", "no"),
        nameval("checkbox", "transparency", "yes", default="yes"),
-       nameval("hidden", "transparency", "no"))
+       nameval("hidden", "transparency", "no"),
+       nameval("text", "zoom", default="100"),
+       nameval("checkbox", "smooth", "yes", default="yes"),
+       nameval("hidden", "smooth", "no"),
+       nameval("checkbox", "smoothfast", "yes", default="no"),
+       nameval("hidden", "smoothfast", "no"))
